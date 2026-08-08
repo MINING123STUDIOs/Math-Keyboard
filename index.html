@@ -10,8 +10,9 @@
     --bg: #f5f6fa;
     --panel: #ffffff;
     --ink: #1e2430;
-    --muted: #5b6472;
+    --muted: #454d5e;
     --accent: #4f46e5;
+    --accent-strong: #4338ca;
     --accent-soft: #eef2ff;
     --border: #868ea0;
     --danger: #dc2626;
@@ -24,8 +25,9 @@
     --bg: #0f1117;
     --panel: #171a23;
     --ink: #e6e8ee;
-    --muted: #8b93a7;
-    --accent: #5a62ea;
+    --muted: #a2aabd;
+    --accent: #6469f0;
+    --accent-strong: #4338ca;
     --accent-soft: #232a45;
     --border: #5f687b;
     --danger: #f87171;
@@ -34,6 +36,22 @@
     --toast-ink: #111827;
   }
   * { box-sizing: border-box; }
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 10px 16px;
+    background: var(--accent-strong);
+    color: #fff;
+    border-radius: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip-link:focus-visible {
+    left: 0;
+  }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -90,11 +108,11 @@
   button:hover { background: var(--accent-soft); border-color: var(--accent); }
   button:active { transform: translateY(1px); }
   button.primary {
-    background: var(--accent);
+    background: var(--accent-strong);
     border-color: var(--accent);
     color: #fff;
   }
-  button.primary:hover { background: #4338ca; }
+  button.primary:hover { background: #3730a3; }
   main { max-width: 980px; margin: 0 auto; padding: 20px; }
   .output-wrap {
     background: var(--panel);
@@ -109,7 +127,7 @@
     border: none;
     resize: vertical;
     font-size: 22px;
-    line-height: 1.6;
+    line-height: 1.5;
     font-family: "STIX Two Math", "Latin Modern Math", "DejaVu Sans Math", "Cambria Math", "Times New Roman", serif;
     color: var(--ink);
   }
@@ -166,7 +184,7 @@
     flex-wrap: wrap;
   }
   .tabs button.active {
-    background: var(--accent);
+    background: var(--accent-strong);
     border-color: var(--accent);
     color: #fff;
   }
@@ -175,7 +193,7 @@
     padding: 7px 14px;
   }
   .tabs .group-row button.active {
-    background: var(--accent);
+    background: var(--accent-strong);
     border-color: var(--accent);
     color: #fff;
   }
@@ -188,6 +206,13 @@
     border-color: var(--accent);
     color: var(--ink);
     font-weight: 600;
+  }
+  .toolbar button,
+  .tabs .group-row button,
+  .tabs .cat-row button,
+  .recent button {
+    min-height: 44px;
+    min-width: 44px;
   }
   .pad {
     background: var(--panel);
@@ -205,14 +230,18 @@
     min-height: 52px;
     font-size: 22px;
     font-family: "STIX Two Math", "Latin Modern Math", "DejaVu Sans Math", "Cambria Math", "Times New Roman", serif;
-    padding: 4px;
-    position: relative;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    overflow-wrap: anywhere;
   }
   .grid button.text {
     font-family: inherit;
     font-size: 15px;
     font-weight: 500;
-    white-space: nowrap;
   }
   .grid button.wide {
     grid-column: span 2;
@@ -223,16 +252,11 @@
     font-size: 11px;
   }
   .grid button .name {
-    position: absolute;
-    bottom: 2px;
-    left: 7.5%;
-    right: 7.5%;
     font-family: "Segoe UI", system-ui, sans-serif;
-    font-size: 9px;
+    font-size: 11px;
+    line-height: 1.3;
     color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: 100%;
     opacity: 0;
     transition: opacity .15s;
   }
@@ -268,12 +292,12 @@
       padding: 8px 14px;
     }
     .tabs .group-row button {
-      min-height: 40px;
+      min-height: 44px;
       font-size: 14px;
       padding: 8px 14px;
     }
     .tabs .cat-row button {
-      min-height: 38px;
+      min-height: 44px;
       font-size: 13px;
       padding: 6px 12px;
     }
@@ -282,7 +306,7 @@
       font-size: 16px;
     }
     .recent button {
-      min-height: 38px;
+      min-height: 44px;
       font-size: 19px;
       padding: 6px 11px;
     }
@@ -298,14 +322,21 @@
     .pad { padding: 10px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+    button:active { transform: none; }
+    .toast { transform: translateX(-50%); }
+  }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to main content</a>
 <header>
   <h1>&sum; Math Keyboard</h1>
   <span class="tagline">click symbols to insert them</span>
   <div class="toolbar">
-    <button id="themeBtn" title="Toggle dark mode">&#9789;</button>
+    <button id="themeBtn" aria-label="Toggle dark mode" title="Toggle dark mode">&#9789;</button>
     <button id="copyBtn" class="primary">Copy</button>
     <button id="undoBtn">Undo</button>
     <button id="clearBtn">Clear</button>
@@ -313,7 +344,7 @@
   </div>
 </header>
 
-<main>
+<main id="main">
   <section class="output-wrap">
     <label class="sr-only" for="out">Math expression</label>
     <textarea id="out" placeholder="Type or click symbols…"></textarea>
@@ -328,8 +359,8 @@
   <nav class="tabs" id="tabs"></nav>
 
   <section class="pad">
-    <div class="grid" id="grid"></div>
-    <div class="count" id="count"></div>
+    <div class="grid" id="grid" role="tabpanel" aria-label="Symbol buttons"></div>
+    <div class="count" id="count" role="status"></div>
   </section>
 </main>
 
@@ -2782,6 +2813,310 @@ const SYMBOLS = {
     ["\u25FE", "black medium small square"],
     ["\u25FF", "lower right triangle"],
   ],
+  "Box Drawing": [
+    ["\u2500", "box drawings light horizontal"],
+    ["\u2501", "box drawings heavy horizontal"],
+    ["\u2502", "box drawings light vertical"],
+    ["\u2503", "box drawings heavy vertical"],
+    ["\u2504", "box drawings light triple dash horizontal"],
+    ["\u2505", "box drawings heavy triple dash horizontal"],
+    ["\u2506", "box drawings light triple dash vertical"],
+    ["\u2507", "box drawings heavy triple dash vertical"],
+    ["\u2508", "box drawings light quadruple dash horizontal"],
+    ["\u2509", "box drawings heavy quadruple dash horizontal"],
+    ["\u250A", "box drawings light quadruple dash vertical"],
+    ["\u250B", "box drawings heavy quadruple dash vertical"],
+    ["\u250C", "box drawings light down and right"],
+    ["\u250D", "box drawings down light and right heavy"],
+    ["\u250E", "box drawings down heavy and right light"],
+    ["\u250F", "box drawings heavy down and right"],
+    ["\u2510", "box drawings light down and left"],
+    ["\u2511", "box drawings down light and left heavy"],
+    ["\u2512", "box drawings down heavy and left light"],
+    ["\u2513", "box drawings heavy down and left"],
+    ["\u2514", "box drawings light up and right"],
+    ["\u2515", "box drawings up light and right heavy"],
+    ["\u2516", "box drawings up heavy and right light"],
+    ["\u2517", "box drawings heavy up and right"],
+    ["\u2518", "box drawings light up and left"],
+    ["\u2519", "box drawings up light and left heavy"],
+    ["\u251A", "box drawings up heavy and left light"],
+    ["\u251B", "box drawings heavy up and left"],
+    ["\u251C", "box drawings light vertical and right"],
+    ["\u251D", "box drawings vertical light and right heavy"],
+    ["\u251E", "box drawings up heavy and right down light"],
+    ["\u251F", "box drawings down heavy and right up light"],
+    ["\u2520", "box drawings vertical heavy and right light"],
+    ["\u2521", "box drawings down light and right up heavy"],
+    ["\u2522", "box drawings up light and right down heavy"],
+    ["\u2523", "box drawings heavy vertical and right"],
+    ["\u2524", "box drawings light vertical and left"],
+    ["\u2525", "box drawings vertical light and left heavy"],
+    ["\u2526", "box drawings up heavy and left down light"],
+    ["\u2527", "box drawings down heavy and left up light"],
+    ["\u2528", "box drawings vertical heavy and left light"],
+    ["\u2529", "box drawings down light and left up heavy"],
+    ["\u252A", "box drawings up light and left down heavy"],
+    ["\u252B", "box drawings heavy vertical and left"],
+    ["\u252C", "box drawings light down and horizontal"],
+    ["\u252D", "box drawings left heavy and right down light"],
+    ["\u252E", "box drawings right heavy and left down light"],
+    ["\u252F", "box drawings down light and horizontal heavy"],
+    ["\u2530", "box drawings down heavy and horizontal light"],
+    ["\u2531", "box drawings right light and left down heavy"],
+    ["\u2532", "box drawings left light and right down heavy"],
+    ["\u2533", "box drawings heavy down and horizontal"],
+    ["\u2534", "box drawings light up and horizontal"],
+    ["\u2535", "box drawings left heavy and right up light"],
+    ["\u2536", "box drawings right heavy and left up light"],
+    ["\u2537", "box drawings up light and horizontal heavy"],
+    ["\u2538", "box drawings up heavy and horizontal light"],
+    ["\u2539", "box drawings right light and left up heavy"],
+    ["\u253A", "box drawings left light and right up heavy"],
+    ["\u253B", "box drawings heavy up and horizontal"],
+    ["\u253C", "box drawings light vertical and horizontal"],
+    ["\u253D", "box drawings left heavy and right vertical light"],
+    ["\u253E", "box drawings right heavy and left vertical light"],
+    ["\u253F", "box drawings vertical light and horizontal heavy"],
+    ["\u2540", "box drawings up heavy and down horizontal light"],
+    ["\u2541", "box drawings down heavy and up horizontal light"],
+    ["\u2542", "box drawings vertical heavy and horizontal light"],
+    ["\u2543", "box drawings left up heavy and right down light"],
+    ["\u2544", "box drawings right up heavy and left down light"],
+    ["\u2545", "box drawings left down heavy and right up light"],
+    ["\u2546", "box drawings right down heavy and left up light"],
+    ["\u2547", "box drawings down light and up horizontal heavy"],
+    ["\u2548", "box drawings up light and down horizontal heavy"],
+    ["\u2549", "box drawings right light and left vertical heavy"],
+    ["\u254A", "box drawings left light and right vertical heavy"],
+    ["\u254B", "box drawings heavy vertical and horizontal"],
+    ["\u254C", "box drawings light double dash horizontal"],
+    ["\u254D", "box drawings heavy double dash horizontal"],
+    ["\u254E", "box drawings light double dash vertical"],
+    ["\u254F", "box drawings heavy double dash vertical"],
+    ["\u2550", "box drawings double horizontal"],
+    ["\u2551", "box drawings double vertical"],
+    ["\u2552", "box drawings down single and right double"],
+    ["\u2553", "box drawings down double and right single"],
+    ["\u2554", "box drawings double down and right"],
+    ["\u2555", "box drawings down single and left double"],
+    ["\u2556", "box drawings down double and left single"],
+    ["\u2557", "box drawings double down and left"],
+    ["\u2558", "box drawings up single and right double"],
+    ["\u2559", "box drawings up double and right single"],
+    ["\u255A", "box drawings double up and right"],
+    ["\u255B", "box drawings up single and left double"],
+    ["\u255C", "box drawings up double and left single"],
+    ["\u255D", "box drawings double up and left"],
+    ["\u255E", "box drawings vertical single and right double"],
+    ["\u255F", "box drawings vertical double and right single"],
+    ["\u2560", "box drawings double vertical and right"],
+    ["\u2561", "box drawings vertical single and left double"],
+    ["\u2562", "box drawings vertical double and left single"],
+    ["\u2563", "box drawings double vertical and left"],
+    ["\u2564", "box drawings down single and horizontal double"],
+    ["\u2565", "box drawings down double and horizontal single"],
+    ["\u2566", "box drawings double down and horizontal"],
+    ["\u2567", "box drawings up single and horizontal double"],
+    ["\u2568", "box drawings up double and horizontal single"],
+    ["\u2569", "box drawings double up and horizontal"],
+    ["\u256A", "box drawings vertical single and horizontal double"],
+    ["\u256B", "box drawings vertical double and horizontal single"],
+    ["\u256C", "box drawings double vertical and horizontal"],
+    ["\u256D", "box drawings light arc down and right"],
+    ["\u256E", "box drawings light arc down and left"],
+    ["\u256F", "box drawings light arc up and left"],
+    ["\u2570", "box drawings light arc up and right"],
+    ["\u2571", "box drawings light diagonal upper right to lower left"],
+    ["\u2572", "box drawings light diagonal upper left to lower right"],
+    ["\u2573", "box drawings light diagonal cross"],
+    ["\u2574", "box drawings light left"],
+    ["\u2575", "box drawings light up"],
+    ["\u2576", "box drawings light right"],
+    ["\u2577", "box drawings light down"],
+    ["\u2578", "box drawings heavy left"],
+    ["\u2579", "box drawings heavy up"],
+    ["\u257A", "box drawings heavy right"],
+    ["\u257B", "box drawings heavy down"],
+    ["\u257C", "box drawings light left and heavy right"],
+    ["\u257D", "box drawings light up and heavy down"],
+    ["\u257E", "box drawings heavy left and light right"],
+    ["\u257F", "box drawings heavy up and light down"],
+  ],
+  "Block Elements": [
+    ["\u2580", "upper half block"],
+    ["\u2581", "lower one eighth block"],
+    ["\u2582", "lower one quarter block"],
+    ["\u2583", "lower three eighths block"],
+    ["\u2584", "lower half block"],
+    ["\u2585", "lower five eighths block"],
+    ["\u2586", "lower three quarters block"],
+    ["\u2587", "lower seven eighths block"],
+    ["\u2588", "full block"],
+    ["\u2589", "left seven eighths block"],
+    ["\u258A", "left three quarters block"],
+    ["\u258B", "left five eighths block"],
+    ["\u258C", "left half block"],
+    ["\u258D", "left three eighths block"],
+    ["\u258E", "left one quarter block"],
+    ["\u258F", "left one eighth block"],
+    ["\u2590", "right half block"],
+    ["\u2591", "light shade"],
+    ["\u2592", "medium shade"],
+    ["\u2593", "dark shade"],
+    ["\u2594", "upper one eighth block"],
+    ["\u2595", "right one eighth block"],
+    ["\u2596", "quadrant lower left"],
+    ["\u2597", "quadrant lower right"],
+    ["\u2598", "quadrant upper left"],
+    ["\u2599", "quadrant upper left and lower left and lower right"],
+    ["\u259A", "quadrant upper left and lower right"],
+    ["\u259B", "quadrant upper left and upper right and lower left"],
+    ["\u259C", "quadrant upper left and upper right and lower right"],
+    ["\u259D", "quadrant upper right"],
+    ["\u259E", "quadrant upper right and lower left"],
+    ["\u259F", "quadrant upper right and lower left and lower right"],
+  ],
+  "Geometric Shapes Extended": [
+    ["\u{1F780}", "black left-pointing isosceles right triangle"],
+    ["\u{1F781}", "black up-pointing isosceles right triangle"],
+    ["\u{1F782}", "black right-pointing isosceles right triangle"],
+    ["\u{1F783}", "black down-pointing isosceles right triangle"],
+    ["\u{1F784}", "black slightly small circle"],
+    ["\u{1F785}", "medium bold white circle"],
+    ["\u{1F786}", "bold white circle"],
+    ["\u{1F787}", "heavy white circle"],
+    ["\u{1F788}", "very heavy white circle"],
+    ["\u{1F789}", "extremely heavy white circle"],
+    ["\u{1F78A}", "white circle containing black small circle"],
+    ["\u{1F78B}", "round target"],
+    ["\u{1F78C}", "black tiny square"],
+    ["\u{1F78D}", "black slightly small square"],
+    ["\u{1F78E}", "light white square"],
+    ["\u{1F78F}", "medium white square"],
+    ["\u{1F790}", "bold white square"],
+    ["\u{1F791}", "heavy white square"],
+    ["\u{1F792}", "very heavy white square"],
+    ["\u{1F793}", "extremely heavy white square"],
+    ["\u{1F794}", "white square containing black very small square"],
+    ["\u{1F795}", "white square containing black medium square"],
+    ["\u{1F796}", "square target"],
+    ["\u{1F797}", "black tiny diamond"],
+    ["\u{1F798}", "black very small diamond"],
+    ["\u{1F799}", "black medium small diamond"],
+    ["\u{1F79A}", "white diamond containing black very small diamond"],
+    ["\u{1F79B}", "white diamond containing black medium diamond"],
+    ["\u{1F79C}", "diamond target"],
+    ["\u{1F79D}", "black tiny lozenge"],
+    ["\u{1F79E}", "black very small lozenge"],
+    ["\u{1F79F}", "black medium small lozenge"],
+    ["\u{1F7A0}", "white lozenge containing black small lozenge"],
+    ["\u{1F7A1}", "thin greek cross"],
+    ["\u{1F7A2}", "light greek cross"],
+    ["\u{1F7A3}", "medium greek cross"],
+    ["\u{1F7A4}", "bold greek cross"],
+    ["\u{1F7A5}", "very bold greek cross"],
+    ["\u{1F7A6}", "very heavy greek cross"],
+    ["\u{1F7A7}", "extremely heavy greek cross"],
+    ["\u{1F7A8}", "thin saltire"],
+    ["\u{1F7A9}", "light saltire"],
+    ["\u{1F7AA}", "medium saltire"],
+    ["\u{1F7AB}", "bold saltire"],
+    ["\u{1F7AC}", "heavy saltire"],
+    ["\u{1F7AD}", "very heavy saltire"],
+    ["\u{1F7AE}", "extremely heavy saltire"],
+    ["\u{1F7AF}", "light five spoked asterisk"],
+    ["\u{1F7B0}", "medium five spoked asterisk"],
+    ["\u{1F7B1}", "bold five spoked asterisk"],
+    ["\u{1F7B2}", "heavy five spoked asterisk"],
+    ["\u{1F7B3}", "very heavy five spoked asterisk"],
+    ["\u{1F7B4}", "extremely heavy five spoked asterisk"],
+    ["\u{1F7B5}", "light six spoked asterisk"],
+    ["\u{1F7B6}", "medium six spoked asterisk"],
+    ["\u{1F7B7}", "bold six spoked asterisk"],
+    ["\u{1F7B8}", "heavy six spoked asterisk"],
+    ["\u{1F7B9}", "very heavy six spoked asterisk"],
+    ["\u{1F7BA}", "extremely heavy six spoked asterisk"],
+    ["\u{1F7BB}", "light eight spoked asterisk"],
+    ["\u{1F7BC}", "medium eight spoked asterisk"],
+    ["\u{1F7BD}", "bold eight spoked asterisk"],
+    ["\u{1F7BE}", "heavy eight spoked asterisk"],
+    ["\u{1F7BF}", "very heavy eight spoked asterisk"],
+    ["\u{1F7C0}", "light three pointed black star"],
+    ["\u{1F7C1}", "medium three pointed black star"],
+    ["\u{1F7C2}", "three pointed black star"],
+    ["\u{1F7C3}", "medium three pointed pinwheel star"],
+    ["\u{1F7C4}", "light four pointed black star"],
+    ["\u{1F7C5}", "medium four pointed black star"],
+    ["\u{1F7C6}", "four pointed black star"],
+    ["\u{1F7C7}", "medium four pointed pinwheel star"],
+    ["\u{1F7C8}", "reverse light four pointed pinwheel star"],
+    ["\u{1F7C9}", "light five pointed black star"],
+    ["\u{1F7CA}", "heavy five pointed black star"],
+    ["\u{1F7CB}", "medium six pointed black star"],
+    ["\u{1F7CC}", "heavy six pointed black star"],
+    ["\u{1F7CD}", "six pointed pinwheel star"],
+    ["\u{1F7CE}", "medium eight pointed black star"],
+    ["\u{1F7CF}", "heavy eight pointed black star"],
+    ["\u{1F7D0}", "very heavy eight pointed black star"],
+    ["\u{1F7D1}", "heavy eight pointed pinwheel star"],
+    ["\u{1F7D2}", "light twelve pointed black star"],
+    ["\u{1F7D3}", "heavy twelve pointed black star"],
+    ["\u{1F7D4}", "heavy twelve pointed pinwheel star"],
+    ["\u{1F7D5}", "circled triangle"],
+    ["\u{1F7D6}", "negative circled triangle"],
+    ["\u{1F7D7}", "circled square"],
+    ["\u{1F7D8}", "negative circled square"],
+    ["\u{1F7D9}", "nine pointed white star"],
+    ["\u{1F7E0}", "large orange circle"],
+    ["\u{1F7E1}", "large yellow circle"],
+    ["\u{1F7E2}", "large green circle"],
+    ["\u{1F7E3}", "large purple circle"],
+    ["\u{1F7E4}", "large brown circle"],
+    ["\u{1F7E5}", "large red square"],
+    ["\u{1F7E6}", "large blue square"],
+    ["\u{1F7E7}", "large orange square"],
+    ["\u{1F7E8}", "large yellow square"],
+    ["\u{1F7E9}", "large green square"],
+    ["\u{1F7EA}", "large purple square"],
+    ["\u{1F7EB}", "large brown square"],
+    ["\u{1F7F0}", "heavy equals sign"],
+  ],
+  "More Shapes": [
+    ["\u2680", "die face-1"],
+    ["\u2681", "die face-2"],
+    ["\u2682", "die face-3"],
+    ["\u2683", "die face-4"],
+    ["\u2684", "die face-5"],
+    ["\u2685", "die face-6"],
+    ["\u26AA", "medium white circle"],
+    ["\u26AB", "medium black circle"],
+    ["\u2B1A", "dotted square"],
+    ["\u2B1B", "black large square"],
+    ["\u2B1C", "white large square"],
+    ["\u2B1D", "black very small square"],
+    ["\u2B1E", "white very small square"],
+    ["\u2B1F", "black pentagon"],
+    ["\u2B20", "white pentagon"],
+    ["\u2B21", "white hexagon"],
+    ["\u2B22", "black hexagon"],
+    ["\u2B23", "horizontal black hexagon"],
+    ["\u2B24", "black large circle"],
+    ["\u2B25", "black medium diamond"],
+    ["\u2B26", "white medium diamond"],
+    ["\u2B27", "black medium lozenge"],
+    ["\u2B28", "white medium lozenge"],
+    ["\u2B29", "black small diamond"],
+    ["\u2B2A", "black small lozenge"],
+    ["\u2B2B", "white small lozenge"],
+    ["\u2B2C", "black horizontal ellipse"],
+    ["\u2B2D", "white horizontal ellipse"],
+    ["\u2B2E", "black vertical ellipse"],
+    ["\u2B2F", "white vertical ellipse"],
+    ["\u2B30", "left arrow with small circle"],
+    ["\u2B50", "white medium star"],
+    ["\u2B55", "heavy large circle"],
+  ],
   "More Arrows": [
     ["\u219E", "leftwards two headed arrow"],
     ["\u219F", "upwards two headed arrow"],
@@ -3499,37 +3834,12 @@ const SYMBOLS = {
   ]
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const GROUPS = [
   ["Frequently Used", ["Most Used", "Common", "Occasional"]],
   ["Basic Math", ["Basic Operators", "Relations & Comparisons", "Set Theory", "Logic", "Number Theory", "Fractions & Roots", "More Math Symbols"]],
   ["Functions", ["Trig Functions", "Logs & Powers", "Limits & Extrema", "Special Functions", "Probability & Statistics", "Linear Algebra", "Units & Layout"]],
   ["Calculus", ["Calculus", "Sums & Products", "Differentials"]],
-  ["Geometry", ["Angles & Geometry", "Geometric Shapes"]],
+  ["Geometry", ["Angles & Geometry", "Geometric Shapes", "Box Drawing", "Block Elements", "Geometric Shapes Extended", "More Shapes"]],
   ["Arrows", ["Basic Arrows", "Long Arrows", "Double Arrows", "Harpoons", "Squiggle & Dashed Arrows", "More Arrows"]],
   ["Symbols", ["Brackets & Delimiters", "Punctuation", "Letterlike Symbols", "Technical Symbols", "Combining Marks"]],
   ["Greek", ["Greek Letters", "Greek Variants", "Greek Bold", "Greek Italic", "Greek Bold Italic", "Greek Sans-serif Bold", "Greek Sans-serif Bold Italic"]],
@@ -3538,32 +3848,6 @@ const GROUPS = [
   ["Category Theory", ["Category Theory"]],
   ["LaTeX", ["LaTeX Essentials", "LaTeX Greek", "LaTeX Relations", "LaTeX Logic & Sets", "LaTeX Arrows", "LaTeX Operators", "LaTeX Accents", "LaTeX Structures", "LaTeX Blackboard & Calligraphic", "LaTeX Spacing"]],
 ];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const output = document.getElementById("out");
 const grid = document.getElementById("grid");
@@ -3616,6 +3900,7 @@ function addRecent(symbol) {
   }
   const btn = document.createElement("button");
   btn.dataset.s = symbol;
+  if (/[\u3000-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/.test(symbol)) btn.lang = "ja";
   btn.textContent = symbol;
   btn.title = symbol;
   btn.addEventListener("click", () => insertAtCursor(symbol));
@@ -3652,6 +3937,7 @@ function render() {
     const btn = document.createElement("button");
     const anchor = sym.indexOf("\u0001");
     const clean = anchor === -1 ? sym : sym.replace(/\u0001/g, "");
+    if (/[\u3000-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/.test(clean)) btn.lang = "ja";
     btn.textContent = clean;
     btn.title = name + " (" + clean + ")";
     btn.dataset.sym = clean;
@@ -3667,28 +3953,36 @@ function render() {
   }
 }
 
+function rebuild() {
+  const ae = document.activeElement;
+  const row = ae && ae.parentNode;
+  const rowIdx = row ? Array.from(tabs.children).indexOf(row) : -1;
+  const idx = row ? Array.from(row.children).indexOf(ae) : -1;
+  buildTabs(); render();
+  if (rowIdx >= 0 && idx >= 0 && tabs.children[rowIdx] && tabs.children[rowIdx].children[idx]) {
+    tabs.children[rowIdx].children[idx].focus();
+  }
+}
+
 function buildTabs() {
   tabs.innerHTML = "";
   const groupRow = document.createElement("div");
   groupRow.className = "group-row";
-  const allBtn = document.createElement("button");
-  allBtn.textContent = "All";
-  allBtn.classList.toggle("active", currentGroup === "__all");
-  allBtn.addEventListener("click", () => {
+  groupRow.setAttribute("role", "tablist");
+  groupRow.setAttribute("aria-label", "Symbol groups");
+  addTablistKeys(groupRow);
+  const allBtn = makeTabButton("All", currentGroup === "__all", () => {
     currentGroup = "__all";
     currentTab = "__all";
-    buildTabs(); render();
+    rebuild();
   });
   groupRow.appendChild(allBtn);
   for (const [group] of GROUPS) {
-    const b = document.createElement("button");
-    b.textContent = group;
-    b.classList.toggle("active", currentGroup === group);
-    b.addEventListener("click", () => {
+    const b = makeTabButton(group, currentGroup === group, () => {
       currentGroup = group;
       const first = GROUPS.find(g => g[0] === group)[1][0];
       currentTab = first;
-      buildTabs(); render();
+      rebuild();
     });
     groupRow.appendChild(b);
   }
@@ -3696,24 +3990,55 @@ function buildTabs() {
 
   const catRow = document.createElement("div");
   catRow.className = "cat-row";
+  catRow.setAttribute("role", "tablist");
+  catRow.setAttribute("aria-label", "Symbol categories");
+  addTablistKeys(catRow);
   const cats = currentGroup === "__all"
     ? Object.keys(SYMBOLS)
     : GROUPS.find(g => g[0] === currentGroup)[1];
   if (currentGroup !== "__all") {
-    const b = document.createElement("button");
-    b.textContent = "All";
-    b.classList.toggle("active", currentTab === "__all");
-    b.addEventListener("click", () => { currentTab = "__all"; buildTabs(); render(); });
+    const b = makeTabButton("All", currentTab === "__all", () => { currentTab = "__all"; rebuild(); });
     catRow.appendChild(b);
   }
   for (const cat of cats) {
-    const b = document.createElement("button");
-    b.textContent = cat;
-    b.classList.toggle("active", currentTab === cat);
-    b.addEventListener("click", () => { currentTab = cat; buildTabs(); render(); });
+    const b = makeTabButton(cat, currentTab === cat, () => { currentTab = cat; rebuild(); });
     catRow.appendChild(b);
   }
   tabs.appendChild(catRow);
+}
+
+function makeTabButton(label, isActive, onClick) {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.setAttribute("role", "tab");
+  b.setAttribute("aria-selected", isActive ? "true" : "false");
+  b.setAttribute("aria-controls", "grid");
+  b.tabIndex = isActive ? 0 : -1;
+  b.classList.toggle("active", isActive);
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function addTablistKeys(rowEl) {
+  rowEl.addEventListener("keydown", e => {
+    const key = e.key;
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(key)) return;
+    e.preventDefault();
+    const rowTabs = Array.from(rowEl.querySelectorAll('[role="tab"]'));
+    if (!rowTabs.length) return;
+    let idx = rowTabs.indexOf(document.activeElement);
+    if (idx === -1) idx = 0;
+    let next;
+    if (key === "Home") next = 0;
+    else if (key === "End") next = rowTabs.length - 1;
+    else if (key === "ArrowRight") next = (idx + 1) % rowTabs.length;
+    else next = (idx - 1 + rowTabs.length) % rowTabs.length;
+    const rowIdx = Array.from(tabs.children).indexOf(rowEl);
+    rowTabs[next].click();
+    const newRow = tabs.children[rowIdx];
+    const rebuilt = newRow ? Array.from(newRow.querySelectorAll('[role="tab"]')) : [];
+    if (rebuilt[next]) rebuilt[next].focus();
+  });
 }
 
 search.addEventListener("input", render);
