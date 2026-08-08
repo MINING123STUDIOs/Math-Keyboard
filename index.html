@@ -207,22 +207,26 @@
     font-family: "STIX Two Math", "Latin Modern Math", "DejaVu Sans Math", "Cambria Math", "Times New Roman", serif;
     padding: 4px;
     position: relative;
-    content-visibility: auto;
   }
   .grid button.text {
     font-family: inherit;
     font-size: 15px;
     font-weight: 500;
+    white-space: nowrap;
   }
   .grid button.wide {
     grid-column: span 2;
     font-size: 13px;
   }
+  .grid button.wide3 {
+    grid-column: span 3;
+    font-size: 11px;
+  }
   .grid button .name {
     position: absolute;
-    bottom: -6px;
-    left: 0;
-    right: 0;
+    bottom: 2px;
+    left: 7.5%;
+    right: 7.5%;
     font-family: "Segoe UI", system-ui, sans-serif;
     font-size: 9px;
     color: var(--muted);
@@ -3518,6 +3522,8 @@ const SYMBOLS = {
 
 
 
+
+
 const GROUPS = [
   ["Frequently Used", ["Most Used", "Common", "Occasional"]],
   ["Basic Math", ["Basic Operators", "Relations & Comparisons", "Set Theory", "Logic", "Number Theory", "Fractions & Roots", "More Math Symbols"]],
@@ -3532,6 +3538,8 @@ const GROUPS = [
   ["Category Theory", ["Category Theory"]],
   ["LaTeX", ["LaTeX Essentials", "LaTeX Greek", "LaTeX Relations", "LaTeX Logic & Sets", "LaTeX Arrows", "LaTeX Operators", "LaTeX Accents", "LaTeX Structures", "LaTeX Blackboard & Calligraphic", "LaTeX Spacing"]],
 ];
+
+
 
 
 
@@ -3651,7 +3659,8 @@ function render() {
     let display = clean;
     if (clean.trim() === "" && clean.length <= 1) display = "\u2423";
     if (clean.length > 1 || clean.trim() === "") btn.classList.add("text");
-    if (clean.length >= 10) btn.classList.add("wide");
+    if (clean.length > 17) btn.classList.add("wide3");
+    else if (clean.length > 6) btn.classList.add("wide");
     btn.innerHTML = '<span>' + (isComb ? "\u25cc" + clean : display) + '</span><span class="name">' + name + "</span>";
     btn.addEventListener("click", () => insertAtCursor(sym));
     grid.appendChild(btn);
