@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elementary CA Explorer</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #14141e; color: #eaeaea; font-family: sans-serif; overflow: hidden; display: flex; height: 100vh; }
+  #left { width: 300px; min-width: 260px; padding: 14px; overflow-y: auto; background: #1b1b2a; display: flex; flex-direction: column; gap: 10px; }
+  #left h1 { font-size: 16px; margin: 0; }
+  #left h2 { font-size: 12px; margin: 14px 0 6px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+  .row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  button {
+    border: none; cursor: pointer; padding: 7px 12px; border-radius: 10px;
+    background: #2d3561; color: #fff; font-size: 13px; transition: transform 0.1s;
+  }
+  button:hover { transform: scale(1.04); }
+  button.primary { background: #e74c3c; }
+  input[type="range"] { width: 100%; cursor: pointer; }
+  #ruleVal { font-size: 22px; font-weight: bold; color: #ffd166; }
+  .rulebox { display: flex; gap: 8px; align-items: center; }
+  .rulebox input[type="number"] {
+    width: 72px; padding: 5px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 15px;
+  }
+  label { font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 6px; }
+  #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 3px; }
+  .card { cursor: pointer; border: 2px solid #333; border-radius: 4px; padding: 1px; background: #000; }
+  .card.active { border-color: #ffd166; }
+  .card canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; }
+  .card .rnum { font-size: 8px; color: #777; text-align: center; }
+  #main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
+  canvas#game { background: #0a0a12; image-rendering: pixelated; }
+  #footer { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.35); font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="left">
+  <h1>Elementary Cellular Automaton</h1>
+  <div class="rulebox">
+    <div>
+      <div style="font-size:11px;color:#999;">Rule</div>
+      <span id="ruleVal">30</span>
+    </div>
+    <input type="number" id="ruleInput" min="0" max="255" value="30">
+    <button id="stepBtn" title="Single step">Step</button>
+  </div>
+  <input type="range" id="ruleSlider" min="0" max="255" value="30">
+  <div class="row">
+    <button id="rule30" class="primary">Rule 30</button>
+    <button id="randRule">Random</button>
+  </div>
+  <div class="row">
+    <button id="pause">⏸ Pause</button>
+    <button id="reset">Reset</button>
+    <span>⚡</span>
+    <input type="range" id="speed" min="0.5" max="60" step="0.5" value="20">
+  </div>
+  <label><input type="checkbox" id="wrap"> Wrap edges</label>
+  <label><input type="checkbox" id="randSeed"> Random seed row</label>
+  <h2>Special rules</h2>
+  <div class="row" style="flex-wrap:wrap;">
+    <button data-special="30" class="primary">Rule 30 · Chaos</button>
+    <button data-special="90">Rule 90 · Sierpinski</button>
+    <button data-special="110">Rule 110 · Turing-complete</button>
+    <button data-special="184">Rule 184 · Traffic</button>
+    <button data-special="73">Rule 73 · Spirals</button>
+    <button data-special="105">Rule 105 · Symmetric</button>
+    <button data-special="54">Rule 54 · Gliders</button>
+    <button data-special="150">Rule 150 · XOR</button>
+    <button data-special="222">Rule 222 · Walls</button>
+    <button data-special="4">Rule 4 · Decay</button>
+  </div>
+  <h2>All 256 rules</h2>
+  <div id="gallery"></div>
+</div>
+<div id="main">
+  <canvas id="game"></canvas>
+</div>
+<div id="footer">Every elementary CA rule (0–255). Famous: 30 (random-looking), 90 (Sierpinski), 110 (Turing-complete), 184 (traffic)</div>
+<script>
+const game = document.getElementById('game');
+const ctx = game.getContext('2d');
+const CS = 2;
+const cols = 520;
+const rows = 420;
+game.width = cols * CS;
+game.height = rows * CS;
+
+let rule = 30;
+let wrap = false;
+let randSeed = false;
+let paused = false;
+let history = [];
+let cells = [];
+let running = true;
+
+function setRule(r) {
+  rule = ((r % 256) + 256) % 256;
+  document.getElementById('ruleVal').textContent = rule;
+  document.getElementById('ruleInput').value = rule;
+  document.getElementById('ruleSlider').value = rule;
+  updateGallery();
+}
+
+function seedRow() {
+  const row = new Uint8Array(cols);
+  if (randSeed) {
+    for (let x = 0; x < cols; x++) row[x] = Math.random() < 0.5 ? 1 : 0;
+  } else {
+    row[Math.floor(cols / 2)] = 1;
+  }
+  return row;
+}
+
+function reset() {
+  history = [];
+  cells = [seedRow()];
+}
+
+function get(prev, i) {
+  if (i < 0 || i >= cols) return wrap ? prev[(i + cols) % cols] : 0;
+  return prev[i];
+}
+
+function nextRow(prev) {
+  const out = new Uint8Array(cols);
+  for (let x = 0; x < cols; x++) {
+    const n = get(prev, x - 1) * 4 + get(prev, x) * 2 + get(prev, x + 1);
+    out[x] = (rule >> n) & 1;
+  }
+  return out;
+}
+
+function step() {
+  cells.push(nextRow(cells[cells.length - 1]));
+  if (cells.length > rows) cells.shift();
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, game.width, game.height);
+  ctx.fillStyle = '#ffd166';
+  for (let g = 0; g < cells.length; g++) {
+    const row = cells[g];
+    for (let x = 0; x < cols; x++) {
+      if (row[x]) ctx.fillRect(x * CS, g * CS, CS, CS);
+    }
+  }
+}
+
+// gallery
+const gallery = document.getElementById('gallery');
+const MINI_W = 45, MINI_H = 30;
+function computeMini(r) {
+  const state = new Uint8Array(MINI_W * MINI_H);
+  let row = new Uint8Array(MINI_W);
+  row[Math.floor(MINI_W / 2)] = 1;
+  for (let g = 0; g < MINI_H; g++) {
+    state.set(row, g * MINI_W);
+    const out = new Uint8Array(MINI_W);
+    for (let x = 0; x < MINI_W; x++) {
+      const l = x - 1 < 0 ? 0 : row[x - 1];
+      const c = row[x];
+      const rr = x + 1 >= MINI_W ? 0 : row[x + 1];
+      const n = l * 4 + c * 2 + rr;
+      out[x] = (r >> n) & 1;
+    }
+    row = out;
+  }
+  return state;
+}
+
+function buildGallery() {
+  gallery.innerHTML = '';
+  for (let r = 0; r < 256; r++) {
+    const card = document.createElement('div');
+    card.className = 'card' + (r === rule ? ' active' : '');
+    card.dataset.rule = r;
+    const cv = document.createElement('canvas');
+    cv.width = MINI_W;
+    cv.height = MINI_H;
+    const cctx = cv.getContext('2d');
+    const state = computeMini(r);
+    const img = cctx.createImageData(MINI_W, MINI_H);
+    for (let i = 0; i < state.length; i++) {
+      const v = state[i] ? 255 : 0;
+      img.data[i * 4] = v;
+      img.data[i * 4 + 1] = v;
+      img.data[i * 4 + 2] = v;
+      img.data[i * 4 + 3] = 255;
+    }
+    cctx.putImageData(img, 0, 0);
+    const num = document.createElement('div');
+    num.className = 'rnum';
+    num.textContent = r;
+    card.appendChild(cv);
+    card.appendChild(num);
+    card.addEventListener('click', () => {
+      setRule(r);
+      reset();
+      paused = false;
+      document.getElementById('pause').textContent = '⏸ Pause';
+    });
+    gallery.appendChild(card);
+  }
+}
+
+function updateGallery() {
+  const cards = gallery.children;
+  for (const card of cards) {
+    card.classList.toggle('active', parseInt(card.dataset.rule) === rule);
+  }
+}
+
+buildGallery();
+
+// controls
+const slider = document.getElementById('ruleSlider');
+slider.addEventListener('input', () => {
+  setRule(parseInt(slider.value));
+  reset();
+});
+
+const ruleInput = document.getElementById('ruleInput');
+ruleInput.addEventListener('change', () => {
+  setRule(parseInt(ruleInput.value) || 0);
+  reset();
+});
+
+document.getElementById('rule30').addEventListener('click', () => { setRule(30); reset(); });
+document.getElementById('randRule').addEventListener('click', () => { setRule(Math.floor(Math.random() * 256)); reset(); });
+
+document.querySelectorAll('[data-special]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    setRule(parseInt(btn.dataset.special));
+    reset();
+    paused = false;
+    document.getElementById('pause').textContent = '⏸ Pause';
+  });
+});
+document.getElementById('reset').addEventListener('click', reset);
+document.getElementById('wrap').addEventListener('change', (e) => { wrap = e.target.checked; reset(); });
+document.getElementById('randSeed').addEventListener('change', (e) => { randSeed = e.target.checked; reset(); });
+document.getElementById('stepBtn').addEventListener('click', () => { paused = true; document.getElementById('pause').textContent = '▶ Resume'; step(); });
+
+const pauseBtn = document.getElementById('pause');
+pauseBtn.addEventListener('click', () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+});
+
+let speed = 20;
+document.getElementById('speed').addEventListener('input', (e) => {
+  speed = parseFloat(e.target.value);
+});
+
+let acc = 0;
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (!paused) {
+    acc += dt * speed;
+    while (acc >= 1) { step(); acc -= 1; }
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+reset();
+setRule(30);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

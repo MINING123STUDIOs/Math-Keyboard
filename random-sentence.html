@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colorless Green Ideas</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(1100px 700px at 70% -10%, #123 0%, #0c1420 55%, #060b12 100%);
+    color: #e6edf3; font-family: Georgia, 'Times New Roman', serif;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .card {
+    width: min(780px, 94vw);
+    background: rgba(16, 26, 40, 0.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 30px 34px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+    backdrop-filter: blur(6px);
+    text-align: center;
+  }
+  h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.5px; font-weight: normal; color: #9ad0ff; }
+  p.sub { margin: 0 0 26px; color: #7c8aa0; font-size: 13px; }
+  p.sub i { color: #a5b8d0; }
+  .quote {
+    position: relative; min-height: 150px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; padding: 18px 40px 8px; margin: 4px 0 8px;
+  }
+  .quote::before {
+    content: "\201C"; position: absolute; top: 0; left: 4px;
+    font-size: 84px; line-height: 1; color: rgba(255,209,102,0.18); font-family: Georgia, serif;
+  }
+  .sentence {
+    font-size: 28px; line-height: 1.5; font-style: italic; text-align: center;
+    color: #f2f6fb; transition: opacity 0.15s;
+  }
+  .sentence.fading { opacity: 0; }
+  .attribution {
+    margin-top: 14px; font-size: 13px; color: #8aa2c0; font-style: normal;
+    letter-spacing: 0.4px;
+  }
+  .attribution::before { content: "— "; }
+  .attribution b { color: #ffd166; font-weight: normal; }
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 8px 0 20px; }
+  button {
+    font-family: inherit; font-size: 15px; cursor: pointer; border: none; border-radius: 12px;
+    padding: 10px 20px; color: #fff; background: #1d3557; transition: transform 0.1s, background 0.15s;
+  }
+  button:hover { transform: scale(1.05); }
+  button.primary { background: #457b9d; }
+  button.primary:hover { background: #a8dadc; color: #0b1724; }
+  button.ghost { background: transparent; border: 1px solid #2e4566; color: #9ab3cc; }
+  .parse {
+    text-align: left; background: rgba(5, 10, 18, 0.6); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 16px 20px; margin-top: 16px; display: none;
+    font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #8fd3a0;
+    line-height: 1.6; white-space: pre; overflow-x: auto;
+  }
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 11px;
+    color: #ffd166; background: rgba(255,209,102,0.12); border-radius: 6px;
+    padding: 2px 7px; margin-left: 6px; vertical-align: middle;
+  }
+  .favorites {
+    margin-top: 18px; text-align: left; background: rgba(5, 10, 18, 0.5);
+    border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 16px;
+  }
+  .favhead {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: #9ab3cc; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .favhead button { font-size: 11px; padding: 4px 10px; background: #3a1d30; }
+  #favList { list-style: none; margin: 10px 0 0; padding: 0; }
+  #favList li {
+    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px; line-height: 1.5;
+  }
+  #favList li:last-child { border-bottom: none; }
+  #favList .fauth { display: block; font-size: 11px; color: #7c8aa0; }
+  #favList .fauth::before { content: "— "; }
+  #favList .fdel {
+    float: right; background: transparent; border: none; color: #666;
+    font-size: 14px; padding: 0 4px; cursor: pointer;
+  }
+  #favList .fdel:hover { color: #ff6b6b; }
+  #favList .fcopy {
+    float: right; background: transparent; border: 1px solid #3a4a66; color: #9ab3cc;
+    font-size: 11px; padding: 2px 9px; border-radius: 8px; margin-right: 8px; cursor: pointer;
+  }
+  #favList .fcopy:hover { border-color: #ffd166; color: #ffd166; }
+  #favNote { margin-top: 10px; font-size: 12px; color: #7be07b; min-height: 16px; }
+  .tagline {
+    margin-top: 22px; font-size: 12px; color: #5f7390; text-align: center;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .sentence.thinking { color: #8aa2c0; font-style: italic; }
+  .sentence.thinking::after {
+    content: ""; display: inline-block; width: 1em; text-align: left;
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+  @keyframes dots {
+    0% { content: ""; }
+    25% { content: "."; }
+    50% { content: ".."; }
+    75% { content: "..."; }
+    100% { content: ""; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Colorless Green Ideas</h1>
+  <p class="sub">Syntactically perfect, Semantically meaningless.<br>
+  After <i>Noam Chomsky</i>, 1957</p>
+
+  <div class="quote">
+    <div class="sentence" id="sentence">Colorless green ideas sleep furiously.</div>
+    <div class="attribution" id="attribution"><b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957</div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="gen">✦ Generate</button>
+    <button id="chomsky">Noam's Original</button>
+    <button id="tree">Show parse tree</button>
+    <button id="fav" title="Save this quote">♥ Save</button>
+    <button id="copyCur" title="Copy current quote">⧉ Copy</button>
+  </div>
+
+  <div class="parse" id="parse"></div>
+
+  <div class="favorites" id="favorites" style="display:none;">
+    <div class="favhead">
+      <span>♥ Favorites</span>
+      <button id="clearFavs">Clear all</button>
+    </div>
+    <ul id="favList"></ul>
+    <div id="favNote"></div>
+  </div>
+
+  <div class="tagline" id="tagline"></div>
+</div>
+<script>
+const sentenceEl = document.getElementById('sentence');
+const attrEl = document.getElementById('attribution');
+const parseEl = document.getElementById('parse');
+const favBox = document.getElementById('favorites');
+const favList = document.getElementById('favList');
+
+const TOTAL_SENTENCES =
+  '6626548721403641335447640480118582510928270134924792045469501103553612626115544506902899860062936861820626794988782982321469288806056275813825990173930358801906416786145221185868860572046172561845672973156778747294300598811366529110414276839465904060100887717392281166595997924205314961925471491660174818673721136671510484625594528491910241014653253142189223230613216411361074442695333737072328';
+
+const FAV_KEY = 'cgi-favorites';
+let favorites = [];
+try { favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch (e) { favorites = []; }
+
+function currentQuote() {
+  return {
+    text: sentenceEl.textContent,
+    attr: attrEl.textContent
+  };
+}
+
+function quoteString(q) {
+  return `“${q.text}” — ${q.attr}`;
+}
+
+let copyNoteTimer = null;
+function flashNote(msg) {
+  const note = document.getElementById('favNote');
+  note.textContent = msg;
+  clearTimeout(copyNoteTimer);
+  copyNoteTimer = setTimeout(() => { note.textContent = ''; }, 1500);
+}
+
+function copyText(str) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(str);
+  }
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  return Promise.resolve();
+}
+
+document.getElementById('copyCur').addEventListener('click', () => {
+  copyText(quoteString(currentQuote())).then(() => flashNote('✓ Copied current quote'));
+});
+
+function renderFavorites() {
+  favList.innerHTML = '';
+  favorites.forEach((q, i) => {
+    const li = document.createElement('li');
+    const del = document.createElement('button');
+    del.className = 'fdel';
+    del.textContent = '✕';
+    del.title = 'Remove';
+    del.addEventListener('click', () => {
+      favorites.splice(i, 1);
+      localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+      renderFavorites();
+    });
+    const cpy = document.createElement('button');
+    cpy.className = 'fcopy';
+    cpy.textContent = '⧉';
+    cpy.title = 'Copy quote';
+    cpy.addEventListener('click', () => {
+      copyText(quoteString(q)).then(() => flashNote('✓ Copied favorite'));
+    });
+    const qtext = document.createElement('span');
+    qtext.textContent = '“' + q.text + '”';
+    const qattr = document.createElement('span');
+    qattr.className = 'fauth';
+    qattr.textContent = q.attr;
+    li.appendChild(del);
+    li.appendChild(cpy);
+    li.appendChild(qtext);
+    li.appendChild(qattr);
+    favList.appendChild(li);
+  });
+  favBox.style.display = favorites.length ? 'block' : 'none';
+}
+
+document.getElementById('fav').addEventListener('click', () => {
+  const q = currentQuote();
+  if (!q.text || q.text === '—') return;
+  favorites.push(q);
+  localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+  renderFavorites();
+});
+document.getElementById('clearFavs').addEventListener('click', () => {
+  if (!favorites.length) return;
+  if (confirm('Remove all saved favorites?')) {
+    favorites = [];
+    localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+    renderFavorites();
+  }
+});
+
+renderFavorites();
+
+function randomAttribution() {
+  const [who, where] = pick(ATTR);
+  if (Math.random() < 0.65) {
+    const r = Math.random();
+    let name;
+    if (r < 0.45) {
+      name = `${pick(ADJ)} ${pick(NOUN)}`;
+    } else if (r < 0.8) {
+      name = `${pick(ADJ)} ${pick(ADJ)} ${pick(NOUN)}`;
+    } else {
+      name = `${pick(NOUN)} of the ${pick(NOUN)}`;
+    }
+    attrEl.innerHTML = `<b>${name}</b>, <i>${where}</i>`;
+  } else {
+    attrEl.innerHTML = `<b>${who}</b>, <i>${where}</i>`;
+  }
+}
+
+const DET = ['the', 'some', 'my', 'our', 'no', 'these', 'those', 'all', 'many', 'several', 'few', 'two', 'three', 'most', 'countless', 'several', 'innumerable', 'every', 'each', 'whose', 'certain'];
+const ADJ = [
+  'colorless', 'green', 'blue', 'red', 'purple', 'luminous', 'translucent', 'fragile',
+  'furious', 'sleepy', 'quiet', 'loud', 'absurd', 'stubborn', 'hollow', 'imaginary',
+  'circular', 'invisible', 'unripe', 'synthetic', 'jagged', 'gaseous', 'enormous',
+  'miniature', 'hungry', 'jealous', 'melancholy', 'rusty', 'crystalline', 'velvet',
+  'amber', 'ashen', 'azure', 'bleached', 'burnished', 'cavernous', 'ceramic', 'chlorinated',
+  'cinnabar', 'colossal', 'contrary', 'corrugated', 'crimson', 'damp', 'diaphanous',
+  'dilapidated', 'dormant', 'effervescent', 'elastic', 'electric', 'embarrassed', 'emerald',
+  'exhausted', 'feral', 'fiscal', 'fluorescent', 'forged', 'frozen', 'glacial', 'glowing',
+  'granular', 'grapefruit-colored', 'harrowing', 'hissing', 'hybrid', 'impenetrable',
+  'incandescent', 'indigo', 'inflatable', 'iridescent', 'itinerant', 'jubilant', 'laminated',
+  'legless', 'lichen-covered', 'lightning-fast', 'liquid', 'looping', 'lukewarm', 'magnetized',
+  'marbled', 'mildewed', 'mismatched', 'molten', 'muffled', 'mustard-colored', 'nebulous',
+  'nervous', 'neutered', 'noxious', 'obsidian', 'obsolescent', 'octagonal', 'oleaginous',
+  'opalescent', 'oxidized', 'palindromic', 'pearlescent', 'phosphorescent', 'pinkish',
+  'plastered', 'polygon-shaped', 'porous', 'prehistoric', 'prickly', 'psychic', 'pulsating',
+  'quadrupedal', 'quivering', 'radioactive', 'ragged', 'rain-soaked', 'recycled', 'repentant',
+  'ridiculous', 'rotating', 'rubbery', 'salty', 'satisfied', 'sculpted', 'serrated',
+  'shivering', 'silken', 'skeletal', 'slippery', 'sporadic', 'squamous', 'steaming',
+  'superfluous', 'swampy', 'symmetrical', 'temporal', 'terrified', 'tessellated', 'thirsty',
+  'thorny', 'thrumming', 'titanic', 'topological', 'trembling', 'tubular', 'twelve-sided',
+  'twitching', 'undulating', 'unexpected', 'unfathomable', 'unpainted', 'unraveled', 'vaporized',
+  'vibrant', 'viscous', 'vitreous', 'wailing', 'waxy', 'whiskered', 'windblown', 'yearning',
+  'zinc-plated', 'zoomorphic'
+];
+const NOUN = [
+  'ideas', 'thoughts', 'concepts', 'dreams', 'shadows', 'melodies', 'equations',
+  'waterfalls', 'mountains', 'memories', 'theories', 'mists', 'galaxies', 'secrets',
+  'rivers', 'storms', 'feelings', 'whispers', 'purposes', 'crystals', 'horizons',
+  'syllogisms', 'hats', 'radios', 'trampolines', 'ogres', 'cobwebs', 'narratives',
+  'aeroplanes', 'algorithms', 'anarchists', 'anchovies', 'archaeologists', 'asteroids',
+  'astronomers', 'atmospheres', 'avalanches', 'balloons', 'barnacles', 'battalions',
+  'bears', 'beetles', 'bicycles', 'blackberries', 'bogs', 'bookkeepers', 'breaches',
+  'bridges', 'bureaucrats', 'burritos', 'buzzards', 'cafeterias', 'calculators',
+  'camels', 'canals', 'candles', 'canisters', 'capitals', 'carnivals', 'carpenters',
+  'cascades', 'casseroles', 'cathedrals', 'caverns', 'centaurs', 'chameleons', 'chimneys',
+  'choruses', 'cities', 'clarinets', 'clocks', 'coconuts', 'comets', 'committees',
+  'compasses', 'computers', 'condors', 'constellations', 'couriers', 'craters', 'crickets',
+  'crocodiles', 'crucibles', 'cyclones', 'cypresses', 'dams', 'danube', 'deadlines',
+  'decades', 'definitions', 'deserts', 'dictionaries', 'digressions', 'dinosaurs',
+  'dodecahedra', 'dolphins', 'doppelgangers', 'dowries', 'dragons', 'dunes', 'eclipses',
+  'edifices', 'eels', 'elevators', 'embassies', 'engines', 'ensembles', 'eruptions',
+  'escalators', 'estuaries', 'expeditions', 'eyelids', 'fables', 'fables', 'factories',
+  'fans', 'faucets', 'ferns', 'festivals', 'fiancées', 'fiddles', 'fissures', 'fjords',
+  'flamingos', 'flashlights', 'fleets', 'folklore', 'footbridges', 'forecasts', 'forests',
+  'forklifts', 'fossils', 'fountains', 'foxes', 'fractals', 'freckles', 'frescoes',
+  'frights', 'frogs', 'fugues', 'furnaces', 'gargoyles', 'geysers', 'ghosts', 'glaciers',
+  'gondolas', 'gorillas', 'gospel', 'graveyards', 'griffins', 'grottoes', 'guillotines',
+  'guitars', 'gulls', 'harbingers', 'harpsichords', 'haystacks', 'hedgehogs', 'herds',
+  'hierarchies', 'hillsides', 'histories', 'honeymoons', 'horseshoes', 'hurricanes',
+  'hymns', 'icebergs', 'igloos', 'incantations', 'indices', 'infrastructures', 'insurrections',
+  'interrogations', 'intrusions', 'inventions', 'islands', 'isthmuses', 'ivories', 'jaguars',
+  'jesters', 'jubilees', 'jungles', 'kayaks', 'kerosene', 'kettles', 'kittens', 'laboratories',
+  'labyrinths', 'lagoons', 'lakes', 'lamps', 'landfalls', 'landslides', 'lanterns',
+  'lavenders', 'lawsuits', 'legions', 'lemons', 'libraries', 'lighthouses', 'lightnings',
+  'limousines', 'lizards', 'llamas', 'locksmiths', 'locomotives', 'looms', 'lullabies',
+  'luncheons', 'lyrics', 'macaroni', 'machinations', 'mammals', 'mandolins', 'manuscripts',
+  'marathons', 'marbles', 'marches', 'mariners', 'marshes', 'mathematics', 'mausoleums',
+  'meadows', 'meditations', 'megaliths', 'memoranda', 'mermaids', 'meteorites', 'migraines',
+  'mineshafts', 'miracles', 'moats', 'monasteries', 'monsoons', 'monuments', 'mosques',
+  'motion', 'mountain-ranges', 'muskets', 'mustangs', 'myths', 'napkins', 'navigators',
+  'nebulae', 'negotiations', 'networks', 'nightingales', 'nightmares', 'nomads', 'notaries',
+  'obelisks', 'octopuses', 'odysseys', 'offices', 'opossums', 'oracles', 'orchestras',
+  'orchestrations', 'oregons', 'ornaments', 'ospreys', 'ostriches', 'otters', 'oubliettes',
+  'outriggers', 'ovens', 'overseers', 'paddocks', 'paintings', 'paleontologists', 'palm-trees',
+  'panthers', 'parachutes', 'paradoxes', 'parakeets', 'parliaments', 'parrots', 'parthenons',
+  'pasodobles', 'passerines', 'passions', 'pavilions', 'payments', 'peacocks', 'pearls',
+  'pedestals', 'pelicans', 'penguins', 'pentagons', 'penumbras', 'peppers', 'pestilences',
+  'phantasms', 'pheasants', 'philosophers', 'photographs', 'phrasebooks', 'pianists',
+  'pillboxes', 'pines', 'pinnacles', 'pioneers', 'pirates', 'pistachios', 'planets',
+  'pleas', 'pleiades', 'pliers', 'plotters', 'poems', 'poets', 'polemics', 'pompadours',
+  'pontiffs', 'porcupines', 'portraits', 'postcards', 'potatoes', 'prairies', 'prayer-books',
+  'precipices', 'preludes', 'presidents', 'pretzels', 'priests', 'prismata', 'prophecies',
+  'prospectors', 'provinces', 'pruners', 'puddings', 'pulsars', 'pumpkins', 'pyramids',
+  'quadrillions', 'quagmires', 'quarries', 'quartets', 'quasars', 'quebecs', 'quests',
+  'quiches', 'quilters', 'quintets', 'quotations', 'raccoons', 'radars', 'raiders',
+  'railroads', 'rainbows', 'rangers', 'rapids', 'rattlesnakes', 'ravens', 'recessions',
+  'rectangles', 'reefs', 'referees', 'refrigerators', 'rehearsals', 'relics', 'remorses',
+  'rendezvous', 'reports', 'reservoirs', 'residences', 'revelations', 'revolutions', 'rhinos',
+  'rhododendrons', 'rhythms', 'riddles', 'rifles', 'ripples', 'rituals', 'roadrunners',
+  'rooftops', 'rotations', 'roundabouts', 'rows', 'rubies', 'rudders', 'ruins', 'runaways',
+  'safaris', 'salamanders', 'salesmen', 'salvages', 'sanctuaries', 'sapphires', 'sarcophagi',
+  'satellites', 'saxophones', 'scaffolds', 'scarecrows', 'schemes', 'scholars', 'scoundrels',
+  'scowls', 'sculptures', 'seahorses', 'seamstresses', 'seashores', 'seaweed', 'selections',
+  'senators', 'serenades', 'serpents', 'servants', 'shanties', 'sharks', 'shepherds',
+  'shipwrecks', 'shoemakers', 'shoeshines', 'shoestrings', 'shores', 'shovels', 'siegels',
+  'signals', 'silliness', 'silhouettes', 'silos', 'sirens', 'sisters', 'skeletons',
+  'skyscrapers', 'sleighs', 'slinkys', 'smokestacks', 'snails', 'snapdragons', 'snowflakes',
+  'snowstorms', 'socks', 'solar-systems', 'songs', 'sparrows', 'spectacles', 'sphinxes',
+  'spiders', 'spigots', 'spires', 'spleens', 'sponges', 'springs', 'sprinklers', 'squares',
+  'squids', 'stadiums', 'stalactites', 'stampedes', 'stanzas', 'statues', 'steamboats',
+  'steelworks', 'steeplejacks', 'stethoscopes', 'stitches', 'stockings', 'stories', 'stowaways',
+  'straddles', 'stratagems', 'strawberries', 'streams', 'strongholds', 'sturgeons', 'submarines',
+  'subterfuges', 'suburbs', 'sugarloaves', 'suits', 'summerhouses', 'summits', 'sunbeams',
+  'sunflowers', 'superstitions', 'surgeons', 'swallows', 'swans', 'swarmings', 'sweatshops',
+  'swords', 'syllables', 'symmetries', 'synagogues', 'tadpoles', 'tambourines', 'tandems',
+  'tapestries', 'tarantulas', 'tariffs', 'taxicabs', 'teacups', 'teapots', 'teddy-bears',
+  'telegrams', 'telescopes', 'tempests', 'temples', 'tents', 'terminals', 'terrariums',
+  'territories', 'testimonies', 'theaters', 'theorems', 'thermostats', 'thickets', 'thistles',
+  'thoroughfares', 'thrones', 'thunderstorms', 'tickertapes', 'tides', 'tigresses', 'toboggans',
+  'tomahawks', 'tomatoes', 'tombstones', 'tortoises', 'toucans', 'tourists', 'towns',
+  'tractors', 'traffics', 'trailers', 'trains', 'tramcars', 'tramps', 'transgressions',
+  'transitions', 'trapezes', 'treasuries', 'treaties', 'trees', 'tremors', 'trenchcoats',
+  'triangles', 'tribes', 'tributes', 'trinkets', 'trios', 'triumphs', 'trolls', 'trombones',
+  'trousers', 'trucks', 'trumpets', 'tundras', 'tunnels', 'turbines', 'turtles', 'tusks',
+  'tuxedos', 'twilights', 'twins', 'twisters', 'tycoons', 'typhoons', 'umbrellas', 'uncles',
+  'undergrounds', 'undergrowth', 'undertakers', 'undertow', 'unexpectednesses', 'unfortunates',
+  'unicycles', 'uniforms', 'unions', 'universes', 'upheavals', 'uphillbattles', 'utopias',
+  'vagabonds', 'valentines', 'valleys', 'vans', 'vapors', 'vaults', 'vegetables', 'vendettas',
+  'vengeances', 'verandas', 'verdure', 'vermonts', 'verses', 'vestibules', 'vestiges', 'vexations',
+  'viaducts', 'vignettes', 'villages', 'vineyards', 'violins', 'vipers', 'visitations', 'vistas',
+  'volcanoes', 'volcanoes', 'voyages', 'waders', 'wagoners', 'wagons', 'wailing', 'walruses',
+  'waltzes', 'wanderers', 'warblers', 'wardrobes', 'warehouses', 'warnings', 'watchtowers',
+  'waterfalls', 'watermelons', 'watersheds', 'weasels', 'weathercocks', 'webs', 'weddings',
+  'weeds', 'whales', 'wharves', 'whims', 'whirlpools', 'whirlwinds', 'whistles', 'wildernesses',
+  'willow-trees', 'windsocks', 'windstorms', 'wintergardens', 'wisdom', 'witchcraft', 'witnesses',
+  'wolves', 'woodlands', 'workshops', 'worlds', 'wrestlers', 'xenophobes', 'xeroxes', 'yachts',
+  'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists'
+];
+const VERB = [
+  'sleep', 'fight', 'sing', 'dance', 'grow', 'think', 'melt', 'run', 'fly',
+  'dream', 'vanish', 'multiply', 'whisper', 'shine', 'sink', 'bloom', 'freeze',
+  'levitate', 'tremble', 'photosynthesize', 'strategize', 'hum', 'calcify', 'roam',
+  'acclimatize', 'accrete', 'accumulate', 'acrobatize', 'adjourn', 'adore', 'advertise',
+  'aerosolize', 'agonize', 'allegorize', 'amble', 'ambush', 'amputate', 'anatomize',
+  'anthropomorphize', 'aquaplane', 'arc', 'ardu', 'arrive', 'asphyxiate', 'assassinate',
+  'assemble', 'astound', 'atrophy', 'autocannibalize', 'avalanche', 'backflip', 'bambooze',
+  'baptize', 'barricade', 'bask', 'bayonet', 'beachcomb', 'bequeath', 'berate', 'besiege',
+  'bicycle', 'blacksmith', 'bleach', 'blossom', 'blunder', 'blush', 'boomerang', 'bounce',
+  'bowl', 'brawl', 'breathe', 'brood', 'bubble', 'buckle', 'buff', 'bulldoze', 'burble',
+  'bungee', 'burrow', 'butterfly', 'buttress', 'calcify', 'camouflage', 'campanulate',
+  'canter', 'capsize', 'carouse', 'cartwheel', 'cascade', 'catapult', 'catalog', 'catnap',
+  'cavort', 'ceaselessly', 'celebrate', 'certify', 'chafe', 'chameleon', 'channel',
+  'chaperone', 'chaplain', 'chastise', 'chatter', 'chemisorb', 'choreograph', 'chuckle',
+  'circulate', 'circumambulate', 'clamber', 'clamor', 'clang', 'clap', 'clatter', 'climb',
+  'clink', 'clog', 'clonk', 'clop', 'clot', 'cloud', 'cluck', 'coagulate', 'coalesce',
+  'coast', 'cobble', 'cockatoo', 'collaborate', 'collide', 'colonize', 'combine', 'commandeer',
+  'commemorate', 'commiserate', 'commune', 'compete', 'compile', 'complete', 'complicate',
+  'comprehend', 'compromise', 'compute', 'conceive', 'concoct', 'concrete', 'confabulate',
+  'confess', 'conflate', 'congregate', 'conjecture', 'conjoin', 'conjugate', 'conjure',
+  'consecrate', 'conspire', 'constellate', 'construe', 'contemplate', 'continue', 'contradict',
+  'contrive', 'convalesce', 'converge', 'converse', 'convince', 'coo', 'cook', 'cool',
+  'copulate', 'corkscrew', 'corrode', 'coruscate', 'cough', 'counsel', 'count', 'courage',
+  'court', 'cower', 'cozy', 'crackle', 'crash', 'crawl', 'creak', 'creep', 'cricket',
+  'cringe', 'crinkle', 'crisp', 'crisscross', 'critique', 'croak', 'crone', 'crook',
+  'cross-examine', 'crow', 'cruise', 'crumble', 'crumple', 'crunch', 'crush', 'crystallize',
+  'cuddle', 'cuff', 'culminate', 'culprit', 'cultivate', 'cup', 'curl', 'curtsey', 'cycle',
+  'dangle', 'dart', 'dash', 'daub', 'dawdle', 'deafen', 'decalibrate', 'decay', 'decide',
+  'decode', 'decompose', 'decompress', 'deconstruct', 'decorate', 'decrescendo', 'deep-fry',
+  'defenestrate', 'defibrillate', 'define', 'deflate', 'defrost', 'defuse', 'degrade',
+  'dehydrate', 'deliberate', 'delight', 'deluge', 'demolish', 'demur', 'denounce', 'depart',
+  'descend', 'desert', 'design', 'despair', 'detonate', 'devolve', 'devour', 'diagnose',
+  'dial', 'dictate', 'diffract', 'dillydally', 'diminish', 'dine', 'ding', 'dip', 'disagree',
+  'disappear', 'disassemble', 'discard', 'discern', 'discipline', 'discombobulate', 'discord',
+  'discount', 'discourse', 'discover', 'discredit', 'discuss', 'disintegrate', 'dislocate',
+  'dismantle', 'dismember', 'disobey', 'disorient', 'dispel', 'displace', 'dissect', 'dissemble',
+  'dissipate', 'dissociate', 'dissolve', 'distill', 'distort', 'distract', 'distribute',
+  'dither', 'dive', 'divert', 'divulge', 'dodge', 'doodle', 'douse', 'draft', 'drain',
+  'drake', 'dredge', 'dribble', 'drift', 'drizzle', 'dron', 'droop', 'drop', 'drum',
+  'dunk', 'duplicate', 'dusk', 'dust', 'dwell', 'dwindle', 'earthquake', 'echo', 'eddy',
+  'effervesce', 'eject', 'elaborate', 'elbow', 'electrify', 'elevate', 'elongate', 'elucidate',
+  'emanate', 'embalm', 'embark', 'embarrass', 'ember', 'embody', 'embrace', 'embroider',
+  'emerge', 'emit', 'empower', 'emulate', 'encapsulate', 'enchant', 'encircle', 'encompass',
+  'encounter', 'encrypt', 'endanger', 'endear', 'endure', 'energize', 'engender', 'engrave',
+  'engulf', 'enjoy', 'enlighten', 'enlist', 'enmesh', 'ennoble', 'enrage', 'enrage', 'enshrine',
+  'enshroud', 'ensnare', 'entangle', 'enter', 'enthrall', 'entice', 'entomb', 'entrust',
+  'enumerate', 'envision', 'envy', 'erode', 'erupt', 'escape', 'estimate', 'evacuate',
+  'evade', 'evaporate', 'eviscerate', 'evoke', 'evolve', 'exaggerate', 'examine', 'exasperate',
+  'excavate', 'exchange', 'exclaim', 'exfoliate', 'exhale', 'exhaust', 'exhilarate', 'exile',
+  'exit', 'exorcise', 'expand', 'expect', 'expel', 'expend', 'experiment', 'expiate', 'explain',
+  'explode', 'explore', 'exponentiate', 'expose', 'expostulate', 'extinguish', 'extract',
+  'extrapolate', 'exude', 'fabricate', 'fade', 'faint', 'fall', 'falter', 'fancy', 'fathom',
+  'fault', 'feather', 'federate', 'feign', 'ferment', 'ferry', 'fetch', 'fidget', 'fiddle',
+  'film', 'filtrate', 'find', 'fingernail', 'fingerprint', 'finish', 'fission', 'fizz',
+  'fizzle', 'flag', 'flake', 'flame', 'flap', 'flatten', 'flaunt', 'flee', 'fleet',
+  'flick', 'flicker', 'flinch', 'fling', 'flip', 'flirt', 'flit', 'float', 'flock', 'flop',
+  'flounder', 'flow', 'flower', 'flub', 'fluff', 'fluoresce', 'flurry', 'flutter', 'foam',
+  'focus', 'fog', 'fold', 'follow', 'fondle', 'foosball', 'forage', 'foray', 'forecast',
+  'foretell', 'forge', 'forgive', 'fork', 'formalize', 'forsake', 'fossilize', 'foster',
+  'found', 'fracture', 'fragment', 'franchise', 'fraternize', 'fray', 'freewheel', 'frequent',
+  'freshen', 'fret', 'fricassee', 'frisk', 'fritter', 'frivol', 'frizzle', 'frolic', 'front',
+  'frost', 'froth', 'frown', 'fructify', 'fumble', 'fume', 'fumigate', 'function', 'funnel',
+  'furl', 'furnish', 'fuse', 'fuss', 'futures', 'gabble', 'gad', 'gaff', 'gaggle', 'gainsay',
+  'gallivant', 'galvanize', 'gamble', 'gambol', 'gander', 'gangrene', 'gape', 'garden', 'gargle',
+  'garland', 'garner', 'garnish', 'garrote', 'gas', 'gasp', 'gatecrash', 'gather', 'gauge',
+  'gawk', 'gaze', 'gear', 'geld', 'geminate', 'generalize', 'generate', 'gestate', 'gesticulate',
+  'gibber', 'gild', 'ginger', 'gird', 'gladden', 'glance', 'glare', 'gleam', 'glean', 'glide',
+  'glimmer', 'glint', 'glisten', 'glitter', 'gloat', 'gloss', 'glow', 'glue', 'gnash', 'gnaw',
+  'gobble', 'goggle', 'gold-plate', 'golf', 'goodbye', 'google', 'gossip', 'gouge', 'gouge',
+  'govern', 'grab', 'graduate', 'graft', 'grandstand', 'grant', 'grapple', 'grasp', 'grate',
+  'gratify', 'gravitate', 'graze', 'grep', 'grill', 'grimace', 'grin', 'grind', 'gripe',
+  'grit', 'grizzle', 'groom', 'groove', 'grope', 'ground', 'group', 'grouse', 'grove',
+  'growl', 'grub', 'grudge', 'grumble', 'grunt', 'guarantee', 'guard', 'guess', 'guffaw',
+  'guitar', 'gulp', 'gurgle', 'gush', 'gust', 'gut', 'gutter', 'gyrate', 'habituate',
+  'hack', 'haggle', 'hail', 'hammer', 'hamper', 'hand', 'handicap', 'handshake', 'handwrite',
+  'hang', 'harass', 'harangue', 'harbor', 'harden', 'hark', 'harmonize', 'harp', 'harpoon',
+  'harvest', 'hassle', 'hasten', 'hatch', 'hatch', 'haunt', 'have', 'haven', 'hawk',
+  'haywire', 'hazard', 'haze', 'head', 'heal', 'heap', 'hear', 'heat', 'heave', 'heckle',
+  'hectare', 'hedge', 'heed', 'heel', 'heft', 'heighten', 'heliograph', 'help', 'hem',
+  'herald', 'herd', 'hesitate', 'hew', 'hide', 'hijack', 'hike', 'hinder', 'hinge', 'hint',
+  'hire', 'hiss', 'hitch', 'hive', 'hoard', 'hoax', 'hobble', 'hobnob', 'hog', 'hoist',
+  'hold', 'hole', 'hollow', 'hone', 'honk', 'honor', 'hoodwink', 'hoot', 'hop', 'horde',
+  'hornswoggle', 'horse', 'hose', 'hospitable', 'host', 'hotdog', 'hound', 'hover', 'howl',
+  'huddle', 'huff', 'hug', 'hull', 'hum', 'humble', 'humor', 'hunch', 'hung', 'hunt',
+  'hurdle', 'hurl', 'hurrah', 'hurtle', 'husk', 'hustle', 'huzzah', 'hybridize', 'hydrogenate',
+  'hymn', 'hyperventilate', 'hypnotize', 'hypothesize', 'ice', 'icon', 'identify', 'idle',
+  'idolize', 'ignite', 'ignore', 'illuminate', 'illustrate', 'imagine', 'imbibe', 'imbue',
+  'imitate', 'immerse', 'immigrate', 'immobilize', 'immolate', 'immortalize', 'immunize',
+  'impact', 'impair', 'impanel', 'impart', 'impeach', 'impede', 'impel', 'impend', 'imperil',
+  'impersonate', 'implant', 'implode', 'implore', 'imply', 'import', 'impose', 'impound',
+  'impregnate', 'impress', 'imprint', 'imprison', 'improve', 'improvise', 'impugn', 'impulse',
+  'impute', 'incinerate', 'incise', 'incite', 'incline', 'include', 'incognito', 'inconvenience',
+  'incorporate', 'incubate', 'incur', 'indent', 'index', 'indicate', 'indict', 'induce',
+  'induct', 'indulge', 'industrialize', 'inebriate', 'infect', 'infer', 'infest', 'infiltrate',
+  'inflame', 'inflate', 'inflect', 'inflict', 'influence', 'inform', 'infuse', 'ingest',
+  'ingratiate', 'inherit', 'inhibit', 'inhume', 'initiate', 'inject', 'injure', 'ink',
+  'inlay', 'innervate', 'innovate', 'inoculate', 'inquest', 'inquire', 'inscribe', 'inseminate',
+  'insert', 'insinuate', 'insist', 'inspect', 'inspire', 'install', 'instigate', 'instill',
+  'institute', 'instruct', 'insulate', 'insult', 'insure', 'integrate', 'intend', 'inter',
+  'interact', 'interbreed', 'intercalate', 'intercept', 'interdict', 'interfere', 'interject',
+  'interlock', 'interminable', 'intermingle', 'internalize', 'interpolate', 'interpret', 'interrogate',
+  'interrupt', 'intersect', 'intersperse', 'intertwine', 'interview', 'interweave', 'intimate',
+  'intimidate', 'intoxicate', 'intrigue', 'introduce', 'intrude', 'intuit', 'inundate', 'invade',
+  'invalidate', 'invent', 'inventory', 'invert', 'invest', 'investigate', 'invigorate', 'invite',
+  'invoke', 'involve', 'ionize', 'irk', 'iron', 'irradiate', 'irrigate', 'irritate', 'isolate',
+  'itch', 'itemize', 'iterate', 'jabber', 'jackknife', 'jail', 'jam', 'jangle', 'jaunt',
+  'jaw', 'jazz', 'jeer', 'jell', 'jelly', 'jeopardize', 'jerk', 'jest', 'jet', 'jettison',
+  'jiggle', 'jilt', 'jingle', 'jitter', 'jockey', 'jog', 'joggle', 'join', 'joke', 'jolly',
+  'jolt', 'jostle', 'jot', 'journey', 'joust', 'jovialize', 'jubilate', 'judge', 'juggle',
+  'juice', 'jumble', 'jump', 'jump-start', 'junket', 'justify', 'jut', 'juxtapose', 'kaleidoscope',
+  'kangaroo', 'karate', 'kayak', 'keel', 'keen', 'keep', 'keg', 'kennel', 'kerplunk', 'ketchup',
+  'kettle', 'key', 'kick', 'kidnap', 'kindle', 'kiss', 'kite', 'kitten', 'knack', 'knead',
+  'kneel', 'knife', 'knight', 'knit', 'knock', 'knot', 'know', 'knuckle', 'koala', 'labialize',
+  'labor', 'lace', 'lacerate', 'lack', 'ladder', 'ladle', 'lag', 'lam', 'lament', 'laminate',
+  'lamp', 'lance', 'land', 'languish', 'lap', 'lapse', 'lard', 'lark', 'lasso', 'latch',
+  'lather', 'laud', 'laugh', 'launch', 'launder', 'laurel', 'lavish', 'lawyer', 'lay',
+  'laze', 'leach', 'leaf', 'leak', 'lean', 'leap', 'learn', 'leash', 'leather', 'leave',
+  'lecture', 'leech', 'leer', 'legislate', 'lend', 'lengthen', 'leopard', 'lessen', 'letter',
+  'level', 'lever', 'levitate', 'levy', 'liaise', 'liberate', 'license', 'lick', 'lie',
+  'lift', 'light', 'lighten', 'liken', 'limb', 'limber', 'lime', 'limit', 'limp', 'line',
+  'linger', 'link', 'lionize', 'liquefy', 'lisp', 'list', 'listen', 'litigate', 'litter',
+  'live', 'load', 'loathe', 'lobby', 'localize', 'locate', 'lock', 'locomote', 'lodge',
+  'loft', 'loiter', 'loll', 'lollipop', 'long', 'look', 'loom', 'loop', 'loosen', 'loot',
+  'lope', 'lord', 'lose', 'loud', 'lounge', 'lour', 'love', 'lower', 'lubricate', 'lumber',
+  'lump', 'lunge', 'lurch', 'lurk', 'lush', 'luster', 'lute', 'luxuriate', 'lyricize',
+  'macadamize', 'machinate', 'mackintosh', 'madden', 'magic', 'magnify', 'mail', 'maintain',
+  'major', 'malinger', 'malleate', 'manacle', 'manage', 'mandate', 'maneuver', 'manicure',
+  'manifest', 'manipulate', 'manned', 'mannerism', 'manufacture', 'manure', 'map', 'mar',
+  'maraud', 'march', 'marinate', 'marinate', 'mark', 'market', 'maroon', 'marry', 'marshal',
+  'martyr', 'marvel', 'masquerade', 'massage', 'mast', 'mastermind', 'masticate', 'match',
+  'materialize', 'matriculate', 'matter', 'mature', 'maul', 'maunder', 'mausoleum', 'maw',
+  'maximize', 'mean', 'measure', 'meddle', 'mediate', 'meditate', 'meet', 'melodize', 'melt',
+  'memorialize', 'menace', 'mend', 'mention', 'mentor', 'merchandise', 'merge', 'merit',
+  'mesmerize', 'mess', 'metabolize', 'metal', 'mete', 'meter', 'methodize', 'mew', 'micromanage',
+  'migrate', 'mild', 'militate', 'milk', 'mill', 'mimic', 'mince', 'mine', 'mingle',
+  'miniaturize', 'minimize', 'minister', 'mint', 'mirror', 'misdemean', 'misfire', 'mishandle',
+  'mishear', 'mishmash', 'misinform', 'misinterpret', 'misjudge', 'mislay', 'mislead', 'mismanage',
+  'misname', 'misplace', 'misprint', 'misread', 'miss', 'misspell', 'mist', 'mistake',
+  'mistrust', 'misunderstand', 'misuse', 'miter', 'mix', 'moan', 'mob', 'mobilize', 'mock',
+  'moderate', 'modernize', 'modify', 'modulate', 'moisten', 'mold', 'molest', 'momentum',
+  'monitor', 'monogram', 'monopolize', 'monotonize', 'moo', 'moon', 'mooch', 'moor', 'mop',
+  'mope', 'moralize', 'morph', 'morsel', 'mortar', 'mortgage', 'mortify', 'mosaic', 'moss',
+  'motivate', 'motor', 'motorboat', 'mottle', 'moult', 'mount', 'mourn', 'mouse', 'mouth',
+  'move', 'mow', 'muddle', 'muff', 'muffle', 'mug', 'multiply', 'mumble', 'mummify', 'munch',
+  'municipal', 'murmur', 'muscle', 'museum', 'mushroom', 'muster', 'mute', 'mutilate', 'mutiny',
+  'mutter', 'muzzle', 'mystify', 'mythologize', 'nag', 'nail', 'name', 'nap', 'narcissize',
+  'narrate', 'narrow', 'navigate', 'neaten', 'necessitate', 'need', 'needle', 'negate',
+  'negotiate', 'neigh', 'neon', 'nest', 'nettle', 'network', 'neutralize', 'nibble', 'nick',
+  'nickname', 'niggardly', 'nigh', 'nightmare', 'nip', 'nix', 'nod', 'nominate', 'normalize',
+  'nose', 'nosh', 'notarize', 'note', 'notice', 'notify', 'nourish', 'novelize', 'nudge',
+  'nuke', 'nullify', 'number', 'numb', 'nurse', 'nurture', 'nut', 'nuzzle', 'obey', 'obfuscate',
+  'object', 'obliterate', 'obscure', 'observe', 'obsess', 'obstruct', 'obtain', 'obtrude',
+  'obviate', 'occupy', 'occur', 'ocean', 'offend', 'offer', 'officiate', 'offload', 'offset',
+  'ogle', 'oil', 'olfact', 'omit', 'ooze', 'operate', 'opine', 'oppose', 'oppress', 'opt',
+  'optimize', 'orate', 'orbit', 'orchestrate', 'ordain', 'order', 'organize', 'orient',
+  'originate', 'ornament', 'oscillate', 'oust', 'outbid', 'outclass', 'outcrop', 'outdo',
+  'outfiddle', 'outfox', 'outgrow', 'outhit', 'outlast', 'outline', 'outlive', 'outnumber',
+  'outpace', 'outplay', 'outrun', 'outsell', 'outshine', 'outsmart', 'outspend', 'outwit',
+  'overact', 'overarch', 'overcharge', 'overcome', 'overdose', 'overdraw', 'overdress',
+  'overeat', 'overestimate', 'overexpose', 'overfill', 'overflow', 'overgrow', 'overhang',
+  'overhear', 'overindulge', 'overlap', 'overload', 'overlook', 'overpower', 'overprice',
+  'overreach', 'override', 'overrule', 'oversee', 'overshadow', 'overshoot', 'oversimplify',
+  'oversleep', 'overstate', 'overstay', 'overtake', 'overthrow', 'overtone', 'overturn',
+  'overuse', 'overwhelm', 'overwork', 'oxidize', 'oxygenate', 'pacify', 'package', 'pack',
+  'paddle', 'paint', 'pale', 'pall', 'palm', 'pamper', 'pan', 'pander', 'panel', 'panic',
+  'pantomime', 'paparazzi', 'paper', 'parade', 'paralyze', 'paraphrase', 'parcel', 'parch',
+  'park', 'parley', 'parody', 'parrot', 'parry', 'part', 'participate', 'partition', 'partner',
+  'pass', 'passage', 'past', 'paste', 'pasture', 'pat', 'patch', 'patent', 'patrol', 'pattern',
+  'pause', 'pave', 'paw', 'pawn', 'pay', 'peach', 'peak', 'peal', 'peck', 'pedal', 'peddle',
+  'peek', 'peel', 'peep', 'peer', 'peg', 'pelt', 'pen', 'penalize', 'pencil', 'penetrate',
+  'perceive', 'perch', 'percolate', 'perfect', 'perforate', 'perform', 'perfume', 'perish',
+  'perjure', 'perk', 'permutate', 'perpetrate', 'perpetuate', 'persevere', 'persist', 'personify',
+  'persuade', 'perturb', 'peruse', 'pester', 'pestle', 'pet', 'petition', 'petrify', 'pettifog',
+  'pew', 'phase', 'phone', 'photocopy', 'photograph', 'photoshop', 'phrase', 'pick', 'pickle',
+  'picnic', 'picture', 'pierce', 'piffle', 'pigeonhole', 'piggyback', 'pile', 'pilfer', 'pillage',
+  'pilot', 'pimp', 'pin', 'pinch', 'pine', 'ping', 'pinion', 'pink', 'pinpoint', 'pioneer',
+  'pipe', 'pitch', 'pity', 'pivot', 'placate', 'place', 'plagiarize', 'plait', 'plan', 'plane',
+  'plank', 'plant', 'plaster', 'plastercast', 'platen', 'play', 'plead', 'please', 'pledge',
+  'plod', 'plop', 'plot', 'plow', 'pluck', 'plug', 'plummet', 'plump', 'plunder', 'plunge',
+  'plunk', 'plutonium', 'poach', 'pocket', 'podcast', 'poem', 'point', 'poise', 'poison',
+  'poke', 'polarize', 'pole', 'police', 'polish', 'politic', 'pollinate', 'pollute', 'pommel',
+  'ponder', 'pony', 'pool', 'pop', 'populate', 'pore', 'port', 'portend', 'portray', 'pose',
+  'position', 'possess', 'post', 'postpone', 'pot', 'potter', 'pounce', 'pound', 'pour',
+  'pout', 'powder', 'power', 'practise', 'praise', 'prance', 'prattle', 'pray', 'preach',
+  'precede', 'precipitate', 'predate', 'predict', 'predispose', 'preen', 'preface', 'prefer',
+  'prefix', 'prejudge', 'premise', 'preoccupy', 'prepare', 'prescribe', 'preserve', 'preside',
+  'press', 'pressure', 'presume', 'pretend', 'prevail', 'prevaricate', 'prevent', 'preview',
+  'price', 'prick', 'pride', 'prime', 'primrose', 'print', 'prioritize', 'prise', 'prism',
+  'prison', 'privatize', 'prize', 'probe', 'proceed', 'process', 'proclaim', 'procrastinate',
+  'procreate', 'procure', 'prod', 'produce', 'profess', 'profile', 'profit', 'prognosticate',
+  'program', 'progress', 'prohibit', 'project', 'prolong', 'promenade', 'promise', 'promote',
+  'prompt', 'pronounce', 'propagate', 'propel', 'prophesy', 'proportion', 'propose', 'prosecute',
+  'proselytize', 'prospect', 'prosper', 'prostitute', 'protect', 'protest', 'protrude', 'prove',
+  'proverb', 'provide', 'provoke', 'prowl', 'prox', 'prune', 'pry', 'psalm', 'publish',
+  'pucker', 'puff', 'pull', 'pulverize', 'pump', 'punch', 'punctuate', 'puncture', 'punish',
+  'punt', 'purge', 'purify', 'purl', 'purloin', 'purpose', 'purr', 'pursue', 'push', 'put',
+  'putter', 'puzzle', 'quadruple', 'quake', 'qualify', 'qualm', 'quarantine', 'quarrel',
+  'quarry', 'quarter', 'quash', 'quaver', 'queer', 'quench', 'quer', 'query', 'quest', 'queue',
+  'quibble', 'quicken', 'quiesce', 'quiet', 'quilt', 'quintuple', 'quip', 'quirk', 'quit',
+  'quiver', 'quiz', 'quote', 'rabbit', 'race', 'rack', 'radiate', 'radio', 'raffle', 'raft',
+  'rage', 'raid', 'rail', 'rain', 'raise', 'rake', 'rally', 'ram', 'ramble', 'ramify',
+  'ramp', 'rampant', 'ranch', 'randomize', 'range', 'rank', 'ransack', 'ransom', 'rant',
+  'rap', 'rape', 'rappel', 'rasp', 'rat', 'rate', 'ratify', 'ration', 'rationalize', 'rattle',
+  'ravel', 'rave', 'ravish', 'ray', 'reach', 'react', 'read', 'realign', 'realize', 'ream',
+  'reap', 'reappear', 'rear', 'reason', 'reassemble', 'reassure', 'rebate', 'rebel', 'reboot',
+  'rebuild', 'rebuke', 'rebut', 'recall', 'recant', 'recap', 'recapitulate', 'recast', 'recede',
+  'receive', 'recess', 'recite', 'reckon', 'reclaim', 'recline', 'recluse', 'recode', 'recognize',
+  'recoil', 'recollect', 'recommend', 'recompense', 'reconcile', 'recondite', 'reconstruct',
+  'recount', 'recover', 'recreate', 'recruit', 'rectify', 'recuperate', 'recur', 'recycle',
+  'redact', 'redecorate', 'redeem', 'redirect', 'redistribute', 'reduce', 'reduplicate', 'reef',
+  'reel', 'referee', 'reference', 'refine', 'reflect', 'reflex', 'reform', 'refract', 'refrain',
+  'refresh', 'refrigerate', 'refund', 'refurbish', 'refuse', 'refute', 'regain', 'regale',
+  'regard', 'regenerate', 'register', 'regress', 'regret', 'regroup', 'regularize', 'regulate',
+  'rehabilitate', 'rehearse', 'reign', 'reimburse', 'rein', 'reinforce', 'reiterate', 'reject',
+  'rejoice', 'relapse', 'relate', 'relax', 'release', 'relegate', 'relent', 'relevance',
+  'rely', 'remain', 'remainder', 'remark', 'remedy', 'remember', 'remind', 'remit', 'remodel',
+  'remonstrate', 'remorse', 'remove', 'rename', 'render', 'rendezvous', 'renew', 'renounce',
+  'renovate', 'rent', 'reopen', 'repair', 'repartee', 'repay', 'repeat', 'repel', 'repercuss',
+  'repertoire', 'repeat', 'replace', 'replicate', 'reply', 'report', 'repose', 'represent',
+  'repress', 'reprieve', 'reproach', 'reprocess', 'reproduce', 'reprove', 'repudiate', 'repulse',
+  'request', 'require', 'requisition', 'rescue', 'research', 'resemble', 'resent', 'reserve',
+  'reset', 'reside', 'resign', 'resist', 'resolve', 'resonate', 'resort', 'resound', 'respect',
+  'respire', 'respond', 'rest', 'restart', 'restate', 'restore', 'restrain', 'restrict',
+  'result', 'resume', 'resurface', 'resurrect', 'retail', 'retain', 'retaliate', 'retard',
+  'retch', 'rethink', 'retire', 'retort', 'retrace', 'retract', 'retrain', 'retreat', 'retrieve',
+  'retrofit', 'return', 'reunite', 'reveal', 'revel', 'revenge', 'reverberate', 'revere', 'reverse',
+  'review', 'revile', 'revise', 'revitalize', 'revive', 'revoke', 'revolt', 'revolutionize',
+  'revolve', 'reward', 'rewind', 'rewrite', 'rhapsodize', 'rhyme', 'rib', 'rid', 'riddle',
+  'ride', 'ridge', 'ridicule', 'riff', 'rifle', 'rift', 'rig', 'right', 'rigidify', 'rile',
+  'ring', 'rinse', 'rip', 'ripen', 'ripple', 'rise', 'risk', 'ritualize', 'rival', 'rive',
+  'roam', 'roar', 'roast', 'rob', 'rock', 'rodeo', 'roll', 'romance', 'romp', 'roof', 'rook',
+  'room', 'roost', 'root', 'rope', 'rot', 'rotate', 'rouge', 'rough', 'round', 'rouse', 'rout',
+  'rove', 'row', 'rub', 'rubber', 'rubbish', 'ruckus', 'ruffle', 'ruin', 'rule', 'rumble',
+  'ruminate', 'rummage', 'rumor', 'run', 'rupture', 'rush', 'rust', 'rustle', 'rut', 'sabotage',
+  'sack', 'sacrifice', 'saddle', 'safeguard', 'sag', 'sail', 'sally', 'salt', 'salute', 'salvage',
+  'sanctify', 'sand', 'sandwich', 'sanitize', 'sashay', 'sass', 'satisfy', 'saturate', 'saunter',
+  'savor', 'saw', 'say', 'scald', 'scale', 'scam', 'scamper', 'scan', 'scandalize', 'scant',
+  'scapegoat', 'scar', 'scare', 'scarf', 'scatter', 'scavenge', 'schedule', 'schematize', 'scheme',
+  'school', 'schuss', 'scintillate', 'scoff', 'scold', 'scoop', 'scoot', 'scope', 'scorch',
+  'score', 'scorn', 'scour', 'scourge', 'scout', 'scowl', 'scramble', 'scrap', 'scrape',
+  'scratch', 'scrawl', 'scream', 'screech', 'screw', 'scribble', 'scrub', 'scrum', 'scruple',
+  'scrutinize', 'scud', 'scuffle', 'sculpt', 'scurry', 'scuttle', 'scythe', 'seal', 'seam',
+  'sear', 'search', 'season', 'seat', 'secede', 'seclude', 'second', 'secrete', 'secure',
+  'sedate', 'seduce', 'see', 'seed', 'seek', 'seep', 'seethe', 'segment', 'segregate', 'seize',
+  'select', 'sell', 'sellate', 'seme', 'semaphore', 'send', 'senior', 'sensationalize', 'sense',
+  'sensitize', 'sentence', 'sentimentalize', 'separate', 'sequester', 'serenade', 'serialize',
+  'sermonize', 'serve', 'service', 'set', 'settle', 'sever', 'sew', 'shackle', 'shade', 'shadow',
+  'shaft', 'shag', 'shake', 'shallow', 'sham', 'shame', 'shampoo', 'shape', 'share', 'shark',
+  'sharpen', 'shatter', 'shave', 'shear', 'sheathe', 'shed', 'sheer', 'sheet', 'shelter',
+  'shelve', 'shepherd', 'shield', 'shift', 'shimmer', 'shin', 'shine', 'shingle', 'ship',
+  'shirk', 'shiver', 'shock', 'shoe', 'shoot', 'shop', 'shore', 'short', 'shortcut', 'shorten',
+  'shout', 'shove', 'shovel', 'show', 'shower', 'shred', 'shriek', 'shrill', 'shrink', 'shroud',
+  'shrug', 'shuck', 'shuffle', 'shun', 'shunt', 'shush', 'shut', 'shuttle', 'shy', 'sibilate',
+  'sic', 'sid', 'sicken', 'side', 'sidestep', 'sideswipe', 'sidle', 'sift', 'sigh', 'sight',
+  'signal', 'sign', 'signify', 'silence', 'simmer', 'simper', 'simplify', 'simulate', 'sin',
+  'sing', 'singe', 'single', 'sink', 'sip', 'sit', 'site', 'situate', 'size', 'sizzle', 'skate',
+  'skeet', 'sketch', 'skid', 'skim', 'skimp', 'skin', 'skip', 'skipper', 'skirmish', 'skirt',
+  'skitter', 'skulk', 'skull', 'skunk', 'skyrocket', 'slack', 'slag', 'slake', 'slam', 'slant',
+  'slap', 'slash', 'slate', 'slather', 'slaughter', 'slave', 'sleek', 'sleep', 'sleet', 'slice',
+  'slide', 'slim', 'sling', 'slink', 'slip', 'slit', 'slither', 'slobber', 'slog', 'slop',
+  'slope', 'slosh', 'slot', 'slow', 'sludge', 'slug', 'slumber', 'slump', 'slur', 'slurry',
+  'smack', 'smash', 'smear', 'smell', 'smelt', 'smile', 'smirk', 'smite', 'smoke', 'smooth',
+  'smother', 'smoulder', 'smudge', 'smuggle', 'snack', 'snafu', 'snag', 'snap', 'snare', 'snarl',
+  'snatch', 'sneak', 'sneer', 'sneeze', 'snicker', 'sniff', 'snip', 'snipe', 'snitch', 'snivel',
+  'snore', 'snort', 'snub', 'snuff', 'snuggle', 'soak', 'soap', 'soar', 'sob', 'sober', 'soccer',
+  'socialize', 'sock', 'sod', 'soften', 'soil', 'sojourn', 'solace', 'solder', 'solicit', 'solidify',
+  'soliloquize', 'solve', 'somber', 'somersault', 'soothe', 'sop', 'sophisticate', 'sore', 'sorrow',
+  'sort', 'sound', 'soup', 'sour', 'souse', 'sow', 'space', 'spade', 'spam', 'span', 'spangle',
+  'spank', 'spar', 'spare', 'spark', 'sparkle', 'spat', 'speak', 'spear', 'specialize', 'specify',
+  'spectate', 'speech', 'speed', 'spell', 'spend', 'spew', 'spice', 'spike', 'spill', 'spin',
+  'spiral', 'spirit', 'spit', 'spite', 'splash', 'splay', 'splice', 'splint', 'splinter', 'split',
+  'splutter', 'spoil', 'sponsor', 'spoof', 'spook', 'spool', 'spoon', 'sport', 'spore', 'sport',
+  'spot', 'spout', 'sprawl', 'spray', 'spread', 'sprig', 'sprinkle', 'sprint', 'sprout', 'spruce',
+  'spur', 'spurn', 'sputter', 'spy', 'squabble', 'squall', 'squander', 'square', 'squash', 'squat',
+  'squeak', 'squeal', 'squeeze', 'squelch', 'squint', 'squirm', 'squirt', 'stab', 'stabilize',
+  'stack', 'staff', 'stagger', 'stagnate', 'stain', 'stake', 'stalk', 'stall', 'stammer', 'stamp',
+  'stampede', 'stand', 'standardize', 'staple', 'star', 'stare', 'start', 'startle', 'starve',
+  'stash', 'state', 'station', 'staunch', 'stave', 'stay', 'steady', 'steal', 'steam', 'steel',
+  'steep', 'steer', 'stem', 'step', 'stereotype', 'sterilize', 'steer', 'stew', 'stick', 'stiffen',
+  'stifle', 'stigmatize', 'stile', 'still', 'stimulate', 'sting', 'stingray', 'stink', 'stint',
+  'stipulate', 'stir', 'stitch', 'stock', 'stoke', 'stole', 'stomach', 'stomp', 'stone', 'stoop',
+  'stop', 'store', 'storm', 'storyboard', 'stow', 'straddle', 'strafe', 'straggle', 'straighten',
+  'strain', 'strand', 'strangle', 'strap', 'stratify', 'stray', 'streak', 'stream', 'streamline',
+  'strengthen', 'stress', 'stretch', 'strew', 'stride', 'strife', 'strike', 'string', 'strip',
+  'strive', 'stroke', 'stroll', 'structure', 'struggle', 'strum', 'strut', 'stub', 'stubborn',
+  'stud', 'study', 'stuff', 'stumble', 'stump', 'stun', 'stunt', 'stupefy', 'stutter', 'style',
+  'subdue', 'subjugate', 'submerge', 'submit', 'subordinate', 'subscribe', 'subside', 'subsidize',
+  'subsist', 'substantiate', 'substitute', 'subsume', 'subtract', 'subvert', 'succeed', 'succor',
+  'suck', 'succumb', 'sue', 'suffer', 'suffice', 'suffocate', 'suffuse', 'suggest', 'suit',
+  'sulk', 'sully', 'sum', 'summarize', 'summit', 'summon', 'sump', 'sun', 'sunbathe', 'sunder',
+  'sup', 'supercharge', 'superimpose', 'superintend', 'supersede', 'supervise', 'supplant', 'supplement',
+  'supply', 'support', 'suppose', 'suppress', 'surge', 'surmise', 'surmount', 'surname', 'surpass',
+  'surprise', 'surrender', 'surround', 'survey', 'survive', 'suspect', 'suspend', 'sustain',
+  'suture', 'swaddle', 'swagger', 'swallow', 'swamp', 'swap', 'swarm', 'sway', 'swear', 'sweat',
+  'sweep', 'sweeten', 'swell', 'swerve', 'swift', 'swig', 'swim', 'swindle', 'swing', 'swirl',
+  'swish', 'switch', 'swivel', 'swoon', 'swoop', 'swot', 'sympathize', 'symphonize', 'syncopate',
+  'synergize', 'synthesize', 'syringe', 'tab', 'table', 'tabulate', 'tack', 'tackle', 'tag',
+  'tail', 'tailor', 'take', 'tale', 'tally', 'tame', 'tamper', 'tan', 'tangle', 'tank', 'tap',
+  'taper', 'tar', 'target', 'tarnish', 'tarry', 'tart', 'task', 'taste', 'tat', 'tattle', 'taunt',
+  'tauten', 'tax', 'taxi', 'teach', 'team', 'tear', 'tease', 'tee', 'teem', 'teeter', 'telegraph',
+  'telephone', 'telescope', 'televise', 'tell', 'temper', 'temporize', 'tempt', 'tense', 'tension',
+  'tenterhook', 'term', 'terminate', 'terrify', 'territory', 'terrorize', 'test', 'testify',
+  'tether', 'thank', 'thaw', 'theorize', 'thicken', 'thieve', 'thin', 'think', 'thirst', 'thorn',
+  'thrash', 'thread', 'threaten', 'thresh', 'thrill', 'thrive', 'throb', 'throng', 'throttle',
+  'throw', 'thrust', 'thud', 'thumb', 'thump', 'thunder', 'tick', 'tickle', 'tide', 'tie',
+  'tighten', 'tilt', 'time', 'tincture', 'tinge', 'tingle', 'tinker', 'tint', 'tip', 'tiptoe',
+  'tire', 'titillate', 'title', 'titter', 'toady', 'toast', 'toddle', 'toe', 'toggle', 'toil',
+  'tolerate', 'tomtom', 'tone', 'tongue', 'tool', 'toot', 'topple', 'torch', 'torment', 'tornado',
+  'torpedo', 'torture', 'toss', 'tot', 'total', 'totter', 'touch', 'toughen', 'tour', 'tout',
+  'tow', 'tower', 'toy', 'trace', 'track', 'tract', 'trade', 'traduce', 'traffic', 'trail',
+  'train', 'traipse', 'trample', 'tramp', 'tranquilize', 'transcend', 'transcribe', 'transduce',
+  'transect', 'transfer', 'transform', 'transfuse', 'transgress', 'transit', 'translate', 'transmit',
+  'transmute', 'transpire', 'transplant', 'transport', 'transpose', 'transubstantiate', 'trap',
+  'trash', 'traumatize', 'travel', 'traverse', 'trawl', 'tread', 'treasure', 'treat', 'treble',
+  'trek', 'tremble', 'trench', 'trend', 'trespass', 'triage', 'trial', 'tributary', 'trick',
+  'trickle', 'trifle', 'trigger', 'trim', 'trip', 'triple', 'triumph', 'trivialize', 'troll',
+  'tromp', 'troop', 'trot', 'trouble', 'trounce', 'trousseau', 'truce', 'truck', 'trudge',
+  'trump', 'truncate', 'truss', 'trust', 'try', 'tuck', 'tug', 'tumble', 'tune', 'tunnel',
+  'turbocharge', 'turf', 'turn', 'tussle', 'tutor', 'twang', 'tweak', 'tweet', 'twiddle',
+  'twig', 'twin', 'twine', 'twinkle', 'twirl', 'twist', 'twitch', 'twitter', 'type', 'tyrannize',
+  'ulcerate', 'ultimately', 'unbend', 'unblock', 'unbosom', 'unbuckle', 'unbutton', 'unclench',
+  'uncoil', 'uncover', 'underbid', 'undercut', 'underestimate', 'undergo', 'undergraduate',
+  'underline', 'undermine', 'underscore', 'undersell', 'understand', 'understate', 'understudy',
+  'undertake', 'underwrite', 'undo', 'undress', 'undulate', 'unearth', 'unfurl', 'unhinge', 'unify',
+  'unify', 'unite', 'unlace', 'unleash', 'unload', 'unlock', 'unmake', 'unmask', 'unpack', 'unpick',
+  'unplug', 'unravel', 'unroll', 'unscrew', 'unsettle', 'unsheathe', 'untangle', 'unteach', 'unthrone',
+  'untie', 'unveil', 'unwrap', 'upbraid', 'upend', 'upgrade', 'upheave', 'uphold', 'upkeep',
+  'uplift', 'upload', 'uppercut', 'uproot', 'upset', 'upshift', 'upskill', 'upstage', 'upstart',
+  'upsurge', 'uptake', 'upturn', 'urbanize', 'urge', 'usher', 'usurp', 'utilize', 'utter',
+  'vacate', 'vacillate', 'vaccinate', 'vacuum', 'validate', 'valorize', 'value', 'vamp', 'vanish',
+  'vaporize', 'vault', 'veal', 'veer', 'vegetate', 'veil', 'vein', 'vend', 'venerate', 'vent',
+  'ventilate', 'venture', 'verbalize', 'verify', 'vermin', 'versify', 'vibrate', 'victimize',
+  'videotape', 'view', 'vilify', 'vindicate', 'vindicate', 'violate', 'visit', 'vitalize',
+  'vitiate', 'vitrify', 'vocalize', 'vogue', 'voice', 'volatilize', 'volley', 'volunteer', 'vomit',
+  'voodoo', 'vote', 'vouch', 'vow', 'voyage', 'vulgarize', 'wade', 'waffle', 'waft', 'wag',
+  'wage', 'wager', 'waggle', 'wail', 'wait', 'waive', 'wake', 'waken', 'walk', 'wall',
+  'wallow', 'wander', 'wane', 'want', 'warble', 'ward', 'warm', 'warn', 'warp', 'warrant',
+  'wary', 'wash', 'waste', 'watch', 'water', 'wave', 'waver', 'wax', 'weaken', 'wean', 'wear',
+  'weary', 'weave', 'wed', 'wedge', 'weed', 'weep', 'weigh', 'weight', 'welcome', 'weld',
+  'whack', 'wheedle', 'wheel', 'wheeze', 'whelp', 'whet', 'whimper', 'whine', 'whip', 'whirl',
+  'whisk', 'whisper', 'whistle', 'whiten', 'whittle', 'whoop', 'whump', 'wiggle', 'will', 'wilt',
+  'wince', 'wind', 'wink', 'winnow', 'winterize', 'wipe', 'wire', 'wish', 'withdraw', 'wither',
+  'withhold', 'withstand', 'witness', 'wobble', 'wonder', 'woo', 'work', 'worm', 'worry', 'worship',
+  'wound', 'wrangle', 'wrap', 'wreak', 'wreathe', 'wreck', 'wrench', 'wrest', 'wrestle', 'wriggle',
+  'wring', 'wrinkle', 'write', 'writhe', 'wrought', 'xerox', 'yawn', 'yearn', 'yell', 'yield',
+  'yodel', 'zap', 'zigzag', 'zip', 'zone', 'zoom'
+];
+const ADV = [
+  'furiously', 'quietly', 'loudly', 'gently', 'slowly', 'rapidly', 'deeply',
+  'endlessly', 'suddenly', 'beautifully', 'strangely', 'vividly', 'relentlessly',
+  'softly', 'inwardly', 'counterclockwise', 'majestically', 'suspiciously',
+  'absurdly', 'adorably', 'aggressively', 'aimlessly', 'amazingly', 'angrily',
+  'anxiously', 'apologetically', 'apparently', 'ardently', 'artfully', 'awkwardly',
+  'backwards', 'barely', 'bashfully', 'beautifully', 'belligerently', 'bitterly',
+  'blissfully', 'boisterously', 'boldly', 'bravely', 'breathlessly', 'briskly',
+  'brutally', 'calmly', 'carefully', 'carelessly', 'casually', 'cautiously',
+  'cheerfully', 'cheerlessly', 'chronologically', 'clumsily', 'coherently', 'coldly',
+  'collectively', 'comically', 'compulsively', 'concurrently', 'confidently',
+  'conscientiously', 'constantly', 'convincingly', 'coolly', 'courteously', 'covertly',
+  'coyly', 'craftily', 'cravenly', 'creatively', 'crisply', 'crucially', 'curiously',
+  'cynically', 'daintily', 'daringly', 'dearly', 'decisively', 'defiantly', 'delicately',
+  'delightfully', 'demonstratively', 'desperately', 'devilishly', 'devoutly', 'dimly',
+  'diligently', 'dimly', 'directly', 'discreetly', 'disdainfully', 'dismally', 'dizzily',
+  'doggedly', 'doubtfully', 'dramatically', 'dreamily', 'drowsily', 'dryly', 'dutifully',
+  'eagerly', 'earnestly', 'easily', 'ecstatically', 'efficiently', 'effortlessly',
+  'eloquently', 'emphatically', 'emptily', 'energetically', 'enigmatically', 'enormously',
+  'enviously', 'erratically', 'especially', 'evasively', 'evenly', 'eventually', 'exactly',
+  'excitedly', 'exotically', 'expectantly', 'expertly', 'expressly', 'extravagantly',
+  'exuberantly', 'fairly', 'faithfully', 'famously', 'fancifully', 'fatally', 'fearlessly',
+  'ferociously', 'fervently', 'feverishly', 'fiercely', 'financially', 'firmly', 'fitfully',
+  'flagrantly', 'flatly', 'flawlessly', 'flimsily', 'flippantly', 'fluidly', 'forcibly',
+  'forever', 'formally', 'frantically', 'freely', 'frequently', 'frighteningly', 'frugally',
+  'funnily', 'furlously', 'furtively', 'gallantly', 'gamely', 'generously', 'genuinely',
+  'ghastly', 'gingerly', 'gleefully', 'gloomily', 'gloriously', 'gracefully', 'graciously',
+  'grandly', 'gratefully', 'gravely', 'greedily', 'grimly', 'grudgingly', 'gruffly',
+  'grumpily', 'haphazardly', 'happily', 'harmoniously', 'harshly', 'hastily', 'haughtily',
+  'hauntingly', 'heartily', 'heavily', 'hectically', 'helplessly', 'heroically', 'hesitantly',
+  'hilariously', 'honestly', 'hopefully', 'hopelessly', 'horizontally', 'horribly', 'hostilely',
+  'hotly', 'hungrily', 'hysterically', 'idly', 'ignominiously', 'immensely', 'impatiently',
+  'imperceptibly', 'impetuously', 'implicitly', 'impolitely', 'impressively', 'inadvertently',
+  'incessantly', 'incorrectly', 'indifferently', 'indignantly', 'indirectly', 'indoors',
+  'indubitably', 'inevitably', 'inexplicably', 'infinitely', 'influentially', 'innocently',
+  'insanely', 'insistently', 'instantly', 'intensely', 'intermittently', 'intimately',
+  'intrepidly', 'inwardly', 'ironically', 'irreverently', 'irritably', 'jaggedly', 'jealously',
+  'jokingly', 'joyfully', 'joylessly', 'jubilantly', 'judiciously', 'keenly', 'kindly',
+  'kneedeeply', 'laboriously', 'laconically', 'lamely', 'languidly', 'largely', 'lavishly',
+  'lazily', 'lethargically', 'lightheartedly', 'lightly', 'likely', 'limpidly', 'lively',
+  'loftily', 'logically', 'loosely', 'lovingly', 'lucidly', 'lugubriously', 'luminously',
+  'lusciously', 'luxuriantly', 'lyrically', 'madly', 'magnificently', 'main', 'maliciously',
+  'maniacally', 'manfully', 'mannerly', 'massively', 'maternally', 'maturely', 'meaningfully',
+  'meaninglessly', 'mechanically', 'meditatively', 'melancholically', 'mellowly', 'melodiously',
+  'mercilessly', 'merely', 'merrily', 'messily', 'meticulously', 'mildly', 'militarily',
+  'minutely', 'miraculously', 'mischievously', 'miserably', 'mistakenly', 'mockingly',
+  'modestly', 'momentarily', 'monotonously', 'morosely', 'motionlessly', 'mournfully',
+  'movingly', 'mysteriously', 'naively', 'naturally', 'nearly', 'neatly', 'nervously',
+  'nicely', 'nobly', 'nocturnally', 'noisily', 'nonchalantly', 'noncommittally', 'normally',
+  'nostalgically', 'notably', 'obediently', 'objectively', 'obscurely', 'obviously',
+  'occasionally', 'officially', 'ominously', 'openly', 'operatically', 'optimistically',
+  'outrageously', 'outwardly', 'overconfidently', 'overwhelmingly', 'painfully', 'pale',
+  'palpably', 'panicky', 'paranoidly', 'passionately', 'patiently', 'peacefully', 'peculiarly',
+  'pedantically', 'peevishly', 'perfectly', 'perhaps', 'perilously', 'periodically',
+  'permanently', 'perpetually', 'persistently', 'personally', 'persuasively', 'pertinently',
+  'philosophically', 'photographically', 'piteously', 'pitifully', 'plainly', 'playfully',
+  'pleasantly', 'plenty', 'poignantly', 'pointedly', 'politely', 'poorly', 'positively',
+  'possessively', 'potentially', 'powerfully', 'practically', 'precisely', 'prematurely',
+  'presently', 'presumably', 'prettily', 'previously', 'primarily', 'primly', 'privately',
+  'probably', 'promptly', 'properly', 'prophetically', 'proudly', 'provocatively', 'prudently',
+  'purely', 'purposefully', 'quaintly', 'quarterly', 'queasily', 'queerly', 'questioningly',
+  'quickly', 'quizzically', 'radiantly', 'randomly', 'rapidly', 'rarely', 'rashly', 'rationally',
+  'raucously', 'readily', 'reassuringly', 'recently', 'recklessly', 'redundantly', 'regally',
+  'regularly', 'reluctantly', 'remotely', 'repeatedly', 'reproachfully', 'reservedly',
+  'resignedly', 'resolutely', 'respectfully', 'restfully', 'restlessly', 'reverently', 'richly',
+  'righteously', 'rigidly', 'roguishly', 'romantically', 'roughly', 'roundabout', 'routinely',
+  'rudely', 'ruefully', 'ruggedly', 'ruthlessly', 'sadly', 'safely', 'sagely', 'sardonically',
+  'satisfactorily', 'scarcely', 'scarily', 'scathingly', 'schematically', 'scientifically',
+  'scornfully', 'scrapingly', 'secretly', 'sedately', 'seductively', 'seemingly', 'selflessly',
+  'sensitively', 'sentimentally', 'serenely', 'seriously', 'severely', 'shakily', 'shallowly',
+  'shamelessly', 'sharply', 'sheepishly', 'shoddily', 'shrilly', 'shyly', 'sickly', 'silently',
+  'silverly', 'simply', 'sincerely', 'singularly', 'sinisterly', 'skeptically', 'sleepily',
+  'slightly', 'slyly', 'smoothly', 'smugly', 'soberly', 'softly', 'solemnly', 'solicitously',
+  'solidly', 'solo', 'sometimes', 'sonorously', 'soothingly', 'sorrowfully', 'spaciously',
+  'sparingly', 'sparsely', 'specifically', 'spectacularly', 'speedily', 'spiritedly',
+  'spitefully', 'splendidly', 'spontaneously', 'sporadically', 'stately', 'steadfastly',
+  'steadily', 'stealthily', 'sternly', 'stiffly', 'still', 'stolidly', 'straightforwardly',
+  'strangely', 'strategically', 'strictly', 'strikingly', 'strongly', 'stubbornly', 'studiously',
+  'stupendously', 'stupidly', 'stylishly', 'subjectively', 'sublimely', 'submissively',
+  'subtly', 'successfully', 'suddenly', 'sufficiently', 'sullenly', 'superbly', 'supposedly',
+  'surely', 'surprisingly', 'surreptitiously', 'sweetly', 'swiftly', 'sympathetically',
+  'systematically', 'tacitly', 'tactfully', 'tactlessly', 'tardily', 'tartly', 'tastefully',
+  'tearfully', 'technically', 'tediously', 'temperamentally', 'temporarily', 'temptingly',
+  'tenaciously', 'tenderly', 'terribly', 'terrifically', 'testily', 'thankfully', 'thickly',
+  'thinly', 'thoroughly', 'thoughtfully', 'thoughtlessly', 'thriftily', 'thunderously',
+  'tightly', 'timidly', 'tirelessly', 'toastily', 'together', 'tolerantly', 'torturously',
+  'totally', 'touchingly', 'toughly', 'tragically', 'tranquilly', 'transparently', 'tremulously',
+  'triumphantly', 'truthfully', 'tunefully', 'turbulently', 'typically', 'unabashedly',
+  'unanimously', 'unbelievably', 'unbearably', 'uncomfortably', 'unconditionally', 'unconsciously',
+  'undeniably', 'underhandedly', 'understandably', 'uneasily', 'unexpectedly', 'unfairly',
+  'unfortunately', 'ungraciously', 'unhappily', 'unhurriedly', 'uniformly', 'uniquely',
+  'universally', 'unjustly', 'unkindly', 'unmistakably', 'unnaturally', 'unnecessarily',
+  'unpleasantly', 'unquestionably', 'unrealistically', 'unreasonably', 'unreliably', 'unreservedly',
+  'unwillingly', 'uproariously', 'upside-down', 'upstairs', 'urgently', 'usefully', 'uselessly',
+  'usually', 'utterly', 'vacantly', 'vaguely', 'vainly', 'valiantly', 'validly', 'vehemently',
+  'venomously', 'verbally', 'vertically', 'vigorously', 'virtually', 'visibly', 'vividly',
+  'vociferously', 'voluntarily', 'voraciously', 'warily', 'warmly', 'weakly', 'wearily',
+  'whimsically', 'wholeheartedly', 'wickedly', 'widely', 'wildly', 'willfully', 'willingly',
+  'wistfully', 'wittily', 'wonderfully', 'worriedly', 'wrongly', 'yearningly', 'zealously'
+];
+const TRANS = [
+  'shatter', 'devour', 'pursue', 'surround', 'embrace', 'consume', 'dissolve',
+  'measure', 'swallow', 'bewilder', 'uproot', 'outline', 'ferment', 'overhear',
+  'ignite', 'interpret', 'decorate', 'unravel', 'assemble', 'attract', 'bother',
+  'collect', 'conquer', 'construct', 'contain', 'criticize', 'describe', 'disguise',
+  'disrupt', 'document', 'educate', 'examine', 'excite', 'explain', 'expose',
+  'frighten', 'harvest', 'humiliate', 'illuminate', 'imitate', 'impress', 'inflate',
+  'inspire', 'interrogate', 'intimidate', 'investigate', 'invite', 'irritate',
+  'jettison', 'kidnap', 'liberate', 'manipulate', 'memorize', 'mention', 'obliterate',
+  'observe', 'obstruct', 'occupy', 'organize', 'overthrow', 'photograph', 'placate',
+  'pollinate', 'preserve', 'proclaim', 'propagate', 'protect', 'purify', 'reanimate',
+  'rebuild', 'reconstruct', 'recount', 'regenerate', 'rehearse', 'remodel', 'reproduce',
+  'rescue', 'saturate', 'synthesize', 'terrify', 'torture', 'translate', 'transmit',
+  'validate', 'venerate', 'vindicate', 'welcome', 'wreck'
+];
+
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const maybe = (p) => Math.random() < p;
+const NUM_PROB = 0.3;
+const GOOGOL = 100;
+
+const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+const GROUP = ['', 'thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion',
+  'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion', 'duodecillion',
+  'tredecillion', 'quattuordecillion', 'quindecillion', 'sexdecillion', 'septendecillion',
+  'octodecillion', 'novemdecillion', 'vigintillion', 'unvigintillion', 'duovigintillion',
+  'tresvigintillion', 'quattuorvigintillion', 'quinvigintillion', 'sexvigintillion',
+  'septenvigintillion', 'octovigintillion', 'novemvigintillion', 'trigintillion',
+  'untrigintillion', 'duotrigintillion'];
+
+function below100(n) {
+  if (n < 20) return ONES[n];
+  const o = n % 10;
+  return TENS[Math.floor(n / 10)] + (o ? '-' + ONES[o] : '');
+}
+
+function below1000(n) {
+  const h = Math.floor(n / 100);
+  const r = n % 100;
+  return (h ? ONES[h] + ' hundred' + (r ? ' ' : '') : '') + (r ? below100(r) : '');
+}
+
+function numberToWords(n) {
+  if (n === 0n) return 'zero';
+  const parts = [];
+  let g = 0;
+  while (n > 0n) {
+    const chunk = Number(n % 1000n);
+    if (chunk) parts.push(below1000(chunk) + (GROUP[g] ? ' ' + GROUP[g] : ''));
+    n /= 1000n;
+    g++;
+  }
+  return parts.reverse().join(' ');
+}
+
+const SUP = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+const CDOT = '·';
+
+function sciNote(v, sep) {
+  if (v === 0n) return '0';
+  const d = v.toString();
+  const e = d.length - 1;
+  if (e === 0) return d;
+  let m = d.slice(0, 3);
+  m = m.length > 1 ? m[0] + '.' + m.slice(1) : m;
+  m = m.replace(/\.?0+$/, '');
+  return m + ' ' + sep + ' 10' + String(e).replace(/[0-9]/g, (x) => SUP[x]);
+}
+
+function bigRand(span) {
+  const bytes = Math.ceil(span.toString(2).length / 8);
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  let out = 0n;
+  for (let i = 0; i < bytes; i++) out = (out << 8n) | BigInt(buf[i]);
+  return out % span;
+}
+
+function randomGoogol() {
+  if (Math.random() < 0.02) return 0n;
+  let k = 0;
+  while (k < GOOGOL && Math.random() < 2 / 3) k++;
+  if (k >= GOOGOL) return 10n ** BigInt(GOOGOL);
+  const lo = 10n ** BigInt(k);
+  const hi = 10n ** BigInt(k + 1);
+  return lo + bigRand(hi - lo);
+}
+
+const ADJ_PROB = 1 / 2;
+
+/* Max distinct sentences (finite, because adjectives cannot repeat):
+ *
+ * Vocab counts: DET=21  ADJ=159  NOUN=653  VERB=3070  ADV=647  TRANS=88
+ *
+ * Ordered no-repeat adjective sequences (k adjectives, k = 1..159):
+ *   A = sum_{k=1..159} P(159,k)
+ *     = 8009967241202236541314455661485852633569267137213189171242661895778361761188886402659606409421346810892881271097970417808496146706069693622552616635101017066299147950365762985871067688497812295729463502687975046904563762198565836010062442551708934244614479812409923161780491985511259
+ *
+ * Optional adverb factor is (1 + ADV) since both variants are valid sentences.
+ * Optional number factor is (1 + (10^100+1)): either no number, or one of
+ * 10^100+1 values (0 .. a googol). It always precedes the adjectives, so
+ * exactly 1 position (front for det-less patterns, after-det otherwise).
+ * sentence() patterns:
+ *   0: A * N * V * (1+W)          (no det)
+ *   1: A * D * N * V * (1+W)
+ *   2: A * N * V * (1+W)          (no det)
+ *   3: A * D * N * V * W          (adverb required)
+ *   4: A * N * V * W              (adverb required)
+ *   5: A * N * T * N * (1+W)      (transitive verb + object noun)
+ *
+ * TOTAL = ( A*N*V*(1+W)*(2+D) + A*N*V*W*(1+D) + A*N*N*T*(1+W) ) * (1 + (10^100+1))
+ *       = 6626548721403641335447640480118582510928270134924792045469501103553612626115544506902899860062936861820626794988782982321469288806056275813825990173930358801906416786145221185868860572046172561845672973156778747294300598811366529110414276839465904060100887717392281166595997924205314961925471491660174818673721136671510484625594528491910241014653253142189223230613216411361074442695333737072328
+ */
+function powerAdjs() {
+  const used = new Set();
+  const adjs = [];
+  let a = pick(ADJ);
+  used.add(a);
+  adjs.push(a);
+  while (Math.random() < ADJ_PROB && used.size < ADJ.length) {
+    let b = pick(ADJ);
+    while (used.has(b)) b = pick(ADJ);
+    used.add(b);
+    adjs.push(b);
+  }
+  return adjs;
+}
+const ATTR = [
+  ['an ancient proverb', 'of unknown origin'],
+  ['an unnamed oracle', 'on a hill somewhere'],
+  ['the collective unconscious', 'probably'],
+  ['a forgotten philosopher', 'circa 400 BC'],
+  ['some guy', 'in the 1600s'],
+  ['your subconscious', 'while you slept'],
+  ['a minor prophet', 'witness protection program'],
+  ['a slightly annoyed librarian', 'muttering to themselves'],
+  ['a committee', 'of imaginary experts'],
+  ['an enthusiastic parrot', 'repeating itself'],
+  ['a sleep-deprived linguist', '3 AM'],
+  ['the ghost of a grammarian', 'unfinished business'],
+  ['a fortune cookie', 'slightly damaged'],
+  ['an emoji', 'deep in thought']
+];
+
+function sentence() {
+  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null };
+
+  if (maybe(NUM_PROB)) {
+    s.num = numberToWords(randomGoogol());
+  }
+
+  const pattern = Math.floor(Math.random() * 6);
+  if (pattern === 0) {
+    // Chomsky canonical-ish: Adj* N V Adv
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(VERB);
+    s.adv = maybe(0.7) ? pick(ADV) : null;
+  } else if (pattern === 1) {
+    s.det = pick(DET);
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(VERB);
+    s.adv = maybe(0.7) ? pick(ADV) : null;
+  } else if (pattern === 2) {
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(VERB);
+    s.adv = maybe(0.8) ? pick(ADV) : null;
+  } else if (pattern === 3) {
+    s.det = pick(DET);
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(VERB);
+    s.adv = pick(ADV);
+  } else if (pattern === 4) {
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(VERB);
+    s.adv = pick(ADV);
+  } else {
+    s.adjs = powerAdjs();
+    s.noun = pick(NOUN);
+    s.verb = pick(TRANS);
+    s.adv = maybe(0.6) ? pick(ADV) : null;
+    s.object = true;
+    s.obj = pick(NOUN);
+  }
+  if (s.num) {
+    if (s.det) s.numPos = 'after-det';
+    else s.numPos = 'front';
+  }
+  return s;
+}
+
+function words(s) {
+  const np = [];
+  if (s.det) np.push(s.det);
+  if (s.num) np.push(s.num);
+  np.push(...s.adjs);
+  np.push(s.noun);
+  const parts = [...np, s.verb];
+  if (s.object) parts.push(s.obj);
+  if (s.adv) parts.push(s.adv);
+  let str = parts.join(' ');
+  str = str.charAt(0).toUpperCase() + str.slice(1) + '.';
+  return str;
+}
+
+function parseTree(s) {
+  const lines = [];
+  lines.push('S');
+  lines.push('├─ NP');
+  const npChildren = [];
+  if (s.det) npChildren.push(['Det', s.det]);
+  if (s.num) npChildren.push(['Num', s.num]);
+  for (const a of s.adjs) npChildren.push(['Adj', a]);
+  npChildren.push(['N', s.noun]);
+  npChildren.forEach((c, i) => {
+    lines.push((i === npChildren.length - 1 ? '│   └─ ' : '│   ├─ ') + c[0] + '  "' + c[1] + '"');
+  });
+  lines.push('└─ VP');
+  const vpChildren = [['V', s.verb]];
+  if (s.object) vpChildren.push(['N', s.obj]);
+  if (s.adv) vpChildren.push(['Adv', s.adv]);
+  vpChildren.forEach((c, i) => {
+    lines.push((i === vpChildren.length - 1 ? '    └─ ' : '    ├─ ') + c[0] + '  "' + c[1] + '"');
+  });
+  return lines.join('\n');
+}
+
+function generate() {
+  const s = sentence();
+  const genBtn = document.getElementById('gen');
+  sentenceEl.textContent = 'Thinking';
+  sentenceEl.classList.add('thinking');
+  genBtn.disabled = true;
+  setTimeout(() => {
+    sentenceEl.textContent = words(s);
+    sentenceEl.classList.remove('thinking');
+    genBtn.disabled = false;
+    randomAttribution();
+    parseEl.dataset.tree = parseTree(s);
+    if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
+  }, 350 + Math.random() * 450);
+}
+
+document.getElementById('gen').addEventListener('click', generate);
+document.getElementById('chomsky').addEventListener('click', () => {
+  sentenceEl.textContent = 'Colorless green ideas sleep furiously.';
+  attrEl.innerHTML = '<b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957';
+  parseEl.dataset.tree =
+    'S\n├─ NP\n│   ├─ Adj  "colorless"\n│   ├─ Adj  "green"\n│   └─ N    "ideas"\n└─ VP\n    ├─ V    "sleep"\n    └─ Adv  "furiously"';
+  if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
+});
+document.getElementById('tree').addEventListener('click', () => {
+  if (parseEl.style.display === 'none') {
+    parseEl.style.display = 'block';
+    parseEl.textContent = parseEl.dataset.tree || '';
+  } else {
+    parseEl.style.display = 'none';
+  }
+});
+
+generate();
+
+document.getElementById('tagline').textContent =
+  'offering ' + TOTAL_SENTENCES + ' (' + sciNote(BigInt(TOTAL_SENTENCES), CDOT) + ') sentences.';
+</script>
+</body>
+</html>
