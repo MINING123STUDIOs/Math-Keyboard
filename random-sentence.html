@@ -285,6 +285,13 @@ const SENT_E = 5305217;
 const QUOTE_M = '5.54';
 const QUOTE_E = 5305243;
 
+/* Borges, The Library of Babel: 25 symbols × 1,312,000 chars/book.
+ * Books = 25^1312000 ≈ 1.96 × 10^1834097; our sentence space leads by
+ * VS_BABEL = 5,305,217 − 1,834,097 = 3,471,120 orders of magnitude. */
+const BABEL_M = '1.96';
+const BABEL_E = 1834097;
+const VS_BABEL = 3471120;
+
 /* Max distinct authors:
  *
  * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  SUFFIX=147  AUTHORS=34  ATTR=20
@@ -2000,7 +2007,9 @@ document.getElementById('tagline').textContent =
   ' quotes from ' + sciM(SENT_M, SENT_E, CDOT) +
   ' sentences and ' + sciNote(TOTAL_ATTRIBUTIONS, CDOT) +
   ' attributions by ' + sciNote(TOTAL_AUTHORS, CDOT) +
-  ' possible authors.';
+  ' possible authors.\n' +
+  'Outnumbering the Library of Babel\'s ~' + sciM(BABEL_M, BABEL_E, CDOT) +
+  ' books by ' + VS_BABEL.toLocaleString('en-US') + '×.';
 </script>
 </body>
 </html>
