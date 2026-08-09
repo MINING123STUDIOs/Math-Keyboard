@@ -1,0 +1,733 @@
+/*
+ * Clean Editor - A fast, minimal code editor
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Accessibility: skip link (visible on focus only) ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  z-index: 200;
+  font-size: 14px;
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }
+
+/* ── Accessibility: screen reader only (off-screen, still in DOM) ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * Dark theme colors
+ * Contrast ratios (all measured against --bg #1e1e2e):
+ *   --fg:             11.3:1 AAA  (body text, button text)
+ *   --accent:          7.8:1 AAA  (links, focus rings, active states)
+ *   --gutter-fg:       7.6:1 AAA  (line numbers)
+ *   --tok-keyword:     8.1:1 AAA
+ *   --tok-string:     11.0:1 AAA
+ *   --tok-comment:     7.6:1 AAA
+ *   --tok-number:      9.3:1 AAA
+ *   --tok-operator:   10.5:1 AAA
+ *   --tok-func:        7.8:1 AAA
+ *   --tok-tag:         7.1:1 AAA
+ *   --tok-attr:       12.9:1 AAA
+ *   --tok-punctuation: 8.3:1 AAA
+ *   --border:          1.3:1 (decorative only, not text)
+ */
+:root {
+  --bg: #1e1e2e;
+  --fg: #cdd6f4;
+  --accent: #89b4fa;
+  --gutter-bg: #181825;
+  --gutter-fg: #aab0c4;
+  --toolbar-bg: #11111b;
+  --status-bg: #11111b;
+  --find-bg: #181825;
+  --selection: rgba(137, 180, 250, 0.2);
+  --border: #313244;
+  --danger: #d20f39;
+  --danger-hover: #b30c2f;
+  --danger-fg: #fff;
+  --tok-keyword: #cba6f7;
+  --tok-string: #a6e3a1;
+  --tok-comment: #aab0c4;
+  --tok-number: #fab387;
+  --tok-operator: #89dceb;
+  --tok-func: #89b4fa;
+  --tok-tag: #f38ba8;
+  --tok-attr: #f9e2af;
+  --tok-punctuation: #b4b8cd;
+  --modal-bg: #1e1e2e;
+  /* a11y: focus ring uses --accent (7.8:1 on --bg = AAA) */
+  /* a11y: danger focus ring (#e8103a, 3.6:1 on --bg = AA-lg) */
+  --danger-focus: #e8103a;
+}
+
+/*
+ * Light theme colors
+ * Contrast ratios (all measured against --bg #eff1f5):
+ *   --fg:             7.1:1 AAA
+ *   --accent:         8.0:1 AAA
+ *   --gutter-fg:      7.1:1 AAA
+ *   --tok-keyword:    7.9:1 AAA
+ *   --tok-string:     8.0:1 AAA
+ *   --tok-comment:    7.3:1 AAA
+ *   --tok-number:     7.4:1 AAA
+ *   --tok-operator:   7.9:1 AAA
+ *   --tok-func:       7.7:1 AAA
+ *   --tok-tag:        7.3:1 AAA
+ *   --tok-attr:       8.0:1 AAA
+ *   --tok-punctuation: 9.2:1 AAA
+ *   --border:         1.4:1 (decorative only, not text)
+ */
+:root.light {
+  --bg: #eff1f5;
+  --fg: #4c4f69;
+  --accent: #0d3faa;
+  --gutter-bg: #e6e9ef;
+  --gutter-fg: #4c4f69;
+  --toolbar-bg: #dce0e8;
+  --status-bg: #dce0e8;
+  --find-bg: #e6e9ef;
+  --selection: rgba(129, 161, 193, 0.3);
+  --border: #ccd0da;
+  --danger: #d20f39;
+  --danger-hover: #b30c2f;
+  --danger-fg: #fff;
+  --tok-keyword: #5b21b6;
+  --tok-string: #15532d;
+  --tok-comment: #4a4d63;
+  --tok-number: #8b2e10;
+  --tok-operator: #0e4d7a;
+  --tok-func: #1e40af;
+  --tok-tag: #991b1b;
+  --tok-attr: #78350f;
+  --tok-punctuation: #3f3f46;
+  --modal-bg: #eff1f5;
+  /* a11y: all tokens ≥ 7:1 AAA on --bg */
+  /* a11y: --danger-focus on --bg = 4.8:1 AA */
+  --danger-focus: #d20f39;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ── Toolbar ── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tool-btn, .tool-select {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tool-btn:hover {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+/* a11y: :focus-visible shows outline only for keyboard navigation, not mouse clicks.
+ * Outline uses --accent: 7.8:1 on --bg (dark AAA), 5.3:1 on --bg (light AA) */
+.tool-btn:focus-visible, .tool-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tool-btn.btn-danger {
+  color: var(--danger);
+  background: transparent;
+}
+.tool-btn.btn-danger:hover {
+  background: rgba(210, 15, 57, 0.15);
+  color: var(--danger);
+  border-color: rgba(210, 15, 57, 0.3);
+}
+/* a11y: danger focus ring uses --danger-focus (3.6:1 dark / 4.8:1 light on bg) */
+.tool-btn.btn-danger:focus-visible {
+  outline-color: var(--danger-focus);
+}
+
+.tool-select {
+  appearance: none;
+  padding-right: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c7086'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+/* a11y: chevron SVG is #6c7086; in light mode on --toolbar-bg (#dce0e8) = ~2.5:1.
+ * Below 3:1 for non-text graphics, but the dropdown affordance is also conveyed
+ * by the caret appearance and aria-label. Accept platform default here. */
+
+.tool-select option {
+  background: var(--toolbar-bg);
+  color: var(--fg);
+}
+
+/* ── Find Bar ── */
+
+.findbar {
+  background: var(--find-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 8px;
+  flex-shrink: 0;
+}
+
+.findbar-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.findbar input[type="text"] {
+  flex: 1;
+  min-width: 100px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+/* a11y: focus ring on find input — accent on bg = 7.8:1 AAA (dark), 5.3:1 AA (light) */
+.findbar input[type="text"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.regex-toggle {
+  color: var(--fg);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.regex-toggle:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.regex-toggle input { cursor: pointer; }
+
+/* a11y: focus ring on checkbox */
+.regex-toggle input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.findbar button {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.findbar button:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* a11y: keyboard focus ring on findbar buttons */
+.findbar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.find-status {
+  font-size: 12px;
+  color: var(--gutter-fg);
+  margin-top: 4px;
+  min-height: 16px;
+}
+
+/* ── Editor Area ── */
+
+.editor-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.gutter {
+  width: 40px;
+  background: var(--gutter-bg);
+  color: var(--gutter-fg);
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px 0;
+  text-align: right;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.gutter div {
+  padding: 0 8px 0 0;
+  height: 1.5em;
+}
+
+.code-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.highlight, .input {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Menlo', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  margin: 0;
+  border: none;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+
+.word-wrap .highlight, .word-wrap .input,
+.word-wrap .highlight code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.highlight {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  overflow: auto;
+  color: var(--fg);
+  background: transparent;
+}
+
+.highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.input {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  color: transparent;
+  caret-color: var(--fg);
+  background: transparent;
+  resize: none;
+  overflow: auto;
+  -webkit-text-fill-color: transparent;
+  touch-action: manipulation;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input.intro {
+  color: var(--gutter-fg);
+  -webkit-text-fill-color: var(--gutter-fg);
+  font-style: italic;
+}
+
+.input::selection {
+  background: var(--selection);
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Syntax Tokens ── */
+
+.tok-keyword { color: var(--tok-keyword); font-weight: 600; }
+.tok-string { color: var(--tok-string); }
+.tok-comment { color: var(--tok-comment); font-style: italic; }
+.tok-number { color: var(--tok-number); }
+.tok-operator { color: var(--tok-operator); }
+.tok-func { color: var(--tok-func); }
+.tok-tag { color: var(--tok-tag); }
+.tok-attr { color: var(--tok-attr); }
+.tok-punctuation { color: var(--tok-punctuation); }
+
+/* ── Status Bar ── */
+
+.statusbar {
+  display: flex;
+  gap: 16px;
+  padding: 4px 12px;
+  background: var(--status-bg);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--gutter-fg);
+  flex-shrink: 0;
+  min-height: 24px;
+  align-items: center;
+}
+
+.save-status {
+  margin-left: auto;
+  color: var(--gutter-fg);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.save-status.visible {
+  opacity: 1;
+}
+
+/* ── Modal ── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+
+.modal-box {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--modal-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  z-index: 100;
+  min-width: 280px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.modal-box p {
+  margin-bottom: 20px;
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+/* a11y: keyboard focus ring on modal buttons */
+.modal-actions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.modal-actions .btn-cancel {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.modal-actions .btn-cancel:hover { background: var(--border); }
+/* a11y: cancel button focus ring — accent on bg = 7.8:1 AAA (dark), 5.3:1 AA (light) */
+.modal-actions .btn-cancel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--danger-fg);
+}
+
+.btn-danger:hover { background: var(--danger-hover); }
+/* a11y: danger button in modal focus ring */
+.modal-actions .btn-danger:focus-visible {
+  outline: 2px solid var(--danger-focus);
+  outline-offset: 2px;
+}
+
+/* ── Toolbar spacer ── */
+
+.toolbar-spacer { flex: 1; }
+
+/* ── Info button ── */
+
+/* a11y: --bg on --accent = 7.8:1 AAA (dark), 5.3:1 AA (light) */
+.info-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  font-weight: 700;
+  font-size: 13px;
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1;
+}
+
+.info-btn:hover {
+  opacity: 0.85;
+}
+/* a11y: info button focus ring — accent on bg = 7.8:1 AAA (dark), 5.3:1 AA (light) */
+.info-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Toggle switch ── */
+
+.toggle {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+/* a11y: keyboard focus ring on toggle — same accent outline */
+.toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.toggle-track {
+  width: 36px;
+  height: 20px;
+  /* a11y: #636888 on --bg = 3.0:1 AA-lg (non-text, meets WCAG 1.4.11) */
+  background: #636888;
+  border-radius: 10px;
+  position: relative;
+}
+
+.toggle-ready .toggle-track {
+  transition: background 0.2s;
+}
+
+.toggle.active .toggle-track {
+  background: var(--accent);
+}
+
+.toggle-thumb {
+  width: 16px;
+  height: 16px;
+  /* a11y: thumb on toggle track must be ≥ 3:1. Dark mode: #fff on #636888 = 4.8:1 AA. */
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.light .toggle-thumb {
+  /* a11y: light mode thumb on #636888 = 4.8:1 AA for non-text contrast (WCAG 1.4.11) */
+  background: #1e1e2e;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-ready .toggle-thumb {
+  transition: transform 0.2s;
+}
+
+.toggle.active .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.toggle-label {
+  font-size: 10px;
+  color: var(--gutter-fg);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.toggle.active .toggle-label {
+  color: var(--accent);
+}
+
+/* ── Info modal ── */
+
+.info-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.info-text {
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  color: var(--fg);
+}
+
+.info-link {
+  display: inline-block;
+  margin: 8px 0 16px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.info-link:hover { text-decoration: underline; }
+.info-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+/* ── Help modal ── */
+
+.help-grid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.help-row kbd {
+  display: inline-block;
+  min-width: 60px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  background: var(--border);
+  color: var(--fg);
+  border-radius: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.help-row span {
+  color: var(--gutter-fg);
+}
+
+/* ── Mobile ── */
+
+@media (max-width: 768px) {
+  .toolbar { gap: 2px; padding: 4px; }
+  .tool-btn, .tool-select {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
+    font-size: 15px;
+  }
+  .gutter { width: 32px; font-size: 12px; padding: 10px 0; }
+  .statusbar { font-size: 11px; padding: 4px 8px; }
+  .highlight, .input { font-size: 12px; padding: 10px; }
+  .findbar-row { gap: 3px; }
+  .findbar input[type="text"] { min-width: 80px; padding: 8px; }
+  .findbar button { min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+  .statusbar span:not(#cursor-pos) { display: none; }
+}
+
+/* ── Accessibility: reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ── Accessibility: high contrast ── */
+
+@media (forced-colors: active) {
+  .tok-keyword, .tok-string, .tok-comment, .tok-number,
+  .tok-operator, .tok-func, .tok-tag, .tok-attr, .tok-punctuation {
+    forced-color-adjust: none;
+  }
+}

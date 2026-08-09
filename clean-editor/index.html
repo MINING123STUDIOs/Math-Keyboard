@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!--
+  Clean Editor - A fast, minimal code editor
+  Copyright (C) 2026 MINING123STUDIOS
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Clean Editor</title>
+  <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+  <div id="app">
+    <h1 class="sr-only">Clean Editor</h1>
+    <!-- Skip link: visible only on focus, allows keyboard users to jump past toolbar -->
+    <a href="#input" class="skip-link">Skip to editor</a>
+
+    <!-- Toolbar: role="toolbar" groups controls for screen readers -->
+    <div class="toolbar" role="toolbar" aria-label="Editor tools" aria-orientation="horizontal">
+      <button id="btn-theme" class="tool-btn" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <span class="icon">◐</span>
+      </button>
+      <button id="btn-info" class="tool-btn info-btn" aria-label="About" title="About">
+        <span class="icon">i</span>
+      </button>
+      <!-- Toggle switch: role="switch" with aria-checked for on/off state -->
+      <button id="toggle-codemode" class="toggle" role="switch" aria-checked="false"
+           aria-label="Code mode off" title="Toggle code mode" type="button">
+        <span class="toggle-track">
+          <span class="toggle-thumb"></span>
+        </span>
+        <span class="toggle-label">code</span>
+      </button>
+      <select id="sel-lang" class="tool-select" aria-label="Select language" aria-describedby="lang-hint" title="Language">
+        <option value="auto">Auto</option>
+        <option value="js">JS</option>
+        <option value="html">HTML</option>
+        <option value="css">CSS</option>
+        <option value="py">Python</option>
+        <option value="json">JSON</option>
+      </select>
+      <span id="lang-hint" class="sr-only">Auto mode detects language from content syntax.</span>
+      <button id="btn-find" class="tool-btn" aria-label="Find" aria-keyshortcuts="Control+f" title="Find (Ctrl+F)">
+        <span class="icon">🔍</span>
+      </button>
+      <button id="btn-wrap" class="tool-btn" aria-label="Toggle word wrap" aria-pressed="false" title="Word wrap (Alt+Z)">
+        <span class="icon">↩</span>
+      </button>
+      <button id="btn-import" class="tool-btn" aria-label="Import file" title="Import file">
+        <span class="icon">↑</span>
+      </button>
+      <button id="btn-download" class="tool-btn" aria-label="Download file" title="Download">
+        <span class="icon">↓</span>
+      </button>
+      <button id="btn-clear" class="tool-btn btn-danger" aria-label="Clear all text" title="Clear all text">
+        <span class="icon">✕</span>
+      </button>
+    </div>
+
+    <!-- Hidden file input: triggered by import button -->
+    <input type="file" id="file-input" hidden accept=".js,.html,.css,.py,.json,.txt,.md,.ts,.jsx,.tsx">
+
+    <!-- Find Bar: role="search" semantics, hidden by default -->
+    <div id="findbar" class="findbar" role="search" aria-label="Find in document" hidden>
+      <div class="findbar-row">
+        <input id="find-input" type="text" placeholder="Find..." aria-label="Find text">
+        <label class="regex-toggle">
+          <input id="find-regex" type="checkbox" aria-label="Use regex"> .*
+        </label>
+        <button id="btn-find-prev" aria-label="Previous match" title="Previous">↑</button>
+        <button id="btn-find-next" aria-label="Next match" title="Next">↓</button>
+        <button id="btn-find-close" aria-label="Close find bar" title="Close">✕</button>
+      </div>
+      <!-- aria-live: screen readers announce match count changes -->
+      <div id="find-status" class="find-status" aria-live="polite"></div>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-area">
+      <!-- Gutter: aria-hidden decorative, synced via JS -->
+      <div id="gutter" class="gutter" aria-hidden="true"></div>
+      <div class="code-wrap">
+        <!-- Highlight overlay: aria-hidden, purely visual -->
+        <pre id="highlight" class="highlight" aria-hidden="true"><code id="hl-code"></code></pre>
+        <!-- Textarea: the actual editable content, aria-label identifies its purpose -->
+        <textarea id="input" class="input"
+          spellcheck="false" autocomplete="off"
+          autocorrect="off" autocapitalize="off"
+          aria-label="Code editor"
+          aria-roledescription="code editor"
+          aria-description="Type code here. Tab inserts two spaces. Auto-saves to browser."></textarea>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="statusbar" role="status" aria-label="Editor status">
+      <span id="cursor-pos">Ln 1, Col 1</span>
+      <span id="word-count">0 words</span>
+      <span id="char-count">0 chars</span>
+      <span id="save-status" class="save-status" aria-live="polite"></span>
+    </footer>
+  </div>
+
+  <!-- Screen reader live region: off-screen, announces state changes (theme, code mode) -->
+  <div id="sr-announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Clear Confirmation Modal -->
+  <div id="confirm-modal" class="modal" hidden>
+    <div class="modal-backdrop" aria-hidden="true"></div>
+    <!-- aria-modal traps screen reader context inside dialog -->
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="confirm-msg">
+      <p id="confirm-msg">Clear all text? This cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="btn-confirm-no" class="btn-cancel">Cancel</button>
+        <button id="btn-confirm-yes" class="btn-danger">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div id="info-modal" class="modal" hidden>
+    <div class="modal-backdrop" aria-hidden="true"></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <h2 id="info-title" class="info-title">Clean Editor</h2>
+      <p class="info-text">&copy; MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0</p>
+      <p class="info-text">This software is provided "as is", without warranty of any kind, express or implied. In no event shall the authors be liable for any claim, damages or other liability.</p>
+      <a href="https://github.com/MINING123STUDIOS/clean-editor" target="_blank" rel="noopener noreferrer" class="info-link">Source Code on GitHub <span class="sr-only">(opens in new tab)</span>&nearr;</a>
+      <div class="modal-actions">
+        <button id="btn-info-close" class="btn-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal" hidden>
+    <div class="modal-backdrop" aria-hidden="true"></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <h2 id="help-title" class="info-title">Keyboard Shortcuts</h2>
+      <div class="help-grid">
+        <div class="help-row"><kbd>Tab</kbd><span>Indent (2 spaces)</span></div>
+        <div class="help-row"><kbd>Shift+Tab</kbd><span>Dedent</span></div>
+        <div class="help-row"><kbd>Enter</kbd><span>New line (auto-indent in code mode)</span></div>
+        <div class="help-row"><kbd>{</kbd><span>Auto-close brackets and quotes</span></div>
+        <div class="help-row"><kbd>Ctrl+F</kbd><span>Find (regex supported)</span></div>
+        <div class="help-row"><kbd>Alt+Z</kbd><span>Toggle word wrap</span></div>
+        <div class="help-row"><kbd>F1</kbd><span>Toggle this help panel</span></div>
+        <div class="help-row"><kbd>Escape</kbd><span>Close find bar / modal</span></div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-help-close" class="btn-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="editor.js?v=9"></script>
+</body>
+</html>
