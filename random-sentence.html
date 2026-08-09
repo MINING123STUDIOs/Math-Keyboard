@@ -154,14 +154,16 @@ const favList = document.getElementById('favList');
 
 /* Max distinct sentences and quotes are astronomically large (A alone has
  * ~392.6k digits), so only their scientific-notation mantissa + exponent are
- * stored; see the count comment above powerAdjs() for the formula. The ~30%
- * question rate adds a (1 + 0.3) factor and the ~30% initial / ~25% mid
- * discourse markers add a (1 + 0.3)(1 + 0.25) factor to both totals.
+ * stored; see the count comment above powerAdjs() for the formula. Since
+ * ~30% conditionals join two clauses, they dominate the union and roughly
+ * double the sentence-count exponent; the (1 + Q) question and (1 + 0.3)
+ * discourse factors multiply the total, while the (1 + 0.25) mid-marker
+ * factor applies to single clauses only.
  */
-const SENT_M = '1.55';
-const SENT_E = 392684;
-const QUOTE_M = '8.10';
-const QUOTE_E = 392709;
+const SENT_M = '4.56';
+const SENT_E = 785368;
+const QUOTE_M = '2.38';
+const QUOTE_E = 785394;
 
 /* Max distinct authors:
  *
@@ -1000,6 +1002,13 @@ const EXCLAIM = ['oh', 'hey', 'wait', 'hold on', 'listen', 'look', 'come on', 's
 const DISC_PROB = 0.3;
 const MID_PROB = 0.25;
 const EXCLAIM_PROB = 0.1;
+const CONJ = [
+  'if', 'unless', 'provided that', 'so long as', 'as long as',
+  'in case', 'supposing', 'even if', 'assuming that', 'provided'
+];
+const INV_CONJ = ['if', 'even if'];
+const COND_PROB = 0.3;
+const FRONT_PROB = 0.8;
 const REGIONS = [
   'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
   'Sardinia', 'Corsica', 'Flanders', 'Brittany', 'Thuringia', 'Saxony',
@@ -1164,7 +1173,19 @@ const ADJ_PROB = 1 / 2;
  *   aux-fronting or do-support, optional wh-word) -> x (1 + Q)
  *   discourse markers: optional initial filler (~30%, or a rare exclamation)
  *   and optional mid-sentence filler (~25%) -> x (1 + 0.3)(1 + 0.25)
- *   TOTAL ~ 1.55 * 10^392684     (SENT_M * 10^SENT_E)
+ *   single-clause TOTAL ~ 1.55 * 10^392684
+ *
+ * Conditionals (~30%): a conditional joins two independently-generated
+ * clauses with one of CONJ (K = 10) conjunctions, in front or end order.
+ * Each clause is a full sentence pattern minus punctuation, so a clause
+ * counts C = S0 * (1 + (10^100+1)) with S0 as the bracket above. "Were X to
+ * V" inversion merely re-renders front-order eligible pairs (conjunction in
+ * INV_CONJ and a bare if-clause), so it cancels out of the union:
+ *   T_cond = 2 * K * C^2
+ * Since log10(T_cond) = log10(2K) + 2 * log10(C) ~ 2 * 392683.6, conditionals
+ * dominate the union and roughly double the exponent. Mid-marker fillers do
+ * NOT apply to conditionals, so only the (1 + Q)(1 + 0.3) factors scale them:
+ *   TOTAL ~ 4.56 * 10^785368     (SENT_M * 10^SENT_E)
  */
 function powerAdjs() {
   const used = new Set();
@@ -1393,7 +1414,7 @@ function fakeSource() {
   return maybe(REGION_PROB) ? base + ' ' + regionPhrase() : base;
 }
 
-function sentence() {
+function makeClause() {
   const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null };
 
   if (maybe(NUM_PROB)) {
@@ -1450,19 +1471,36 @@ function sentence() {
     if (s.det) s.numPos = 'after-det';
     else s.numPos = 'front';
   }
+  return s;
+}
+
+function sentence() {
+  const s = {};
+  if (maybe(COND_PROB)) {
+    s.cond = true;
+    s.c1 = makeClause();
+    s.c2 = makeClause();
+    s.conj = pick(CONJ);
+    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
+    s.invert = s.order === 'front' && INV_CONJ.includes(s.conj) && !s.c1.aux && !s.c1.neg;
+  } else {
+    s.cond = false;
+    s.c1 = makeClause();
+  }
   s.disc = null;
   s.mid = null;
   if (maybe(DISC_PROB)) {
     s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
   }
-  if (maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
+  if (!s.cond && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
   s.q = false;
   s.wh = null;
   if (maybe(0.3)) {
     s.q = true;
-    if (s.aux === 'used to' || s.aux === 'ought to') s.aux = null;
+    const tgt = s.cond ? s.c2 : s.c1;
+    if (tgt.aux === 'used to' || tgt.aux === 'ought to') tgt.aux = null;
     if (Math.random() < 0.4) {
-      if (s.object && Math.random() < 0.5) {
+      if (tgt.object && Math.random() < 0.5) {
         s.wh = 'what';
       } else {
         s.wh = pick(['why', 'when', 'where', 'how']);
@@ -1472,7 +1510,8 @@ function sentence() {
   return s;
 }
 
-function words(s) {
+function clauseString(s, opts) {
+  const q = opts.question, wh = opts.wh, mid = opts.mid;
   const np = [];
   if (s.det) np.push(s.det);
   if (s.num) np.push(s.num);
@@ -1480,15 +1519,15 @@ function words(s) {
   np.push(s.noun);
   let parts;
   let npStart = 0;
-  if (s.q) {
+  if (q) {
     const fst = [];
-    if (s.wh) fst.push(s.wh);
+    if (wh) fst.push(wh);
     if (s.aux) fst.push(s.aux); else fst.push('do');
     parts = [...fst, ...np];
     npStart = fst.length;
     if (s.neg) parts.push(s.neg);
     parts.push(s.verb);
-    if (s.object && s.wh !== 'what') parts.push(s.obj);
+    if (s.object && wh !== 'what') parts.push(s.obj);
     if (s.adv) parts.push(s.adv);
   } else {
     parts = [...np];
@@ -1498,43 +1537,74 @@ function words(s) {
     if (s.object) parts.push(s.obj);
     if (s.adv) parts.push(s.adv);
   }
-  if (s.mid) {
-    parts.splice(npStart + np.length, 0, ', ' + s.mid + ',');
+  if (mid) {
+    parts.splice(npStart + np.length, 0, ', ' + mid + ',');
   }
   let str = '';
   for (const p of parts) {
     if (p.startsWith(',')) str += p;
     else str += (str ? ' ' : '') + p;
   }
+  return str;
+}
+
+function words(s) {
+  let str;
+  if (s.cond) {
+    const main = clauseString(s.c2, { question: s.q, wh: s.wh, mid: null });
+    const ifc = clauseString(s.c1, { question: false, wh: null, mid: null });
+    if (s.invert) {
+      const np = [s.c1.det, s.c1.num, ...s.c1.adjs, s.c1.noun].filter(Boolean).join(' ');
+      const vp = [s.c1.verb, ...(s.c1.object ? [s.c1.obj] : []), ...(s.c1.adv ? [s.c1.adv] : [])].join(' ');
+      str = 'were ' + np + ' to ' + vp + ', ' + main;
+    } else if (s.order === 'front') {
+      str = s.conj + ' ' + ifc + ', ' + main;
+    } else {
+      str = main + ' ' + s.conj + ' ' + ifc;
+    }
+  } else {
+    str = clauseString(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
+  }
   if (s.disc) str = s.disc + ', ' + str;
   str = str.charAt(0).toUpperCase() + str.slice(1) + (s.q ? '?' : (maybe(0.1) ? '!' : '.'));
   return str;
 }
 
+function clauseSubtree(c) {
+  const np = { label: 'NP', children: [] };
+  if (c.det) np.children.push({ label: 'Det', text: c.det });
+  if (c.num) np.children.push({ label: 'Num', text: c.num });
+  for (const a of c.adjs) np.children.push({ label: 'Adj', text: a });
+  np.children.push({ label: 'N', text: c.noun });
+  const vp = { label: 'VP', children: [] };
+  if (c.aux) vp.children.push({ label: 'Aux', text: c.aux });
+  if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
+  vp.children.push({ label: 'V', text: c.verb });
+  if (c.object) vp.children.push({ label: 'N', text: c.obj });
+  if (c.adv) vp.children.push({ label: 'Adv', text: c.adv });
+  return { np, vp };
+}
+
 function parseTree(s) {
+  const root = { label: s.q ? 'S (Q)' : 'S', children: [] };
+  if (s.wh) root.children.push({ label: 'Wh', text: s.wh });
+  if (s.disc) root.children.push({ label: 'Disc', text: s.disc });
+  if (s.cond) {
+    const cond = { label: 'Cond', text: s.invert ? 'were to' : s.conj, children: [] };
+    const c1 = clauseSubtree(s.c1);
+    cond.children.push(c1.np, c1.vp);
+    root.children.push(cond);
+  }
+  const c2 = clauseSubtree(s.cond ? s.c2 : s.c1);
+  root.children.push(c2.np, c2.vp);
   const lines = [];
-  lines.push(s.q ? 'S (Q)' : 'S');
-  if (s.wh) lines.push('├─ Wh  "' + s.wh + '"');
-  if (s.disc) lines.push('├─ Disc  "' + s.disc + '"');
-  lines.push('├─ NP');
-  const npChildren = [];
-  if (s.det) npChildren.push(['Det', s.det]);
-  if (s.num) npChildren.push(['Num', s.num]);
-  for (const a of s.adjs) npChildren.push(['Adj', a]);
-  npChildren.push(['N', s.noun]);
-  npChildren.forEach((c, i) => {
-    lines.push((i === npChildren.length - 1 ? '│   └─ ' : '│   ├─ ') + c[0] + '  "' + c[1] + '"');
-  });
-  lines.push('└─ VP');
-  const vpChildren = [];
-  if (s.aux) vpChildren.push(['Aux', s.aux]);
-  if (s.neg) vpChildren.push(['Neg', s.neg]);
-  vpChildren.push(['V', s.verb]);
-  if (s.object) vpChildren.push(['N', s.obj]);
-  if (s.adv) vpChildren.push(['Adv', s.adv]);
-  vpChildren.forEach((c, i) => {
-    lines.push((i === vpChildren.length - 1 ? '    └─ ' : '    ├─ ') + c[0] + '  "' + c[1] + '"');
-  });
+  const draw = (n, prefix, isLast) => {
+    lines.push(prefix + (isLast ? '└─ ' : '├─ ') + (n.text ? n.label + '  "' + n.text + '"' : n.label));
+    const cont = isLast ? '    ' : '│   ';
+    (n.children || []).forEach((ch, i) => draw(ch, prefix + cont, i === n.children.length - 1));
+  };
+  lines.push(root.label);
+  root.children.forEach((ch, i) => draw(ch, '', i === root.children.length - 1));
   return lines.join('\n');
 }
 
