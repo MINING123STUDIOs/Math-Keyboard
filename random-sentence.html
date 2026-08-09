@@ -270,7 +270,7 @@ function noteStats(s) {
 }
 
 /* Max distinct sentences and quotes are astronomically large (A alone has
- * ~392.6k digits), so only their scientific-notation mantissa + exponent are
+ * ~884.2k digits), so only their scientific-notation mantissa + exponent are
  * stored; see the count comment above powerAdjs() for the formula. Two-clause
  * sentences (conditionals + subordinate adverb clauses) dominate the union
  * and ~triple the clause exponent: conjoined subjects (×S) and relative
@@ -280,17 +280,18 @@ function noteStats(s) {
  * total, while the (1 + 0.25) mid-marker factor applies to single clauses
  * only (a negligible tail of the union).
  */
-const SENT_M = '3.27';
-const SENT_E = 2355671;
-const QUOTE_M = '1.70';
-const QUOTE_E = 2355697;
+const SENT_M = '1.15';
+const SENT_E = 5305217;
+const QUOTE_M = '5.54';
+const QUOTE_E = 5305243;
 
 /* Max distinct authors:
  *
- * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  AUTHORS=34  ATTR=20
+ * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  SUFFIX=147  AUTHORS=34  ATTR=20
  * GIVEN initials: 26 distinct first letters.
  * SURNAMES initials: 25 distinct first letters.
- * M = 275 + 653 * 133 = 87124 possible adjectives (plain, or "anynoun-color").
+ * M = 275 + 653 * (133 + 147) = 183115 possible adjectives (plain, or
+ * "anynoun-color", or "anynoun-suffix").
  *
  * fakeAuthor() branches (pick is independent, so with replacement):
  *   Given + Surname              30 * 30                 = 900
@@ -300,16 +301,16 @@ const QUOTE_E = 2355697;
  *   titled (50 titles)            50 * 30                 = 1500
  *     + "of <noun>"              50 * 30 * 653            = 979500
  *   <noun> of the <noun>         653 * 653               = 426409
- *   <adj> <noun>                 M * 653                 = 56891972
- *   <adj> <adj> <noun>           M * M * 653             = 4956656168528
+ *   <adj> <noun>                 M * 653                 = 119574095
+ *   <adj> <adj> <noun>           M * M * 653             = 21895810405925
  * Fixed pools:
  *   AUTHORS                                              = 34
  *   ATTR authors (pair [0])                              = 20
  *
- * TOTAL = 900 + 750 + 780 + 20280 + (1500 + 979500) + 426409 + 56891972 + 4956656168528 + 34 + 20
- *       = 4956714490673
+ * TOTAL = 900 + 750 + 780 + 20280 + (1500 + 979500) + 426409 + 119574095 + 21895810405925 + 34 + 20
+ *       = 21895931410193
  */
-const TOTAL_AUTHORS = 4956714490673;
+const TOTAL_AUTHORS = 21895931410193;
 
 /* Max distinct attributions (author + source pairs):
  *
@@ -317,9 +318,9 @@ const TOTAL_AUTHORS = 4956714490673;
  *   SOURCES static                                         = 32
  *   SOURCES dynamic (circa BC:1000, century:8, time:288,
  *     postmarked:2100, email-time:288)                     = 3684
- *   On the <adj> <noun> of <noun>    M * 653 * 653         = 37150457716
- *   The <adj> <noun> Revisited       M * 653               = 56891972
- *   Journal of <adj> <noun>          M * 653               = 56891972
+ *   On the <adj> <noun> of <noun>    M * 653 * 653         = 78081884035
+ *   The <adj> <noun> Revisited       M * 653               = 119574095
+ *   Journal of <adj> <noun>          M * 653               = 119574095
  *   datePhrase():
  *     circa / c., AD or BC           2100 + 1000 + 2100 + 1000 = 6200
  *     in the <century>               1200s..1900s           = 8
@@ -329,19 +330,19 @@ const TOTAL_AUTHORS = 4956714490673;
  *     subtotal                                            = 205336096
  *   union(SOURCES, datePhrase)  = 32 + 3684 + 205336096 - 1296 (shared circa BC,
  *     century, time)                                      = 205338516
- *   TOTAL base fakeSource     = 205338516 + 37150457716 + 56891972 + 56891972
- *                             = 37469580176
+ *   TOTAL base fakeSource     = 205338516 + 78081884035 + 119574095 + 119574095
+ *                             = 78526370741
  *   Optional region suffix: 5 prepositions * 56 REGIONS = 280 variants,
  *     applied with REGION_PROB=0.35 -> each base source x (1 + 280) = x281
- *   TOTAL fakeSource          = 37469580176 * 281            = 10528952029456
+ *   TOTAL fakeSource          = 78526370741 * 281            = 22065910178221
  *
  * Attribution branches:
- *   generated author * source  4956714490619 * 10528952029456  = 52189009095436883323673264
- *   AUTHORS * source           34 * 10528952029456             = 357984369001504
+ *   generated author * source  21895931410139 * 22065910178221  = 483153655764615053336382719
+ *   AUTHORS * source           34 * 22065910178221             = 750240946059514
  *   ATTR verbatim pairs        17 static + 1000 + 8 + 288      = 1313
- *   TOTAL_ATTRIBUTIONS                                        = 52189009095794867692676081
+ *   TOTAL_ATTRIBUTIONS                                        = 483153655765365294282443546
  */
-const TOTAL_ATTRIBUTIONS = 52189009095794867692676081n;
+const TOTAL_ATTRIBUTIONS = 483153655765365294282443546n;
 
 const FAV_KEY = 'cgi-favorites';
 let favorites = [];
@@ -605,7 +606,30 @@ const COLORS = [
   'snow-white', 'jet-black', 'coal-black', 'sky-blue', 'electric-blue', 'burnt-orange',
   'rose-gold', 'sunflower-yellow'
 ];
-const ADJ_TOTAL = ADJ.length + NOUN.length * COLORS.length;
+const ADJ_SUFFIX = [
+  'plated', 'coated', 'glazed', 'lacquered', 'varnished', 'enameled', 'polished',
+  'oiled', 'frosted', 'iced', 'sugared', 'salted', 'dusted', 'flecked', 'spotted',
+  'striped', 'speckled', 'veined', 'checkered', 'printed', 'fringed', 'trimmed',
+  'rimmed', 'bordered', 'lined', 'padded', 'studded', 'spiked', 'barbed', 'gilded',
+  'silvered', 'bronzed', 'veiled', 'hooded', 'capped', 'booted', 'gloved', 'shod',
+  'shaped', 'formed', 'framed', 'built', 'carved', 'sculpted', 'molded', 'forged',
+  'riveted', 'bolted', 'welded', 'braced', 'domed', 'spired', 'arched', 'vaulted',
+  'roofed', 'walled', 'gated', 'terraced', 'tiered', 'layered', 'cabled', 'chained',
+  'harnessed', 'saddled', 'bridled', 'tethered', 'leashed', 'collared',
+  'backed', 'headed', 'faced', 'eyed', 'mouthed', 'whiskered', 'bearded', 'haired',
+  'furred', 'skinned', 'maned', 'crested', 'feathered', 'scaled', 'shelled', 'fanged',
+  'tusked', 'horned', 'antlered', 'clawed', 'taloned', 'pawed', 'hoofed', 'finned',
+  'webbed', 'snouted', 'beaked', 'tailed', 'legged', 'winged', 'armed', 'handed',
+  'footed', 'plumed',
+  'soaked', 'drenched', 'steeped', 'bathed', 'dunked', 'dipped', 'marinated',
+  'pickled', 'smoked', 'syruped', 'honeyed', 'pressed', 'watered', 'sprayed',
+  'washed', 'rinsed', 'bleached', 'dyed', 'stained', 'painted', 'splashed',
+  'laden', 'weighted', 'loaded', 'packed', 'charged', 'powered', 'fueled', 'poisoned',
+  'laced', 'infused', 'perfumed', 'scented', 'flavored', 'spiced', 'sweetened',
+  'seasoned', 'worn', 'clad', 'wrapped', 'buckled', 'buttoned', 'zipped', 'clasped',
+  'pinned'
+];
+const ADJ_TOTAL = ADJ.length + NOUN.length * (COLORS.length + ADJ_SUFFIX.length);
 const COMPOUND_PROB = 0.2;
 const SINGULAR_IRREGULAR = {
   indices: 'index', salesmen: 'salesman', dodecahedra: 'dodecahedron',
@@ -644,7 +668,8 @@ function thirdSingular(v) {
   return v + 's';
 }
 function pickAdj() {
-  return maybe(COMPOUND_PROB) ? singularize(pick(NOUN)) + '-' + pick(COLORS) : pick(ADJ);
+  if (!maybe(COMPOUND_PROB)) return pick(ADJ);
+  return singularize(pick(NOUN)) + '-' + (Math.random() < 0.5 ? pick(COLORS) : pick(ADJ_SUFFIX));
 }
 const VERB = [
   'sleep', 'fight', 'sing', 'dance', 'grow', 'think', 'melt', 'run', 'fly',
@@ -1283,15 +1308,17 @@ const ADJ_PROB = 1 / 2;
 /* Max distinct sentences (finite, because adjectives cannot repeat):
  *
  * Vocab counts: DET=21  ADJ=275  NOUN=653  VERB=3070  ADV=647  TRANS=88
- *              AUX=11  FREQ=12  NEG=2  COLORS=133
+ *              AUX=11  FREQ=12  NEG=2  COLORS=133  SUFFIX=147
  *
- * Each adjective slot holds either a plain adjective (ADJ=275) or a compound
- * "anynoun-color" (653 * 133 = 86849), so M = 275 + 86849 = 87124 possible
- * adjectives. Every compound is hyphenated with a unique noun-color pair, so
- * no two slots can collide on the same string.
+ * Each adjective slot holds either a plain adjective (ADJ=275), a compound
+ * "anynoun-color" (653 * 133 = 86849), or a compound "anynoun-suffix"
+ * (653 * 147 = 95991), so M = 275 + 86849 + 95991 = 183115 possible
+ * adjectives. Every compound is hyphenated with a unique noun-color or
+ * noun-suffix pair (suffix list is disjoint from the color list), so no two
+ * slots can collide on the same string.
  *
  * Ordered no-repeat adjective sequences (k adjectives, k = 1..M):
- *   A = sum_{k=1..M} P(M,k) = floor(e * M!) - 1     (~392.6k digits, so it is
+ *   A = sum_{k=1..M} P(M,k) = floor(e * M!) - 1     (~884.2k digits, so it is
  *   not stored as a literal; only sciNote mantissa + exponent are kept below)
  *
  * Optional adverb factor is (1 + ADV) since both variants are valid sentences.
@@ -1339,8 +1366,8 @@ const ADJ_PROB = 1 / 2;
  * log10(C) ~ log10(A) + 113.17, log10(S) ~ log10(A) + 4.16,
  * log10(R) ~ log10(A) + 6.10, so
  *   log10(TOTAL) ~ 2*(3*log10(A) + 123.43) + log10(44) + log10(3.3) + log10(1.3)
- *               ~ 2,355,671.51
- *   TOTAL ~ 3.27 * 10^2355671      (SENT_M * 10^SENT_E)
+ *               ~ 5,305,217.06      (log10 A = 884,161.3215)
+ *   TOTAL ~ 1.15 * 10^5305217      (SENT_M * 10^SENT_E)
  */
 function powerAdjs() {
   const used = new Set();
