@@ -97,9 +97,10 @@
     margin-top: 22px; font-size: 12px; color: #5f7390; text-align: center;
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
+    white-space: pre-line;
   }
-  .sentence.thinking { color: #8aa2c0; font-style: italic; }
-  .sentence.thinking::after {
+  .sentence.thinking, .attribution.thinking { color: #8aa2c0; font-style: italic; }
+  .sentence.thinking::after, .attribution.thinking::after {
     content: ""; display: inline-block; width: 1em; text-align: left;
     animation: dots 1.2s steps(4, end) infinite;
   }
@@ -151,8 +152,74 @@ const parseEl = document.getElementById('parse');
 const favBox = document.getElementById('favorites');
 const favList = document.getElementById('favList');
 
-const TOTAL_SENTENCES =
-  '6626548721403641335447640480118582510928270134924792045469501103553612626115544506902899860062936861820626794988782982321469288806056275813825990173930358801906416786145221185868860572046172561845672973156778747294300598811366529110414276839465904060100887717392281166595997924205314961925471491660174818673721136671510484625594528491910241014653253142189223230613216411361074442695333737072328';
+/* Max distinct sentences and quotes are astronomically large (A alone has
+ * ~392.6k digits), so only their scientific-notation mantissa + exponent are
+ * stored; see the count comment above powerAdjs() for the formula. The ~30%
+ * question rate adds a (1 + 0.3) factor and the ~30% initial / ~25% mid
+ * discourse markers add a (1 + 0.3)(1 + 0.25) factor to both totals.
+ */
+const SENT_M = '1.55';
+const SENT_E = 392684;
+const QUOTE_M = '8.10';
+const QUOTE_E = 392709;
+
+/* Max distinct authors:
+ *
+ * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  AUTHORS=34  ATTR=20
+ * GIVEN initials: 26 distinct first letters.
+ * SURNAMES initials: 25 distinct first letters.
+ * M = 275 + 653 * 133 = 87124 possible adjectives (plain, or "anynoun-color").
+ *
+ * fakeAuthor() branches (pick is independent, so with replacement):
+ *   Given + Surname              30 * 30                 = 900
+ *   Given + initial (Ronald M.)  30 * 25                 = 750
+ *   initials, 1 letter           26 * 30                 = 780
+ *   initials, 2 letters          26 * 26 * 30            = 20280
+ *   titled (50 titles)            50 * 30                 = 1500
+ *     + "of <noun>"              50 * 30 * 653            = 979500
+ *   <noun> of the <noun>         653 * 653               = 426409
+ *   <adj> <noun>                 M * 653                 = 56891972
+ *   <adj> <adj> <noun>           M * M * 653             = 4956656168528
+ * Fixed pools:
+ *   AUTHORS                                              = 34
+ *   ATTR authors (pair [0])                              = 20
+ *
+ * TOTAL = 900 + 750 + 780 + 20280 + (1500 + 979500) + 426409 + 56891972 + 4956656168528 + 34 + 20
+ *       = 4956714490673
+ */
+const TOTAL_AUTHORS = 4956714490673;
+
+/* Max distinct attributions (author + source pairs):
+ *
+ * fakeSource() sources (base):
+ *   SOURCES static                                         = 32
+ *   SOURCES dynamic (circa BC:1000, century:8, time:288,
+ *     postmarked:2100, email-time:288)                     = 3684
+ *   On the <adj> <noun> of <noun>    M * 653 * 653         = 37150457716
+ *   The <adj> <noun> Revisited       M * 653               = 56891972
+ *   Journal of <adj> <noun>          M * 653               = 56891972
+ *   datePhrase():
+ *     circa / c., AD or BC           2100 + 1000 + 2100 + 1000 = 6200
+ *     in the <century>               1200s..1900s           = 8
+ *     dates                          28 * 12 * 2100 * 291   = 205329600
+ *       (291 = 3 formats + 1 format with a time; time:288)
+ *     time                                                = 288
+ *     subtotal                                            = 205336096
+ *   union(SOURCES, datePhrase)  = 32 + 3684 + 205336096 - 1296 (shared circa BC,
+ *     century, time)                                      = 205338516
+ *   TOTAL base fakeSource     = 205338516 + 37150457716 + 56891972 + 56891972
+ *                             = 37469580176
+ *   Optional region suffix: 5 prepositions * 56 REGIONS = 280 variants,
+ *     applied with REGION_PROB=0.35 -> each base source x (1 + 280) = x281
+ *   TOTAL fakeSource          = 37469580176 * 281            = 10528952029456
+ *
+ * Attribution branches:
+ *   generated author * source  4956714490619 * 10528952029456  = 52189009095436883323673264
+ *   AUTHORS * source           34 * 10528952029456             = 357984369001504
+ *   ATTR verbatim pairs        17 static + 1000 + 8 + 288      = 1313
+ *   TOTAL_ATTRIBUTIONS                                        = 52189009095794867692676081
+ */
+const TOTAL_ATTRIBUTIONS = 52189009095794867692676081n;
 
 const FAV_KEY = 'cgi-favorites';
 let favorites = [];
@@ -257,6 +324,7 @@ function randomAttribution() {
     source = fakeSource();
   } else {
     [name, source] = pick(ATTR);
+    if (typeof source === 'function') source = source();
   }
   attrEl.innerHTML = `<b>${name}</b>, <i>${source}</i>`;
 }
@@ -285,7 +353,21 @@ const ADJ = [
   'thorny', 'thrumming', 'titanic', 'topological', 'trembling', 'tubular', 'twelve-sided',
   'twitching', 'undulating', 'unexpected', 'unfathomable', 'unpainted', 'unraveled', 'vaporized',
   'vibrant', 'viscous', 'vitreous', 'wailing', 'waxy', 'whiskered', 'windblown', 'yearning',
-  'zinc-plated', 'zoomorphic'
+  'zinc-plated', 'zoomorphic',
+  'white', 'black', 'grey', 'gray', 'silver', 'gold', 'platinum', 'bronze', 'copper', 'brass',
+  'pewter', 'charcoal', 'slate', 'steel', 'ivory', 'pearl', 'cream', 'beige', 'tan', 'sand',
+  'khaki', 'fawn', 'taupe', 'ecru', 'chestnut', 'cocoa', 'chocolate', 'coffee', 'caramel',
+  'cinnamon', 'walnut', 'mahogany', 'sable', 'sepia', 'scarlet', 'vermilion', 'maroon',
+  'burgundy', 'carmine', 'cherry', 'ruby', 'rose', 'raspberry', 'brick', 'terracotta', 'pink',
+  'magenta', 'fuchsia', 'salmon', 'coral', 'peach', 'blush', 'orange', 'tangerine', 'apricot',
+  'ginger', 'pumpkin', 'sienna', 'umber', 'yellow', 'goldenrod', 'saffron', 'honey', 'lemon',
+  'butter', 'canary', 'ochre', 'maize', 'lime', 'olive', 'moss', 'forest', 'fern', 'mint',
+  'jade', 'sage', 'pistachio', 'chartreuse', 'verdigris', 'celadon', 'sea-green', 'grass',
+  'evergreen', 'navy', 'cobalt', 'sapphire', 'sky', 'powder', 'steel-blue', 'turquoise', 'aqua',
+  'cyan', 'cerulean', 'ultramarine', 'periwinkle', 'lapis', 'midnight', 'violet', 'lavender',
+  'lilac', 'mauve', 'plum', 'orchid', 'amethyst', 'mulberry', 'grape', 'blood-red', 'ink-black',
+  'snow-white', 'jet-black', 'coal-black', 'sky-blue', 'electric-blue', 'burnt-orange',
+  'rose-gold', 'sunflower-yellow'
 ];
 const NOUN = [
   'ideas', 'thoughts', 'concepts', 'dreams', 'shadows', 'melodies', 'equations',
@@ -381,6 +463,57 @@ const NOUN = [
   'wolves', 'woodlands', 'workshops', 'worlds', 'wrestlers', 'xenophobes', 'xeroxes', 'yachts',
   'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists'
 ];
+const COLORS = [
+  'colorless', 'green', 'blue', 'red', 'purple', 'amber', 'ashen', 'azure', 'cinnabar', 'crimson',
+  'emerald', 'grapefruit-colored', 'indigo', 'mustard-colored', 'obsidian', 'pinkish', 'rusty',
+  'white', 'black', 'grey', 'gray', 'silver', 'gold', 'platinum', 'bronze', 'copper', 'brass',
+  'pewter', 'charcoal', 'slate', 'steel', 'ivory', 'pearl', 'cream', 'beige', 'tan', 'sand',
+  'khaki', 'fawn', 'taupe', 'ecru', 'chestnut', 'cocoa', 'chocolate', 'coffee', 'caramel',
+  'cinnamon', 'walnut', 'mahogany', 'sable', 'sepia', 'scarlet', 'vermilion', 'maroon',
+  'burgundy', 'carmine', 'cherry', 'ruby', 'rose', 'raspberry', 'brick', 'terracotta', 'pink',
+  'magenta', 'fuchsia', 'salmon', 'coral', 'peach', 'blush', 'orange', 'tangerine', 'apricot',
+  'ginger', 'pumpkin', 'sienna', 'umber', 'yellow', 'goldenrod', 'saffron', 'honey', 'lemon',
+  'butter', 'canary', 'ochre', 'maize', 'lime', 'olive', 'moss', 'forest', 'fern', 'mint',
+  'jade', 'sage', 'pistachio', 'chartreuse', 'verdigris', 'celadon', 'sea-green', 'grass',
+  'evergreen', 'navy', 'cobalt', 'sapphire', 'sky', 'powder', 'steel-blue', 'turquoise', 'aqua',
+  'cyan', 'cerulean', 'ultramarine', 'periwinkle', 'lapis', 'midnight', 'violet', 'lavender',
+  'lilac', 'mauve', 'plum', 'orchid', 'amethyst', 'mulberry', 'grape', 'blood-red', 'ink-black',
+  'snow-white', 'jet-black', 'coal-black', 'sky-blue', 'electric-blue', 'burnt-orange',
+  'rose-gold', 'sunflower-yellow'
+];
+const ADJ_TOTAL = ADJ.length + NOUN.length * COLORS.length;
+const COMPOUND_PROB = 0.2;
+const SINGULAR_IRREGULAR = {
+  indices: 'index', salesmen: 'salesman', dodecahedra: 'dodecahedron',
+  memoranda: 'memorandum', nebulae: 'nebula', prismata: 'prism',
+  sarcophagi: 'sarcophagus', pleiades: 'pleiad', narratives: 'narrative',
+  locomotives: 'locomotive', horseshoes: 'horseshoe', avalanches: 'avalanche',
+  zombies: 'zombie', prairies: 'prairie', quiches: 'quiche',
+  purposes: 'purpose', eclipses: 'eclipse', lighthouses: 'lighthouse',
+  remorses: 'remorse', seahorses: 'seahorse', summerhouses: 'summerhouse',
+  tortoises: 'tortoise', universes: 'universe', verses: 'verse',
+  warehouses: 'warehouse', trapezes: 'trapeze',
+  mathematics: 'mathematics', rendezvous: 'rendezvous', silliness: 'silliness',
+  pliers: 'pliers', trousers: 'trousers', rapids: 'rapids'
+};
+function singularize(n) {
+  if (SINGULAR_IRREGULAR[n]) return SINGULAR_IRREGULAR[n];
+  if (n.endsWith('ies')) return n.slice(0, -3) + 'y';
+  if (n.endsWith('sses')) return n.slice(0, -2);
+  if (n.endsWith('ves')) return n.slice(0, -3) + 'f';
+  if (n.endsWith('ses')) return n.slice(0, -2);
+  if (n.endsWith('oes')) return n.slice(0, -2);
+  if (n.endsWith('es')) {
+    const stemEs = n.slice(0, -2);
+    if (stemEs.endsWith('ch') || stemEs.endsWith('sh') || /[sxz]$/.test(stemEs)) return stemEs;
+    return n.slice(0, -1);
+  }
+  if (n.endsWith('s')) return n.slice(0, -1);
+  return n;
+}
+function pickAdj() {
+  return maybe(COMPOUND_PROB) ? singularize(pick(NOUN)) + '-' + pick(COLORS) : pick(ADJ);
+}
 const VERB = [
   'sleep', 'fight', 'sing', 'dance', 'grow', 'think', 'melt', 'run', 'fly',
   'dream', 'vanish', 'multiply', 'whisper', 'shine', 'sink', 'bloom', 'freeze',
@@ -844,9 +977,75 @@ const TRANS = [
   'rescue', 'saturate', 'synthesize', 'terrify', 'torture', 'translate', 'transmit',
   'validate', 'venerate', 'vindicate', 'welcome', 'wreck'
 ];
+const AUX = [
+  'can', 'could', 'may', 'might', 'must', 'shall', 'should',
+  'will', 'would', 'ought to', 'used to'
+];
+const FREQ = [
+  'always', 'never', 'usually', 'often', 'sometimes', 'rarely', 'seldom',
+  'occasionally', 'frequently', 'constantly', 'generally', 'normally'
+];
+const NEG = ['not', 'ever'];
+const DISCOURSE = [
+  'well', 'you know', 'I mean', 'actually', 'frankly', 'honestly', 'say',
+  'mind you', 'after all', 'believe it or not', 'to be honest',
+  'truth be told', 'surprisingly', 'oddly enough', 'ironically',
+  'come to think of it', 'as a matter of fact', 'if you ask me',
+  'just saying', 'no offense', 'for once', 'basically', 'I suppose',
+  'I guess', 'right', 'okay', 'sure', 'then again', 'anyway',
+  'speaking of which', 'now'
+];
+const MID_DISCOURSE = ['you know', 'I mean', 'I suppose', 'mind you', 'like', 'if you will', 'after all', 'just saying'];
+const EXCLAIM = ['oh', 'hey', 'wait', 'hold on', 'listen', 'look', 'come on', 'seriously', 'alright', 'no way'];
+const DISC_PROB = 0.3;
+const MID_PROB = 0.25;
+const EXCLAIM_PROB = 0.1;
+const REGIONS = [
+  'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
+  'Sardinia', 'Corsica', 'Flanders', 'Brittany', 'Thuringia', 'Saxony',
+  'Umbria', 'Lombardy', 'Galicia', 'Macedonia', 'Andalusia', 'Sicily',
+  'Normandy', 'Kashmir', 'Patagonia', 'Cappadocia', 'Gascony', 'Dalmatia',
+  'Moravia', 'Livonia', 'Friesland', 'East Prussia', 'the Hebrides', 'the Sahel',
+  'Ohio', 'New Jersey', 'Devon', 'Yorkshire', 'Wessex', 'Cornwall',
+  'the Ruhr', 'the Black Forest', 'the Carpathians', 'the Balkans', 'the Levant',
+  'the Maghreb', 'Mongolia', 'Tibet', 'the Steppe', 'the Gobi', 'the Amazon',
+  'the Pampas', 'Easter Island', 'Svalbard', 'Greenland', 'Antarctica',
+  'the Nullarbor', 'a small principality', 'the middle of nowhere',
+  'the outskirts of everywhere'
+];
+const REGION_PROB = 0.35;
+const REGION_PRE = ['in ', 'somewhere in ', 'near ', 'at the edge of ', 'off the coast of '];
+function regionPhrase() {
+  return pick(REGION_PRE) + pick(REGIONS);
+}
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const maybe = (p) => Math.random() < p;
+
+const THINK_VERBS = [
+  ['Thinking', 10], ['Pondering', 5], ['Ruminating', 3], ['Musing', 3],
+  ['Contemplating', 3], ['Considering', 3], ['Wondering', 3], ['Processing', 3],
+  ['Hmm', 3], ['Composing', 3], ['Deliberating', 2], ['Meditating', 2],
+  ['Reflecting', 2], ['Daydreaming', 2], ['Conjuring', 2], ['Drafting', 2],
+  ['Brainstorming', 2], ['Calculating', 2], ['Dreaming', 2], ['Deep in thought', 2],
+  ['Let me think', 2], ['Brooding', 1], ['Cogitating', 1], ['Philosophizing', 1],
+  ['Scheming', 1], ['Churning', 1], ['Synthesizing', 1], ['Transcribing', 1]
+];
+
+const ATTR_VERBS = [
+  ['Attributing', 8], ['Crediting', 4], ['Citing', 3], ['Sourcing', 2],
+  ['Signing', 2], ['Dedicating', 2], ['Appending', 1]
+];
+
+function pickWeighted(list) {
+  const total = list.reduce((acc, [, w]) => acc + w, 0);
+  let r = Math.random() * total;
+  for (const [item, w] of list) {
+    r -= w;
+    if (r < 0) return item;
+  }
+  return list[list.length - 1][0];
+}
 const NUM_PROB = 0.3;
 const GOOGOL = 100;
 
@@ -889,6 +1088,10 @@ function numberToWords(n) {
 const SUP = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
 const CDOT = '·';
 
+function sciM(m, e, sep) {
+  return m + ' ' + sep + ' 10' + String(e).replace(/[0-9]/g, (x) => SUP[x]);
+}
+
 function sciNote(v, sep) {
   if (v === 0n) return '0';
   const d = v.toString();
@@ -897,7 +1100,7 @@ function sciNote(v, sep) {
   let m = d.slice(0, 3);
   m = m.length > 1 ? m[0] + '.' + m.slice(1) : m;
   m = m.replace(/\.?0+$/, '');
-  return m + ' ' + sep + ' 10' + String(e).replace(/[0-9]/g, (x) => SUP[x]);
+  return sciM(m, e, sep);
 }
 
 function bigRand(span) {
@@ -923,16 +1126,31 @@ const ADJ_PROB = 1 / 2;
 
 /* Max distinct sentences (finite, because adjectives cannot repeat):
  *
- * Vocab counts: DET=21  ADJ=159  NOUN=653  VERB=3070  ADV=647  TRANS=88
+ * Vocab counts: DET=21  ADJ=275  NOUN=653  VERB=3070  ADV=647  TRANS=88
+ *              AUX=11  FREQ=12  NEG=2  COLORS=133
  *
- * Ordered no-repeat adjective sequences (k adjectives, k = 1..159):
- *   A = sum_{k=1..159} P(159,k)
- *     = 8009967241202236541314455661485852633569267137213189171242661895778361761188886402659606409421346810892881271097970417808496146706069693622552616635101017066299147950365762985871067688497812295729463502687975046904563762198565836010062442551708934244614479812409923161780491985511259
+ * Each adjective slot holds either a plain adjective (ADJ=275) or a compound
+ * "anynoun-color" (653 * 133 = 86849), so M = 275 + 86849 = 87124 possible
+ * adjectives. Every compound is hyphenated with a unique noun-color pair, so
+ * no two slots can collide on the same string.
+ *
+ * Ordered no-repeat adjective sequences (k adjectives, k = 1..M):
+ *   A = sum_{k=1..M} P(M,k) = floor(e * M!) - 1     (~392.6k digits, so it is
+ *   not stored as a literal; only sciNote mantissa + exponent are kept below)
  *
  * Optional adverb factor is (1 + ADV) since both variants are valid sentences.
  * Optional number factor is (1 + (10^100+1)): either no number, or one of
  * 10^100+1 values (0 .. a googol). It always precedes the adjectives, so
  * exactly 1 position (front for det-less patterns, after-det otherwise).
+ * VP adjunct factor X: before the verb sits (aux?)(neg?) where
+ *   - no aux, no adjunct: 1
+ *   - no aux, frequency adverb (FREQ): 12
+ *   - aux only (AUX): 11
+ *   - aux + frequency adverb (AUX * FREQ): 11 * 12
+ *   - aux + negation (AUX * NEG): 11 * 2
+ *   (negation/ever only ride an auxiliary; no do-support)
+ *   X = 1 + 12 + 11 + 132 + 22 = 178
+ * Optional punctuation factor (1+1): every sentence ends in "." or "!".
  * sentence() patterns:
  *   0: A * N * V * (1+W)          (no det)
  *   1: A * D * N * V * (1+W)
@@ -941,18 +1159,22 @@ const ADJ_PROB = 1 / 2;
  *   4: A * N * V * W              (adverb required)
  *   5: A * N * T * N * (1+W)      (transitive verb + object noun)
  *
- * TOTAL = ( A*N*V*(1+W)*(2+D) + A*N*V*W*(1+D) + A*N*N*T*(1+W) ) * (1 + (10^100+1))
- *       = 6626548721403641335447640480118582510928270134924792045469501103553612626115544506902899860062936861820626794988782982321469288806056275813825990173930358801906416786145221185868860572046172561845672973156778747294300598811366529110414276839465904060100887717392281166595997924205314961925471491660174818673721136671510484625594528491910241014653253142189223230613216411361074442695333737072328
+ * TOTAL = ( A*N*V*X*(1+W)*(2+D) + A*N*V*X*W*(1+D) + A*N*N*T*X*(1+W) ) * 2 * (1 + (10^100+1))
+ *   questions: every sentence may instead invert to a question (Q=0.3,
+ *   aux-fronting or do-support, optional wh-word) -> x (1 + Q)
+ *   discourse markers: optional initial filler (~30%, or a rare exclamation)
+ *   and optional mid-sentence filler (~25%) -> x (1 + 0.3)(1 + 0.25)
+ *   TOTAL ~ 1.55 * 10^392684     (SENT_M * 10^SENT_E)
  */
 function powerAdjs() {
   const used = new Set();
   const adjs = [];
-  let a = pick(ADJ);
+  let a = pickAdj();
   used.add(a);
   adjs.push(a);
-  while (Math.random() < ADJ_PROB && used.size < ADJ.length) {
-    let b = pick(ADJ);
-    while (used.has(b)) b = pick(ADJ);
+  while (Math.random() < ADJ_PROB && used.size < ADJ_TOTAL) {
+    let b = pickAdj();
+    while (used.has(b)) b = pickAdj();
     used.add(b);
     adjs.push(b);
   }
@@ -962,14 +1184,14 @@ const ATTR = [
   ['an ancient proverb', 'of unknown origin'],
   ['an unnamed oracle', 'on a hill somewhere'],
   ['the collective unconscious', 'probably'],
-  ['a forgotten philosopher', 'circa 400 BC'],
-  ['some guy', 'in the 1600s'],
+  ['a forgotten philosopher', () => 'circa ' + randomBCYear() + ' BC'],
+  ['some guy', () => 'in the ' + randomCentury()],
   ['your subconscious', 'while you slept'],
   ['a minor prophet', 'witness protection program'],
   ['a slightly annoyed librarian', 'muttering to themselves'],
   ['a committee', 'of imaginary experts'],
   ['an enthusiastic parrot', 'repeating itself'],
-  ['a sleep-deprived linguist', '3 AM'],
+  ['a sleep-deprived linguist', () => randomTime()],
   ['the ghost of a grammarian', 'unfinished business'],
   ['a fortune cookie', 'slightly damaged'],
   ['an emoji', 'deep in thought'],
@@ -1022,14 +1244,14 @@ const SOURCES = [
   'of unknown origin',
   'on a hill somewhere',
   'probably',
-  'circa 400 BC',
-  'in the 1600s',
+  () => 'circa ' + randomBCYear() + ' BC',
+  () => 'in the ' + randomCentury(),
   'while you slept',
   'witness protection program',
   'muttering to themselves',
   'of imaginary experts',
   'repeating itself',
-  '3 AM',
+  () => randomTime(),
   'unfinished business',
   'slightly damaged',
   'deep in thought',
@@ -1046,11 +1268,11 @@ const SOURCES = [
   'a footnote to a footnote',
   'the appendix of an appendix',
   'an unfinished manuscript',
-  'a postcard, postmarked 1987',
+  () => 'a postcard, postmarked ' + randomADYear(),
   'the margins of a library book',
   'a napkin in a diner',
   'the back of an envelope',
-  'an email sent at 3:14 AM',
+  () => 'an email sent at ' + randomTime(),
   'the index of a book that doesn’t exist',
   'a strongly worded footnote',
   'a deleted scene',
@@ -1073,41 +1295,106 @@ const SURNAMES = [
   'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield'
 ];
 
+const TITLES = [
+  'Prof.', 'Dr.', 'Regius Prof.', 'Prof. Emeritus', 'Asst. Prof.', 'Assoc. Prof.', 'Chancellor',
+  'Sir', 'Dame', 'Lord', 'Lady', 'Baron', 'Baroness', 'Viscount', 'Marquess', 'Count',
+  'Countess', 'Duke', 'Duchess', 'The Hon.', 'Earl',
+  'Capt.', 'Maj.', 'Col.', 'Gen.', 'Adm.', 'Cmdr.', 'Brig.',
+  'Rev.', 'Fr.', 'Mother', 'Sister', 'Brother', 'Abbot', 'Abbess', 'Cardinal', 'Archbishop',
+  'Bishop', 'The Venerable', 'Right Rev.', 'Rabbi', 'Sheikh', 'Imam', 'Saint',
+  'Wizard', 'Loremaster', 'Chronicler', 'Grand Vizier', 'Archivist', 'Scribe'
+];
+
 function fakeAuthor() {
   const r = Math.random();
-  if (r < 0.30) {
+  if (r < 0.25) {
     return `${pick(GIVEN)} ${pick(SURNAMES)}`;
   }
-  if (r < 0.50) {
+  if (r < 0.40) {
+    return `${pick(GIVEN)} ${pick(SURNAMES).charAt(0)}.`;
+  }
+  if (r < 0.55) {
     const s = pick(SURNAMES);
     return maybe(0.5)
       ? `${pick(GIVEN).charAt(0)}. ${s}`
       : `${pick(GIVEN).charAt(0)}. ${pick(GIVEN).charAt(0)}. ${s}`;
   }
-  if (r < 0.65) {
-    const title = pick(['Prof.', 'Dr.', 'Regius Prof.', 'Sir']);
+  if (r < 0.70) {
+    const title = pick(TITLES);
     const surname = pick(SURNAMES);
     return maybe(0.4)
       ? `${title} ${surname} of ${pick(NOUN)}`
       : `${title} ${surname}`;
   }
-  if (r < 0.80) return `${pick(NOUN)} of the ${pick(NOUN)}`;
-  if (r < 0.90) return `${pick(ADJ)} ${pick(NOUN)}`;
-  return `${pick(ADJ)} ${pick(ADJ)} ${pick(NOUN)}`;
+  if (r < 0.85) return `${pick(NOUN)} of the ${pick(NOUN)}`;
+  if (r < 0.92) return `${pickAdj()} ${pick(NOUN)}`;
+  return `${pickAdj()} ${pickAdj()} ${pick(NOUN)}`;
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+
+function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+function ordinal(n) {
+  if (n % 100 >= 11 && n % 100 <= 13) return n + 'th';
+  return n + ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'][n % 10];
+}
+
+function randomADYear() { return randInt(1, 2100); }
+function randomBCYear() { return randInt(1, 1000); }
+function randomCentury() { return randInt(12, 19) + '00s'; }
+
+function randomTime() {
+  const h = randInt(1, 12);
+  const m = randInt(0, 11) * 5;
+  const ap = Math.random() < 0.5 ? 'AM' : 'PM';
+  return m ? `${h}:${String(m).padStart(2, '0')} ${ap}` : `${h} ${ap}`;
+}
+
+function randomDate() {
+  const d = randInt(1, 28);
+  const mo = pick(MONTHS);
+  const y = randomADYear();
+  return pick([
+    `the ${ordinal(d)} of ${mo} ${y}`,
+    `${ordinal(d)} ${mo} ${y}`,
+    `${mo} ${d}, ${y}`,
+    `the ${ordinal(d)} of ${mo} ${y}, ${randomTime()}`
+  ]);
+}
+
+function datePhrase() {
+  const r = Math.random();
+  const bc = maybe(0.15) ? ' BC' : '';
+  const y = bc ? randomBCYear() : randomADYear();
+  if (r < 0.30) return 'circa ' + y + bc;
+  if (r < 0.45) return 'c. ' + y + bc;
+  if (r < 0.60) return 'in the ' + randomCentury();
+  if (r < 0.80) return randomDate();
+  return randomTime();
 }
 
 function fakeSource() {
   const r = Math.random();
-  if (r < 0.35) return pick(SOURCES);
-  if (r < 0.55) return `On the ${pick(ADJ)} ${pick(NOUN)} of ${pick(NOUN)}`;
-  if (r < 0.70) return `The ${pick(ADJ)} ${pick(NOUN)} Revisited`;
-  if (r < 0.85) return `Journal of ${pick(ADJ)} ${pick(NOUN)}`;
-  const year = 1880 + Math.floor(Math.random() * 140);
-  return pick([`circa ${year}`, `${year}`, `c. ${year}`]);
+  let base;
+  if (r < 0.35) {
+    const s = pick(SOURCES);
+    base = typeof s === 'function' ? s() : s;
+  } else if (r < 0.55) {
+    base = `On the ${pickAdj()} ${pick(NOUN)} of ${pick(NOUN)}`;
+  } else if (r < 0.70) {
+    base = `The ${pickAdj()} ${pick(NOUN)} Revisited`;
+  } else if (r < 0.85) {
+    base = `Journal of ${pickAdj()} ${pick(NOUN)}`;
+  } else {
+    base = datePhrase();
+  }
+  return maybe(REGION_PROB) ? base + ' ' + regionPhrase() : base;
 }
 
 function sentence() {
-  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null };
+  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null };
 
   if (maybe(NUM_PROB)) {
     s.num = numberToWords(randomGoogol());
@@ -1150,9 +1437,37 @@ function sentence() {
     s.object = true;
     s.obj = pick(NOUN);
   }
+  s.aux = maybe(0.6) ? pick(AUX) : null;
+  if (s.aux) {
+    const r = Math.random();
+    if (r < 0.5) s.neg = null;
+    else if (r < 0.7) s.neg = pick(NEG);
+    else s.neg = pick(FREQ);
+  } else {
+    s.neg = maybe(0.4) ? pick(FREQ) : null;
+  }
   if (s.num) {
     if (s.det) s.numPos = 'after-det';
     else s.numPos = 'front';
+  }
+  s.disc = null;
+  s.mid = null;
+  if (maybe(DISC_PROB)) {
+    s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
+  }
+  if (maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
+  s.q = false;
+  s.wh = null;
+  if (maybe(0.3)) {
+    s.q = true;
+    if (s.aux === 'used to' || s.aux === 'ought to') s.aux = null;
+    if (Math.random() < 0.4) {
+      if (s.object && Math.random() < 0.5) {
+        s.wh = 'what';
+      } else {
+        s.wh = pick(['why', 'when', 'where', 'how']);
+      }
+    }
   }
   return s;
 }
@@ -1163,17 +1478,44 @@ function words(s) {
   if (s.num) np.push(s.num);
   np.push(...s.adjs);
   np.push(s.noun);
-  const parts = [...np, s.verb];
-  if (s.object) parts.push(s.obj);
-  if (s.adv) parts.push(s.adv);
-  let str = parts.join(' ');
-  str = str.charAt(0).toUpperCase() + str.slice(1) + '.';
+  let parts;
+  let npStart = 0;
+  if (s.q) {
+    const fst = [];
+    if (s.wh) fst.push(s.wh);
+    if (s.aux) fst.push(s.aux); else fst.push('do');
+    parts = [...fst, ...np];
+    npStart = fst.length;
+    if (s.neg) parts.push(s.neg);
+    parts.push(s.verb);
+    if (s.object && s.wh !== 'what') parts.push(s.obj);
+    if (s.adv) parts.push(s.adv);
+  } else {
+    parts = [...np];
+    if (s.aux) parts.push(s.aux);
+    if (s.neg) parts.push(s.neg);
+    parts.push(s.verb);
+    if (s.object) parts.push(s.obj);
+    if (s.adv) parts.push(s.adv);
+  }
+  if (s.mid) {
+    parts.splice(npStart + np.length, 0, ', ' + s.mid + ',');
+  }
+  let str = '';
+  for (const p of parts) {
+    if (p.startsWith(',')) str += p;
+    else str += (str ? ' ' : '') + p;
+  }
+  if (s.disc) str = s.disc + ', ' + str;
+  str = str.charAt(0).toUpperCase() + str.slice(1) + (s.q ? '?' : (maybe(0.1) ? '!' : '.'));
   return str;
 }
 
 function parseTree(s) {
   const lines = [];
-  lines.push('S');
+  lines.push(s.q ? 'S (Q)' : 'S');
+  if (s.wh) lines.push('├─ Wh  "' + s.wh + '"');
+  if (s.disc) lines.push('├─ Disc  "' + s.disc + '"');
   lines.push('├─ NP');
   const npChildren = [];
   if (s.det) npChildren.push(['Det', s.det]);
@@ -1184,7 +1526,10 @@ function parseTree(s) {
     lines.push((i === npChildren.length - 1 ? '│   └─ ' : '│   ├─ ') + c[0] + '  "' + c[1] + '"');
   });
   lines.push('└─ VP');
-  const vpChildren = [['V', s.verb]];
+  const vpChildren = [];
+  if (s.aux) vpChildren.push(['Aux', s.aux]);
+  if (s.neg) vpChildren.push(['Neg', s.neg]);
+  vpChildren.push(['V', s.verb]);
   if (s.object) vpChildren.push(['N', s.obj]);
   if (s.adv) vpChildren.push(['Adv', s.adv]);
   vpChildren.forEach((c, i) => {
@@ -1196,17 +1541,22 @@ function parseTree(s) {
 function generate() {
   const s = sentence();
   const genBtn = document.getElementById('gen');
-  sentenceEl.textContent = 'Thinking';
+  const text = words(s);
+  sentenceEl.textContent = pickWeighted(THINK_VERBS);
   sentenceEl.classList.add('thinking');
+  attrEl.textContent = pickWeighted(ATTR_VERBS);
+  attrEl.classList.add('thinking');
   genBtn.disabled = true;
+  const delay = Math.min(300 + text.split(' ').length * 60 + Math.random() * 200, 4000);
   setTimeout(() => {
-    sentenceEl.textContent = words(s);
+    sentenceEl.textContent = text;
     sentenceEl.classList.remove('thinking');
+    attrEl.classList.remove('thinking');
     genBtn.disabled = false;
     randomAttribution();
     parseEl.dataset.tree = parseTree(s);
     if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
-  }, 350 + Math.random() * 450);
+  }, delay);
 }
 
 document.getElementById('gen').addEventListener('click', generate);
@@ -1229,7 +1579,11 @@ document.getElementById('tree').addEventListener('click', () => {
 generate();
 
 document.getElementById('tagline').textContent =
-  'offering ' + TOTAL_SENTENCES + ' (' + sciNote(BigInt(TOTAL_SENTENCES), CDOT) + ') sentences.';
+  'offering ' + sciM(QUOTE_M, QUOTE_E, CDOT) +
+  ' quotes from ' + sciM(SENT_M, SENT_E, CDOT) +
+  ' sentences and ' + sciNote(TOTAL_ATTRIBUTIONS, CDOT) +
+  ' attributions by ' + sciNote(TOTAL_AUTHORS, CDOT) +
+  ' possible authors.';
 </script>
 </body>
 </html>
