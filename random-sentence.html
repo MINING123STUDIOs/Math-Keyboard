@@ -26,15 +26,17 @@
   p.sub i { color: #a5b8d0; }
   .quote {
     position: relative; min-height: 150px; display: flex; flex-direction: column;
-    justify-content: center; align-items: center; padding: 18px 40px 8px; margin: 4px 0 8px;
+    justify-content: center; align-items: center;
+    padding: 18px clamp(14px, 5vw, 40px) 8px; margin: 4px 0 8px;
   }
   .quote::before {
     content: "\201C"; position: absolute; top: 0; left: 4px;
-    font-size: 84px; line-height: 1; color: rgba(255,209,102,0.18); font-family: Georgia, serif;
+    font-size: clamp(48px, 12vw, 84px); line-height: 1;
+    color: rgba(255,209,102,0.18); font-family: Georgia, serif;
   }
   .sentence {
-    font-size: 28px; line-height: 1.5; font-style: italic; text-align: center;
-    color: #f2f6fb; transition: opacity 0.15s;
+    font-size: clamp(19px, 6vw, 28px); line-height: 1.5; font-style: italic; text-align: center;
+    color: #f2f6fb; transition: opacity 0.15s; overflow-wrap: anywhere;
   }
   .sentence.fading { opacity: 0; }
   .attribution {
@@ -245,21 +247,18 @@ document.getElementById('clearFavs').addEventListener('click', () => {
 renderFavorites();
 
 function randomAttribution() {
-  const [who, where] = pick(ATTR);
-  if (Math.random() < 0.65) {
-    const r = Math.random();
-    let name;
-    if (r < 0.45) {
-      name = `${pick(ADJ)} ${pick(NOUN)}`;
-    } else if (r < 0.8) {
-      name = `${pick(ADJ)} ${pick(ADJ)} ${pick(NOUN)}`;
-    } else {
-      name = `${pick(NOUN)} of the ${pick(NOUN)}`;
-    }
-    attrEl.innerHTML = `<b>${name}</b>, <i>${where}</i>`;
+  const r = Math.random();
+  let name, source;
+  if (r < 0.30) {
+    name = fakeAuthor();
+    source = fakeSource();
+  } else if (r < 0.85) {
+    name = pick(AUTHORS);
+    source = fakeSource();
   } else {
-    attrEl.innerHTML = `<b>${who}</b>, <i>${where}</i>`;
+    [name, source] = pick(ATTR);
   }
+  attrEl.innerHTML = `<b>${name}</b>, <i>${source}</i>`;
 }
 
 const DET = ['the', 'some', 'my', 'our', 'no', 'these', 'those', 'all', 'many', 'several', 'few', 'two', 'three', 'most', 'countless', 'several', 'innumerable', 'every', 'each', 'whose', 'certain'];
@@ -973,8 +972,139 @@ const ATTR = [
   ['a sleep-deprived linguist', '3 AM'],
   ['the ghost of a grammarian', 'unfinished business'],
   ['a fortune cookie', 'slightly damaged'],
-  ['an emoji', 'deep in thought']
+  ['an emoji', 'deep in thought'],
+  ['a disgruntled muse', 'on strike since 1948'],
+  ['the town soothsayer', 'between appointments'],
+  ['a wandering troubadour', 'in a minor key'],
+  ['an unpaid oracle intern', 'filling in'],
+  ['the night-shift historian', 'open all night'],
+  ['a recovered grammarian', 'sober since the split infinitive']
 ];
+
+const AUTHORS = [
+  'a retired semiotician',
+  'a hobbyist cosmologist',
+  'the village eccentric',
+  'a freelance cartographer',
+  'a part-time sphinx',
+  'an itinerant folklorist',
+  'a nocturnal lexicographer',
+  'the last living flâneur',
+  'a professional daydreamer',
+  'a basement etymologist',
+  'a skeptical astrologer',
+  'a misanthropic poet laureate',
+  'a cross-eyed augur',
+  'a temporarily omniscient housecat',
+  'a dissenting committee member',
+  'the curator of a museum of nothing',
+  'an over-caffeinated monk',
+  'a lay philosopher of margins',
+  'the ghost of a thesaurus',
+  'a wandering dowsing-rod maker',
+  'a recovering grammarian',
+  'a nocturnal notary',
+  'a former lighthouse keeper',
+  'a reluctant prophet',
+  'an itinerant piano tuner',
+  'a semi-retired alchemist',
+  'a professional eavesdropper',
+  'a chronicler of small disasters',
+  'an apprentice ornithomancer',
+  'the village ombudsman',
+  'a person of letters',
+  'an authority on nothing in particular',
+  'a bird that reads too much',
+  'a guest lecturer, once'
+];
+
+const SOURCES = [
+  'of unknown origin',
+  'on a hill somewhere',
+  'probably',
+  'circa 400 BC',
+  'in the 1600s',
+  'while you slept',
+  'witness protection program',
+  'muttering to themselves',
+  'of imaginary experts',
+  'repeating itself',
+  '3 AM',
+  'unfinished business',
+  'slightly damaged',
+  'deep in thought',
+  'Journal of Imaginary Findings',
+  'Proc. 3rd Int. Conf. on Applied Nonsense',
+  'Quarterly Review of Futile Research',
+  'The Annals of Improbable Results',
+  'Bulletin of the Society for Unsettling Questions',
+  'Journal of Dubious Philology',
+  'Transactions of the Odd Pronouncement Society',
+  'Journal of Circular Reasoning',
+  'The Undertaker’s Almanac',
+  'Marginalia, vol. 7',
+  'a footnote to a footnote',
+  'the appendix of an appendix',
+  'an unfinished manuscript',
+  'a postcard, postmarked 1987',
+  'the margins of a library book',
+  'a napkin in a diner',
+  'the back of an envelope',
+  'an email sent at 3:14 AM',
+  'the index of a book that doesn’t exist',
+  'a strongly worded footnote',
+  'a deleted scene',
+  'the fine print',
+  'a cargo cult manual'
+];
+
+const GIVEN = [
+  'Margot', 'Alistair', 'Beatrice', 'Conrad', 'Dorothea', 'Edwin', 'Felicity',
+  'Gerald', 'Hilda', 'Ivor', 'Jasper', 'Kathleen', 'Lionel', 'Mabel', 'Neville',
+  'Ophelia', 'Percival', 'Quentin', 'Rosalind', 'Sylvester', 'Theodora', 'Ursula',
+  'Vernon', 'Winifred', 'Xerxes', 'Yolanda', 'Zachary', 'Aurelia', 'Basil', 'Clovis'
+];
+
+const SURNAMES = [
+  'Albright', 'Bracken', 'Calder', 'Driscoll', 'Ellsworth', 'Frobisher',
+  'Grimaldi', 'Halvorsen', 'Ibbotson', 'Jellicoe', 'Kessler', 'Langford',
+  'Merriweather', 'Nettleship', 'Ormandy', 'Pettigrew', 'Quillan', 'Redmayne',
+  'Satterthwaite', 'Tremaine', 'Underwood', 'Voss', 'Whitcomb', 'Yarrow',
+  'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield'
+];
+
+function fakeAuthor() {
+  const r = Math.random();
+  if (r < 0.30) {
+    return `${pick(GIVEN)} ${pick(SURNAMES)}`;
+  }
+  if (r < 0.50) {
+    const s = pick(SURNAMES);
+    return maybe(0.5)
+      ? `${pick(GIVEN).charAt(0)}. ${s}`
+      : `${pick(GIVEN).charAt(0)}. ${pick(GIVEN).charAt(0)}. ${s}`;
+  }
+  if (r < 0.65) {
+    const title = pick(['Prof.', 'Dr.', 'Regius Prof.', 'Sir']);
+    const surname = pick(SURNAMES);
+    return maybe(0.4)
+      ? `${title} ${surname} of ${pick(NOUN)}`
+      : `${title} ${surname}`;
+  }
+  if (r < 0.80) return `${pick(NOUN)} of the ${pick(NOUN)}`;
+  if (r < 0.90) return `${pick(ADJ)} ${pick(NOUN)}`;
+  return `${pick(ADJ)} ${pick(ADJ)} ${pick(NOUN)}`;
+}
+
+function fakeSource() {
+  const r = Math.random();
+  if (r < 0.35) return pick(SOURCES);
+  if (r < 0.55) return `On the ${pick(ADJ)} ${pick(NOUN)} of ${pick(NOUN)}`;
+  if (r < 0.70) return `The ${pick(ADJ)} ${pick(NOUN)} Revisited`;
+  if (r < 0.85) return `Journal of ${pick(ADJ)} ${pick(NOUN)}`;
+  const year = 1880 + Math.floor(Math.random() * 140);
+  return pick([`circa ${year}`, `${year}`, `c. ${year}`]);
+}
 
 function sentence() {
   const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null };
