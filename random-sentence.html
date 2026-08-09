@@ -111,6 +111,68 @@
     75% { content: "..."; }
     100% { content: ""; }
   }
+  .rarity {
+    margin-top: 6px; font-size: 12px; color: #6f84a0; font-style: normal;
+    letter-spacing: 0.3px; font-variant-numeric: tabular-nums; display: none;
+  }
+  .stats {
+    margin-top: 16px; text-align: left; background: rgba(5, 10, 18, 0.4);
+    border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 16px;
+    display: none;
+  }
+  body.show-hidden-features .rarity,
+  body.show-hidden-features .stats { display: block; }
+  .stats summary {
+    cursor: pointer; font-size: 12px; color: #9ab3cc;
+    text-transform: uppercase; letter-spacing: 1px; user-select: none;
+  }
+  .stats table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; color: #c3d2e4; }
+  .stats td { padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .stats td:last-child { text-align: right; color: #8fd3a0; font-variant-numeric: tabular-nums; }
+  .stats table tr:last-child td { border-bottom: none; }
+  html[data-theme="light"] body {
+    background: radial-gradient(1100px 700px at 70% -10%, #ffffff 0%, #eef2f7 55%, #e2e8f0 100%);
+    color: #1c2733;
+  }
+  html[data-theme="light"] .card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(15, 30, 50, 0.1);
+    box-shadow: 0 20px 60px rgba(60, 80, 110, 0.25), inset 0 1px 0 rgba(255,255,255,0.8);
+  }
+  html[data-theme="light"] h1 { color: #2b5f8a; }
+  html[data-theme="light"] p.sub { color: #64748b; }
+  html[data-theme="light"] p.sub i { color: #3e5a75; }
+  html[data-theme="light"] .quote::before { color: rgba(176, 128, 18, 0.22); }
+  html[data-theme="light"] .sentence { color: #16212c; }
+  html[data-theme="light"] .attribution { color: #5a6b7e; }
+  html[data-theme="light"] .attribution b { color: #a0671a; }
+  html[data-theme="light"] button { color: #1c2733; background: #e6ebf2; }
+  html[data-theme="light"] button.primary { background: #457b9d; color: #fff; }
+  html[data-theme="light"] button.primary:hover { background: #2f5d7a; color: #fff; }
+  html[data-theme="light"] button.ghost { border-color: #c5cfda; color: #4a5a6e; }
+  html[data-theme="light"] .parse {
+    background: rgba(247, 250, 252, 0.92); color: #2f6f4f;
+    border: 1px solid rgba(15, 30, 50, 0.1);
+  }
+  html[data-theme="light"] .tag { color: #a0671a; background: rgba(160, 103, 26, 0.12); }
+  html[data-theme="light"] .favorites { background: rgba(247, 250, 252, 0.85); border: 1px solid rgba(15, 30, 50, 0.1); }
+  html[data-theme="light"] .favhead { color: #5a6b7e; }
+  html[data-theme="light"] .favhead button { background: #f1e3ee; }
+  html[data-theme="light"] #favList li { border-bottom: 1px solid rgba(15, 30, 50, 0.08); }
+  html[data-theme="light"] #favList .fauth { color: #6b7686; }
+  html[data-theme="light"] #favList .fdel { color: #9aa3ad; }
+  html[data-theme="light"] #favList .fdel:hover { color: #c0392b; }
+  html[data-theme="light"] #favList .fcopy { border-color: #c5cfda; color: #4a5a6e; }
+  html[data-theme="light"] #favList .fcopy:hover { border-color: #a0671a; color: #a0671a; }
+  html[data-theme="light"] #favNote { color: #2f7d3f; }
+  html[data-theme="light"] .tagline { color: #8b96a3; }
+  html[data-theme="light"] .sentence.thinking, html[data-theme="light"] .attribution.thinking { color: #5a6b7e; }
+  html[data-theme="light"] .rarity { color: #7a8a9c; }
+  html[data-theme="light"] .stats { background: rgba(247, 250, 252, 0.8); border: 1px solid rgba(15, 30, 50, 0.1); }
+  html[data-theme="light"] .stats summary { color: #4a5a6e; }
+  html[data-theme="light"] .stats table { color: #33415a; }
+  html[data-theme="light"] .stats td { border-bottom: 1px solid rgba(15, 30, 50, 0.07); }
+  html[data-theme="light"] .stats td:last-child { color: #2f6f4f; }
 </style>
 </head>
 <body>
@@ -122,6 +184,7 @@
   <div class="quote">
     <div class="sentence" id="sentence">Colorless green ideas sleep furiously.</div>
     <div class="attribution" id="attribution"><b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957</div>
+    <div class="rarity" id="rarity"></div>
   </div>
 
   <div class="actions">
@@ -130,6 +193,7 @@
     <button id="tree">Show parse tree</button>
     <button id="fav" title="Save this quote">♥ Save</button>
     <button id="copyCur" title="Copy current quote">⧉ Copy</button>
+    <button id="theme" class="ghost" title="Toggle theme">☀ Light</button>
   </div>
 
   <div class="parse" id="parse"></div>
@@ -144,6 +208,11 @@
   </div>
 
   <div class="tagline" id="tagline"></div>
+
+  <details class="stats" id="statsBox">
+    <summary>Session stats</summary>
+    <div id="stats"></div>
+  </details>
 </div>
 <script>
 const sentenceEl = document.getElementById('sentence');
@@ -151,19 +220,70 @@ const attrEl = document.getElementById('attribution');
 const parseEl = document.getElementById('parse');
 const favBox = document.getElementById('favorites');
 const favList = document.getElementById('favList');
+const rarityEl = document.getElementById('rarity');
+
+const stats = {
+  total: 0, cond: 0, sub: 0, q: 0, wh: 0, disc: 0, mid: 0, exclaim: 0,
+  compounds: 0, numbers: 0, conjoined: 0, relative: 0, tag: 0, favs: 0
+};
+function renderStats() {
+  const el = document.getElementById('stats');
+  if (!el) return;
+  const rows = [
+    ['Total generated', stats.total],
+    ['Conditionals', stats.cond],
+    ['Subordinate clauses', stats.sub],
+    ['Two-clause compounds', stats.compounds],
+    ['Questions', stats.q],
+    ['Wh-questions', stats.wh],
+    ['Discourse markers', stats.disc],
+    ['Exclamations', stats.exclaim],
+    ['Mid markers', stats.mid],
+    ['Number words', stats.numbers],
+    ['Conjoined subjects', stats.conjoined],
+    ['Relative clauses', stats.relative],
+    ['Tag questions', stats.tag],
+    ['Favorites saved', stats.favs]
+  ];
+  el.innerHTML = '<table>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
+}
+function noteStats(s) {
+  stats.total++;
+  if (s.cond) stats.cond++;
+  if (s.sub) stats.sub++;
+  if (s.cond || s.sub) stats.compounds++;
+  if (s.q) stats.q++;
+  if (s.wh) stats.wh++;
+  if (s.disc) {
+    stats.disc++;
+    if (EXCLAIM.includes(s.disc)) stats.exclaim++;
+  }
+  if (s.mid) stats.mid++;
+  for (const c of [s.c1, s.c2]) {
+    if (!c) continue;
+    if (c.num) stats.numbers++;
+    if (c.sub2) stats.conjoined++;
+    if (c.rel) stats.relative++;
+  }
+  if (s.tag) stats.tag++;
+  renderStats();
+}
 
 /* Max distinct sentences and quotes are astronomically large (A alone has
  * ~392.6k digits), so only their scientific-notation mantissa + exponent are
- * stored; see the count comment above powerAdjs() for the formula. Since
- * ~30% conditionals join two clauses, they dominate the union and roughly
- * double the sentence-count exponent; the (1 + Q) question and (1 + 0.3)
- * discourse factors multiply the total, while the (1 + 0.25) mid-marker
- * factor applies to single clauses only.
+ * stored; see the count comment above powerAdjs() for the formula. Two-clause
+ * sentences (conditionals + subordinate adverb clauses) dominate the union
+ * and ~triple the clause exponent: conjoined subjects (×S) and relative
+ * clauses (×R) each carry their own copy of the astronomical adj-sequence
+ * count A, so two-clause sentences scale as (C·S·R)². The (1 + Q + T)
+ * question/tag factor (3.3) and (1 + 0.3) discourse factor multiply the
+ * total, while the (1 + 0.25) mid-marker factor applies to single clauses
+ * only (a negligible tail of the union).
  */
-const SENT_M = '4.56';
-const SENT_E = 785368;
-const QUOTE_M = '2.38';
-const QUOTE_E = 785394;
+const SENT_M = '3.27';
+const SENT_E = 2355671;
+const QUOTE_M = '1.70';
+const QUOTE_E = 2355697;
 
 /* Max distinct authors:
  *
@@ -301,6 +421,8 @@ document.getElementById('fav').addEventListener('click', () => {
   const q = currentQuote();
   if (!q.text || q.text === '—') return;
   favorites.push(q);
+  stats.favs++;
+  renderStats();
   localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
   renderFavorites();
 });
@@ -512,6 +634,14 @@ function singularize(n) {
   }
   if (n.endsWith('s')) return n.slice(0, -1);
   return n;
+}
+const SINGULAR_VERBS = { have: 'has' };
+function thirdSingular(v) {
+  if (SINGULAR_VERBS[v]) return SINGULAR_VERBS[v];
+  if (/(s|sh|ch|x|z)$/.test(v)) return v + 'es';
+  if (/[^aeiou]o$/.test(v)) return v + 'es';
+  if (/[^aeiou]y$/.test(v)) return v.slice(0, -1) + 'ies';
+  return v + 's';
 }
 function pickAdj() {
   return maybe(COMPOUND_PROB) ? singularize(pick(NOUN)) + '-' + pick(COLORS) : pick(ADJ);
@@ -988,6 +1118,16 @@ const FREQ = [
   'occasionally', 'frequently', 'constantly', 'generally', 'normally'
 ];
 const NEG = ['not', 'ever'];
+const TAG_POS = {
+  can: 'can', could: 'could', may: 'may', might: 'might', must: 'must',
+  shall: 'shall', should: 'should', will: 'will', would: 'would',
+  'ought to': 'ought', 'used to': 'did'
+};
+const TAG_NEG = {
+  can: "can't", could: "couldn't", may: 'mayn\'t', might: 'mightn\'t', must: 'mustn\'t',
+  shall: 'shan\'t', should: 'shouldn\'t', will: 'won\'t', would: 'wouldn\'t',
+  'ought to': 'oughtn\'t', 'used to': 'didn\'t'
+};
 const DISCOURSE = [
   'well', 'you know', 'I mean', 'actually', 'frankly', 'honestly', 'say',
   'mind you', 'after all', 'believe it or not', 'to be honest',
@@ -1007,7 +1147,14 @@ const CONJ = [
   'in case', 'supposing', 'even if', 'assuming that', 'provided'
 ];
 const INV_CONJ = ['if', 'even if'];
+const SUB_CONJ = [
+  'because', 'since', 'while', 'although', 'though', 'whenever',
+  'whereas', 'wherever', 'until', 'once', 'when', 'where'
+];
 const COND_PROB = 0.3;
+const SUB_PROB = 0.25;
+const REL_PROB = 0.2;
+const TAG_PROB = 0.15;
 const FRONT_PROB = 0.8;
 const REGIONS = [
   'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
@@ -1170,22 +1317,30 @@ const ADJ_PROB = 1 / 2;
  *
  * TOTAL = ( A*N*V*X*(1+W)*(2+D) + A*N*V*X*W*(1+D) + A*N*N*T*X*(1+W) ) * 2 * (1 + (10^100+1))
  *   questions: every sentence may instead invert to a question (Q=0.3,
- *   aux-fronting or do-support, optional wh-word) -> x (1 + Q)
+ *   aux-fronting or do-support, optional wh-word); tag questions (T=2,
+ *   aux contraction or do/did support) replace non-question sentences, so
+ *   questions + tags fold to a single (1 + Q + T) = 3.3 factor.
  *   discourse markers: optional initial filler (~30%, or a rare exclamation)
  *   and optional mid-sentence filler (~25%) -> x (1 + 0.3)(1 + 0.25)
- *   single-clause TOTAL ~ 1.55 * 10^392684
+ *   single-clause TOTAL ~ 2.23 * 10^1177835   (tail of the union)
  *
- * Conditionals (~30%): a conditional joins two independently-generated
- * clauses with one of CONJ (K = 10) conjunctions, in front or end order.
- * Each clause is a full sentence pattern minus punctuation, so a clause
- * counts C = S0 * (1 + (10^100+1)) with S0 as the bracket above. "Were X to
- * V" inversion merely re-renders front-order eligible pairs (conjunction in
- * INV_CONJ and a bare if-clause), so it cancels out of the union:
- *   T_cond = 2 * K * C^2
- * Since log10(T_cond) = log10(2K) + 2 * log10(C) ~ 2 * 392683.6, conditionals
- * dominate the union and roughly double the exponent. Mid-marker fillers do
- * NOT apply to conditionals, so only the (1 + Q)(1 + 0.3) factors scale them:
- *   TOTAL ~ 4.56 * 10^785368     (SENT_M * 10^SENT_E)
+ * New per-clause features (each an optional structure, so it multiplies):
+ *   conjoined subject  S = (1 + D)*A*N      (second NP: det-optional, A adjs, N nouns)
+ *   relative clause    R = V*(1+W) + (1+D)*A*N*T   (subject-rel, or object-rel
+ *                       with a det-optional NP and a transitive verb; the
+ *                       (1+D)*A*N*T term dominates, ~1.26e6 * A)
+ *   Both apply independently to every clause, so a clause counts C*S*R.
+ *
+ * Two-clause sentences (conditionals K_cond=10 + subordinating K_sub=12,
+ * front or end order) dominate the union:
+ *   T_two = 2*(K_cond + K_sub) * (C*S*R)^2 * (1 + Q + T) * (1 + 0.3)
+ * "Were X to V" inversion merely re-renders front-order eligible pairs, so it
+ * cancels out of the union. Mid-marker fillers apply to single clauses only.
+ * log10(C) ~ log10(A) + 113.17, log10(S) ~ log10(A) + 4.16,
+ * log10(R) ~ log10(A) + 6.10, so
+ *   log10(TOTAL) ~ 2*(3*log10(A) + 123.43) + log10(44) + log10(3.3) + log10(1.3)
+ *               ~ 2,355,671.51
+ *   TOTAL ~ 3.27 * 10^2355671      (SENT_M * 10^SENT_E)
  */
 function powerAdjs() {
   const used = new Set();
@@ -1415,7 +1570,7 @@ function fakeSource() {
 }
 
 function makeClause() {
-  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null };
+  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null, sg: false };
 
   if (maybe(NUM_PROB)) {
     s.num = numberToWords(randomGoogol());
@@ -1430,6 +1585,7 @@ function makeClause() {
     s.adv = maybe(0.7) ? pick(ADV) : null;
   } else if (pattern === 1) {
     s.det = pick(DET);
+    s.sg = s.det === 'each' || s.det === 'every';
     s.adjs = powerAdjs();
     s.noun = pick(NOUN);
     s.verb = pick(VERB);
@@ -1441,6 +1597,7 @@ function makeClause() {
     s.adv = maybe(0.8) ? pick(ADV) : null;
   } else if (pattern === 3) {
     s.det = pick(DET);
+    s.sg = s.det === 'each' || s.det === 'every';
     s.adjs = powerAdjs();
     s.noun = pick(NOUN);
     s.verb = pick(VERB);
@@ -1471,6 +1628,17 @@ function makeClause() {
     if (s.det) s.numPos = 'after-det';
     else s.numPos = 'front';
   }
+  if (s.sg) s.noun = singularize(s.noun);
+  s.sub2 = maybe(0.18) ? (function () {
+    const det2 = maybe(DET);
+    const o = { det: det2, adjs: powerAdjs(), noun: pick(NOUN) };
+    if (det2 === 'each' || det2 === 'every' || s.sg) o.noun = singularize(o.noun);
+    return o;
+  })() : null;
+  s.rel = maybe(REL_PROB) ? (Math.random() < 0.5
+    ? { kind: 'subj', verb: pick(VERB), adv: maybe(0.5) ? pick(ADV) : null }
+    : { kind: 'obj', verb: pick(TRANS), np: { det: maybe(DET), adjs: powerAdjs(), noun: pick(NOUN) } })
+    : null;
   return s;
 }
 
@@ -1483,8 +1651,16 @@ function sentence() {
     s.conj = pick(CONJ);
     s.order = maybe(FRONT_PROB) ? 'front' : 'end';
     s.invert = s.order === 'front' && INV_CONJ.includes(s.conj) && !s.c1.aux && !s.c1.neg;
+  } else if (maybe(SUB_PROB)) {
+    s.sub = true;
+    s.c1 = makeClause();
+    s.c2 = makeClause();
+    s.conj = pick(SUB_CONJ);
+    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
+    s.invert = false;
   } else {
     s.cond = false;
+    s.sub = false;
     s.c1 = makeClause();
   }
   s.disc = null;
@@ -1492,12 +1668,12 @@ function sentence() {
   if (maybe(DISC_PROB)) {
     s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
   }
-  if (!s.cond && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
+  if (!s.cond && !s.sub && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
   s.q = false;
   s.wh = null;
   if (maybe(0.3)) {
     s.q = true;
-    const tgt = s.cond ? s.c2 : s.c1;
+    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
     if (tgt.aux === 'used to' || tgt.aux === 'ought to') tgt.aux = null;
     if (Math.random() < 0.4) {
       if (tgt.object && Math.random() < 0.5) {
@@ -1507,79 +1683,156 @@ function sentence() {
       }
     }
   }
+  s.tag = null;
+  if (!s.q && maybe(TAG_PROB)) {
+    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
+    s.tag = { aux: tgt.aux, negated: tgt.neg === 'not' || tgt.neg === 'never', sg: !!tgt.sg };
+  }
   return s;
 }
 
-function clauseString(s, opts) {
+function tagPhrase(t) {
+  const map = t.negated ? TAG_POS : TAG_NEG;
+  let aux = map[t.aux] || (t.negated ? 'do' : "don't");
+  if (t.sg) {
+    if (aux === 'do') aux = 'does';
+    if (aux === "don't") aux = "doesn't";
+    return aux + ' it';
+  }
+  return aux + ' they';
+}
+
+function clauseParts(s, opts) {
   const q = opts.question, wh = opts.wh, mid = opts.mid;
   const np = [];
-  if (s.det) np.push(s.det);
-  if (s.num) np.push(s.num);
-  np.push(...s.adjs);
-  np.push(s.noun);
+  if (s.det) np.push({ w: s.det, pos: 'det' });
+  if (s.num) np.push({ w: s.num, pos: 'num' });
+  for (const a of s.adjs) np.push({ w: a, pos: 'adj' });
+  np.push({ w: s.noun, pos: 'noun' });
+  if (s.sub2) {
+    np.push({ w: 'and', pos: 'conj' });
+    if (s.sub2.det) np.push({ w: s.sub2.det, pos: 'det' });
+    for (const a of s.sub2.adjs) np.push({ w: a, pos: 'adj' });
+    np.push({ w: s.sub2.noun, pos: 'noun' });
+  }
+  if (s.rel) {
+    np.push({ w: 'that', pos: 'rel' });
+    if (s.rel.kind === 'subj') {
+      np.push({ w: s.sg ? thirdSingular(s.rel.verb) : s.rel.verb, pos: 'verb' });
+      if (s.rel.adv) np.push({ w: s.rel.adv, pos: 'adv' });
+    } else {
+      if (s.rel.np.det) np.push({ w: s.rel.np.det, pos: 'det' });
+      for (const a of s.rel.np.adjs) np.push({ w: a, pos: 'adj' });
+      np.push({ w: s.rel.np.noun, pos: 'noun' });
+      np.push({ w: s.rel.verb, pos: 'verb' });
+    }
+  }
   let parts;
   let npStart = 0;
   if (q) {
     const fst = [];
-    if (wh) fst.push(wh);
-    if (s.aux) fst.push(s.aux); else fst.push('do');
+    if (wh) fst.push({ w: wh, pos: 'wh' });
+    if (s.aux) fst.push({ w: s.aux, pos: 'aux' }); else fst.push({ w: s.sg ? 'does' : 'do', pos: 'aux' });
     parts = [...fst, ...np];
     npStart = fst.length;
-    if (s.neg) parts.push(s.neg);
-    parts.push(s.verb);
-    if (s.object && wh !== 'what') parts.push(s.obj);
-    if (s.adv) parts.push(s.adv);
+    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+    parts.push({ w: s.verb, pos: 'verb' });
+    if (s.object && wh !== 'what') parts.push({ w: s.obj, pos: 'obj' });
+    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
   } else {
     parts = [...np];
-    if (s.aux) parts.push(s.aux);
-    if (s.neg) parts.push(s.neg);
-    parts.push(s.verb);
-    if (s.object) parts.push(s.obj);
-    if (s.adv) parts.push(s.adv);
+    if (s.aux) parts.push({ w: s.aux, pos: 'aux' });
+    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+    parts.push({ w: s.sg && !s.aux ? thirdSingular(s.verb) : s.verb, pos: 'verb' });
+    if (s.object) parts.push({ w: s.obj, pos: 'obj' });
+    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
   }
   if (mid) {
-    parts.splice(npStart + np.length, 0, ', ' + mid + ',');
+    parts.splice(npStart + np.length, 0, { w: ', ' + mid + ',', pos: 'mid' });
   }
+  return parts;
+}
+
+function sentenceParts(s) {
+  let parts;
+  if (s.cond || s.sub) {
+    const main = clauseParts(s.c2, { question: s.q, wh: s.wh, mid: null });
+    const ifc = clauseParts(s.c1, { question: false, wh: null, mid: null });
+    if (s.invert) {
+      const np = [];
+      if (s.c1.det) np.push({ w: s.c1.det, pos: 'det' });
+      if (s.c1.num) np.push({ w: s.c1.num, pos: 'num' });
+      for (const a of s.c1.adjs) np.push({ w: a, pos: 'adj' });
+      np.push({ w: s.c1.noun, pos: 'noun' });
+      const vp = [];
+      vp.push({ w: s.c1.verb, pos: 'verb' });
+      if (s.c1.object) vp.push({ w: s.c1.obj, pos: 'obj' });
+      if (s.c1.adv) vp.push({ w: s.c1.adv, pos: 'adv' });
+      parts = [{ w: 'were', pos: 'aux' }, ...np, { w: 'to', pos: 'func' }, ...vp, { w: ',', pos: 'punct' }, ...main];
+    } else if (s.order === 'front') {
+      parts = [{ w: s.conj, pos: 'conj' }, ...ifc, { w: ',', pos: 'punct' }, ...main];
+    } else {
+      parts = [...main, { w: s.conj, pos: 'conj' }, ...ifc];
+    }
+  } else {
+    parts = clauseParts(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
+  }
+  if (s.disc) parts = [{ w: s.disc, pos: 'disc' }, { w: ',', pos: 'punct' }, ...parts];
+  if (s.tag) {
+    parts.push({ w: ',', pos: 'punct' }, { w: tagPhrase(s.tag), pos: 'tag' });
+  }
+  return parts;
+}
+
+function joinParts(parts) {
   let str = '';
   for (const p of parts) {
-    if (p.startsWith(',')) str += p;
-    else str += (str ? ' ' : '') + p;
+    if (p.w.startsWith(',')) str += p.w;
+    else str += (str ? ' ' : '') + p.w;
   }
   return str;
+}
+
+function capFirst(parts) {
+  if (parts.length && parts[0].w) {
+    parts[0].w = parts[0].w.charAt(0).toUpperCase() + parts[0].w.slice(1);
+  }
 }
 
 function words(s) {
-  let str;
-  if (s.cond) {
-    const main = clauseString(s.c2, { question: s.q, wh: s.wh, mid: null });
-    const ifc = clauseString(s.c1, { question: false, wh: null, mid: null });
-    if (s.invert) {
-      const np = [s.c1.det, s.c1.num, ...s.c1.adjs, s.c1.noun].filter(Boolean).join(' ');
-      const vp = [s.c1.verb, ...(s.c1.object ? [s.c1.obj] : []), ...(s.c1.adv ? [s.c1.adv] : [])].join(' ');
-      str = 'were ' + np + ' to ' + vp + ', ' + main;
-    } else if (s.order === 'front') {
-      str = s.conj + ' ' + ifc + ', ' + main;
-    } else {
-      str = main + ' ' + s.conj + ' ' + ifc;
-    }
-  } else {
-    str = clauseString(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
-  }
-  if (s.disc) str = s.disc + ', ' + str;
-  str = str.charAt(0).toUpperCase() + str.slice(1) + (s.q ? '?' : (maybe(0.1) ? '!' : '.'));
-  return str;
+  const parts = sentenceParts(s);
+  capFirst(parts);
+  return joinParts(parts) + (s.q || s.tag ? '?' : (maybe(0.1) ? '!' : '.'));
 }
 
-function clauseSubtree(c) {
+function npNode(c) {
   const np = { label: 'NP', children: [] };
   if (c.det) np.children.push({ label: 'Det', text: c.det });
   if (c.num) np.children.push({ label: 'Num', text: c.num });
   for (const a of c.adjs) np.children.push({ label: 'Adj', text: a });
   np.children.push({ label: 'N', text: c.noun });
+  if (c.rel) {
+    np.children.push({ label: 'Rel', text: 'that' });
+    if (c.rel.kind === 'subj') {
+      np.children.push({ label: 'V', text: c.sg ? thirdSingular(c.rel.verb) : c.rel.verb });
+      if (c.rel.adv) np.children.push({ label: 'Adv', text: c.rel.adv });
+    } else {
+      const rn = npNode(c.rel.np);
+      for (const ch of rn.children) np.children.push(ch);
+      np.children.push({ label: 'V', text: c.rel.verb });
+    }
+  }
+  return np;
+}
+
+function clauseSubtree(c) {
+  const np = c.sub2
+    ? { label: 'NP', children: [npNode(c), { label: 'Conj', text: 'and' }, npNode(c.sub2)] }
+    : npNode(c);
   const vp = { label: 'VP', children: [] };
   if (c.aux) vp.children.push({ label: 'Aux', text: c.aux });
   if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
-  vp.children.push({ label: 'V', text: c.verb });
+  vp.children.push({ label: 'V', text: (c.sg && !c.aux) ? thirdSingular(c.verb) : c.verb });
   if (c.object) vp.children.push({ label: 'N', text: c.obj });
   if (c.adv) vp.children.push({ label: 'Adv', text: c.adv });
   return { np, vp };
@@ -1589,14 +1842,15 @@ function parseTree(s) {
   const root = { label: s.q ? 'S (Q)' : 'S', children: [] };
   if (s.wh) root.children.push({ label: 'Wh', text: s.wh });
   if (s.disc) root.children.push({ label: 'Disc', text: s.disc });
-  if (s.cond) {
-    const cond = { label: 'Cond', text: s.invert ? 'were to' : s.conj, children: [] };
+  if (s.cond || s.sub) {
+    const conjNode = { label: 'Conj', text: s.invert ? 'were to' : s.conj, children: [] };
     const c1 = clauseSubtree(s.c1);
-    cond.children.push(c1.np, c1.vp);
-    root.children.push(cond);
+    conjNode.children.push(c1.np, c1.vp);
+    root.children.push(conjNode);
   }
-  const c2 = clauseSubtree(s.cond ? s.c2 : s.c1);
+  const c2 = clauseSubtree(s.cond || s.sub ? s.c2 : s.c1);
   root.children.push(c2.np, c2.vp);
+  if (s.tag) root.children.push({ label: 'Tag', text: tagPhrase(s.tag) + '?' });
   const lines = [];
   const draw = (n, prefix, isLast) => {
     lines.push(prefix + (isLast ? '└─ ' : '├─ ') + (n.text ? n.label + '  "' + n.text + '"' : n.label));
@@ -1608,10 +1862,41 @@ function parseTree(s) {
   return lines.join('\n');
 }
 
+function familyExponent(s) {
+  const lg = Math.log10;
+  const falling = (n, k) => { let x = 0; for (let i = 0; i < k; i++) x += lg(n - i); return x; };
+  const clauseX = (c) => {
+    let x = falling(ADJ_TOTAL, c.adjs.length);
+    x += lg((c.object ? TRANS : VERB).length);
+    if (c.adv) x += lg(ADV.length);
+    if (c.det) x += lg(DET.length);
+    if (c.num) x += 100;
+    if (c.aux) x += lg(AUX.length);
+    if (c.neg) x += lg(c.neg === 'not' || c.neg === 'ever' ? NEG.length : FREQ.length);
+    if (c.sub2) x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.sub2.adjs.length) + lg(NOUN.length);
+    if (c.rel) {
+      if (c.rel.kind === 'subj') x += lg(VERB.length) + lg(1 + ADV.length);
+      else x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.rel.np.adjs.length) + lg(NOUN.length) + lg(TRANS.length);
+    }
+    return x;
+  };
+  let x;
+  if (s.cond || s.sub) {
+    x = clauseX(s.c1) + clauseX(s.c2) + lg((s.cond ? CONJ : SUB_CONJ).length);
+  } else {
+    x = clauseX(s.c1);
+  }
+  if (s.disc) x += lg(DISCOURSE.length + EXCLAIM.length);
+  if (s.mid) x += lg(MID_DISCOURSE.length);
+  if (s.wh) x += lg(5);
+  return x;
+}
+
 function generate() {
   const s = sentence();
   const genBtn = document.getElementById('gen');
   const text = words(s);
+  noteStats(s);
   sentenceEl.textContent = pickWeighted(THINK_VERBS);
   sentenceEl.classList.add('thinking');
   attrEl.textContent = pickWeighted(ATTR_VERBS);
@@ -1624,15 +1909,50 @@ function generate() {
     attrEl.classList.remove('thinking');
     genBtn.disabled = false;
     randomAttribution();
+    rarityEl.textContent = '~1 in 10^' + familyExponent(s).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' of its family';
     parseEl.dataset.tree = parseTree(s);
     if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
   }, delay);
 }
 
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme').textContent = theme === 'light' ? '☾ Dark' : '☀ Light';
+}
+applyTheme(localStorage.getItem('cgi-theme') === 'light' ? 'light' : 'dark');
+document.getElementById('theme').addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('cgi-theme', next);
+  applyTheme(next);
+});
+let hiddenArmed = false, hiddenTimer = null;
+const HIDDEN_DOUBLE_MS = 700;
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Enter' && e.ctrlKey && e.shiftKey && !e.repeat) {
+    e.preventDefault();
+    if (hiddenArmed) {
+      hiddenArmed = false;
+      clearTimeout(hiddenTimer);
+      document.body.classList.toggle('show-hidden-features');
+    } else {
+      hiddenArmed = true;
+      hiddenTimer = setTimeout(() => { hiddenArmed = false; }, HIDDEN_DOUBLE_MS);
+    }
+    return;
+  }
+  if (e.code !== 'Space' || e.repeat) return;
+  const t = e.target;
+  if (t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY' ||
+            t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  e.preventDefault();
+  generate();
+});
+
 document.getElementById('gen').addEventListener('click', generate);
 document.getElementById('chomsky').addEventListener('click', () => {
   sentenceEl.textContent = 'Colorless green ideas sleep furiously.';
   attrEl.innerHTML = '<b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957';
+  rarityEl.textContent = '';
   parseEl.dataset.tree =
     'S\n├─ NP\n│   ├─ Adj  "colorless"\n│   ├─ Adj  "green"\n│   └─ N    "ideas"\n└─ VP\n    ├─ V    "sleep"\n    └─ Adv  "furiously"';
   if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
