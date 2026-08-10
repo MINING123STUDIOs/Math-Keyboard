@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Colorless Green Ideas — A Chomsky-style sentence generator.
+  Library of Babel — Find the exact book whose first line is your words.
   Copyright (C) 2026 MINING123STUDIOS
 
   This program is free software: you can redistribute it and/or modify
@@ -20,513 +20,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Colorless Green Ideas</title>
+<title>Library of Babel</title>
 <style>
+  :root {
+    --ink: #e8ecf0; --muted: #7f93a8; --gold: #ffd166;
+    --paper: #efe4c8; --ink-paper: #2b2118; --link: #74b9ff;
+  }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0; min-height: 100vh;
-    background: radial-gradient(1100px 700px at 70% -10%, #123 0%, #0c1420 55%, #060b12 100%);
-    color: #e6edf3; font-family: Georgia, 'Times New Roman', serif;
-    display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: radial-gradient(1200px 800px at 60% -10%, #0e2a2a 0%, #0a1a1e 55%, #05090c 100%);
+    color: var(--ink); font-family: Georgia, 'Times New Roman', serif;
+    padding: 28px 16px 48px;
   }
-  .card {
-    width: min(780px, 94vw);
-    background: rgba(16, 26, 40, 0.8);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px; padding: 30px 34px 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-    backdrop-filter: blur(6px);
-    text-align: center;
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 6px 0 18px; }
+  .brand { font-size: 26px; font-weight: 700; letter-spacing: 0.4px; }
+  .brand span { color: var(--gold); }
+  .stat { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .stat sup { font-size: 0.8em; }
+
+  .searchrow { display: flex; gap: 10px; margin-bottom: 14px; }
+  input[type="text"] {
+    flex: 1; min-width: 0; padding: 13px 16px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.12); background: rgba(10,22,26,0.85);
+    color: var(--ink); font: 17px Georgia, serif;
   }
-  h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.5px; font-weight: normal; color: #9ad0ff; }
-  p.sub { margin: 0 0 26px; color: #7c8aa0; font-size: 13px; }
-  p.sub i { color: #a5b8d0; }
-  .quote {
-    position: relative; min-height: 150px; display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
-    padding: 18px clamp(14px, 5vw, 40px) 8px; margin: 4px 0 8px;
-  }
-  .quote::before {
-    content: "\201C"; position: absolute; top: 0; left: 4px;
-    font-size: clamp(48px, 12vw, 84px); line-height: 1;
-    color: rgba(255,209,102,0.18); font-family: Georgia, serif;
-  }
-  .sentence {
-    font-size: clamp(19px, 6vw, 28px); line-height: 1.5; font-style: italic; text-align: center;
-    color: #f2f6fb; transition: opacity 0.15s; overflow-wrap: anywhere;
-  }
-  .sentence.fading { opacity: 0; }
-  .attribution {
-    margin-top: 14px; font-size: 13px; color: #8aa2c0; font-style: normal;
-    letter-spacing: 0.4px;
-  }
-  .attribution::before { content: "— "; }
-  .attribution b { color: #ffd166; font-weight: normal; }
-  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 8px 0 20px; }
-  .menu-wrap { position: relative; }
-  .menu {
-    position: absolute; right: 0; top: calc(100% + 8px);
-    display: none; flex-direction: column; gap: 4px; padding: 8px;
-    min-width: 220px; z-index: 20;
-    background: #16233a; border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.5);
-  }
-  .menu.open { display: flex; }
-  .menu button { text-align: left; font-size: 14px; padding: 9px 14px; white-space: nowrap; }
-  .menu-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; }
+  input[type="text"]:focus { outline: none; border-color: var(--gold); }
+  input::placeholder { color: #4a5f70; }
   button {
     font-family: inherit; font-size: 15px; cursor: pointer; border: none; border-radius: 12px;
-    padding: 10px 20px; color: #fff; background: #1d3557; transition: transform 0.1s, background 0.15s;
+    padding: 10px 18px; color: #fff; background: #1d3557; transition: transform 0.1s, background 0.15s;
   }
-  button:hover { transform: scale(1.05); }
+  button:hover { transform: scale(1.04); }
   button.primary { background: #457b9d; }
   button.primary:hover { background: #a8dadc; color: #0b1724; }
-  button.ghost { background: transparent; border: 1px solid #2e4566; color: #9ab3cc; }
-  .parse {
-    text-align: left; background: rgba(5, 10, 18, 0.6); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px; padding: 16px 20px; margin-top: 16px; display: none;
-    font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #8fd3a0;
-    line-height: 1.6; white-space: pre; overflow-x: auto;
-  }
-  .tag {
-    display: inline-block; font-family: ui-monospace, monospace; font-size: 11px;
-    color: #ffd166; background: rgba(255,209,102,0.12); border-radius: 6px;
-    padding: 2px 7px; margin-left: 6px; vertical-align: middle;
-  }
-  .favorites {
-    margin-top: 18px; text-align: left; background: rgba(5, 10, 18, 0.5);
-    border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 16px;
-  }
-  .favhead {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 12px; color: #9ab3cc; text-transform: uppercase; letter-spacing: 1px;
-  }
-  .favhead button { font-size: 11px; padding: 4px 10px; background: #3a1d30; }
-  #favList { list-style: none; margin: 10px 0 0; padding: 0; }
-  #favList li {
-    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-size: 14px; line-height: 1.5;
-  }
-  #favList li:last-child { border-bottom: none; }
-  #favList .fauth { display: block; font-size: 11px; color: #7c8aa0; }
-  #favList .fauth::before { content: "— "; }
-  #favList .fdel {
-    float: right; background: transparent; border: none; color: #666;
-    font-size: 14px; padding: 0 4px; cursor: pointer;
-  }
-  #favList .fdel:hover { color: #ff6b6b; }
-  #favList .fcopy {
-    float: right; background: transparent; border: 1px solid #3a4a66; color: #9ab3cc;
-    font-size: 11px; padding: 2px 9px; border-radius: 8px; margin-right: 8px; cursor: pointer;
-  }
-  #favList .fcopy:hover { border-color: #ffd166; color: #ffd166; }
-  #favNote { margin-top: 10px; font-size: 12px; color: #7be07b; min-height: 16px; }
-  .tagline {
-    margin-top: 22px; font-size: 12px; color: #5f7390; text-align: center;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-    white-space: pre-line;
-  }
-  .tagline sup { font-size: 0.75em; }
-  .tagline sup sup { font-size: 0.75em; }
-  .sentence.thinking, .attribution.thinking { color: #8aa2c0; font-style: italic; }
-  .sentence.thinking::after, .attribution.thinking::after {
-    content: ""; display: inline-block; width: 1em; text-align: left;
-    animation: dots 1.2s steps(4, end) infinite;
-  }
-  @keyframes dots {
-    0% { content: ""; }
-    25% { content: "."; }
-    50% { content: ".."; }
-    75% { content: "..."; }
-    100% { content: ""; }
-  }
-  .rarity {
-    margin-top: 6px; font-size: 12px; color: #6f84a0; font-style: normal;
-    letter-spacing: 0.3px; font-variant-numeric: tabular-nums; display: none;
-  }
-  .stats {
-    margin-top: 16px; text-align: left; background: rgba(5, 10, 18, 0.4);
-    border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 16px;
-    display: none;
-  }
-  body.show-hidden-features .rarity,
-  body.show-hidden-features .stats { display: block; }
-  .stats summary {
-    cursor: pointer; font-size: 12px; color: #9ab3cc;
-    text-transform: uppercase; letter-spacing: 1px; user-select: none;
-  }
-  .stats table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; color: #c3d2e4; }
-  .stats td { padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-  .stats td:last-child { text-align: right; color: #8fd3a0; font-variant-numeric: tabular-nums; }
-  .stats table tr:last-child td { border-bottom: none; }
-  html[data-theme="light"] body {
-    background: radial-gradient(1100px 700px at 70% -10%, #ffffff 0%, #eef2f7 55%, #e2e8f0 100%);
-    color: #1c2733;
-  }
-  html[data-theme="light"] .card {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(15, 30, 50, 0.1);
-    box-shadow: 0 20px 60px rgba(60, 80, 110, 0.25), inset 0 1px 0 rgba(255,255,255,0.8);
-  }
-  html[data-theme="light"] h1 { color: #2b5f8a; }
-  html[data-theme="light"] p.sub { color: #64748b; }
-  html[data-theme="light"] p.sub i { color: #3e5a75; }
-  html[data-theme="light"] .quote::before { color: rgba(176, 128, 18, 0.22); }
-  html[data-theme="light"] .sentence { color: #16212c; }
-  html[data-theme="light"] .attribution { color: #5a6b7e; }
-  html[data-theme="light"] .attribution b { color: #a0671a; }
-  html[data-theme="light"] button { color: #1c2733; background: #e6ebf2; }
-  html[data-theme="light"] button.primary { background: #457b9d; color: #fff; }
-  html[data-theme="light"] button.primary:hover { background: #2f5d7a; color: #fff; }
-  html[data-theme="light"] button.ghost { border-color: #c5cfda; color: #4a5a6e; }
-  html[data-theme="light"] .parse {
-    background: rgba(247, 250, 252, 0.92); color: #2f6f4f;
-    border: 1px solid rgba(15, 30, 50, 0.1);
-  }
-  html[data-theme="light"] .tag { color: #a0671a; background: rgba(160, 103, 26, 0.12); }
-  html[data-theme="light"] .favorites { background: rgba(247, 250, 252, 0.85); border: 1px solid rgba(15, 30, 50, 0.1); }
-  html[data-theme="light"] .favhead { color: #5a6b7e; }
-  html[data-theme="light"] .favhead button { background: #f1e3ee; }
-  html[data-theme="light"] #favList li { border-bottom: 1px solid rgba(15, 30, 50, 0.08); }
-  html[data-theme="light"] #favList .fauth { color: #6b7686; }
-  html[data-theme="light"] #favList .fdel { color: #9aa3ad; }
-  html[data-theme="light"] #favList .fdel:hover { color: #c0392b; }
-  html[data-theme="light"] #favList .fcopy { border-color: #c5cfda; color: #4a5a6e; }
-  html[data-theme="light"] #favList .fcopy:hover { border-color: #a0671a; color: #a0671a; }
-  html[data-theme="light"] #favNote { color: #2f7d3f; }
-  html[data-theme="light"] .tagline { color: #8b96a3; }
-  html[data-theme="light"] .menu { background: #f7fafc; border: 1px solid rgba(15, 30, 50, 0.15); box-shadow: 0 14px 40px rgba(60, 80, 110, 0.3); }
-  html[data-theme="light"] .menu-sep { background: rgba(15, 30, 50, 0.12); }
-  html[data-theme="light"] .sentence.thinking, html[data-theme="light"] .attribution.thinking { color: #5a6b7e; }
-  html[data-theme="light"] .rarity { color: #7a8a9c; }
-  html[data-theme="light"] .stats { background: rgba(247, 250, 252, 0.8); border: 1px solid rgba(15, 30, 50, 0.1); }
-  html[data-theme="light"] .stats summary { color: #4a5a6e; }
-  html[data-theme="light"] .stats table { color: #33415a; }
-  html[data-theme="light"] .stats td { border-bottom: 1px solid rgba(15, 30, 50, 0.07); }
-  html[data-theme="light"] .stats td:last-child { color: #2f6f4f; }
+  button:disabled { opacity: 0.4; cursor: default; transform: none; }
 
-  footer.site-footer {
-    position: fixed; bottom: 0; left: 0; right: 0; text-align: center;
-    padding: 10px 16px 14px; font-size: 12px; line-height: 1.6;
-    color: rgba(154, 208, 255, 0.55); background: rgba(6, 11, 18, 0.55);
+  .coords {
+    background: rgba(10,22,26,0.55); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; text-align: center;
   }
-  footer.site-footer a { color: #9ad0ff; text-decoration: none; }
-  html[data-theme="light"] footer.site-footer { color: #4a5a6e; background: rgba(247, 250, 252, 0.9); }
-  html[data-theme="light"] footer.site-footer a { color: #2f6f9f; }
+  .coordsline { font-size: 15px; word-break: break-all; }
+  .coordsline b { color: var(--gold); font-weight: normal; }
+  .openprev { margin-top: 6px; font-size: 13px; color: var(--muted); font-style: italic; word-break: break-all; }
+  .locline { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  code { font-family: ui-monospace, Consolas, monospace; color: #8fd3a0; background: rgba(143,211,160,0.08); padding: 3px 8px; border-radius: 6px; word-break: break-all; }
+
+  .page-wrap {
+    background: var(--paper); border-radius: 12px; padding: 22px 26px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.35);
+    overflow-x: auto;
+  }
+  .page { font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.5; color: var(--ink-paper); white-space: pre; width: 80ch; min-width: 640px; }
+  .line { white-space: pre; height: 1.5em; overflow: hidden; }
+  .line .hl { background: var(--gold); color: #241a08; font-weight: bold; }
+
+  .nav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 16px 0 10px; }
+  .pagelabel { color: var(--muted); font-size: 13px; margin: 0 8px; font-variant-numeric: tabular-nums; }
+  .jumpnav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin-bottom: 18px; }
+  .jumpnav button { padding: 6px 11px; font-size: 12px; border-radius: 9px; }
+  .jumpnav button.randp { background: #457b9d; }
+  .subnav { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .subnav a { color: var(--link); font-size: 13px; text-decoration: none; }
+  .subnav a:hover { text-decoration: underline; }
+
+  .note { min-height: 20px; text-align: center; font-size: 13px; color: #8fd3a0; font-style: italic; margin: 4px 0 14px; }
+
+  .results { margin: 6px 0 6px; }
+  .results h2 {
+    font-size: 12px; color: var(--muted); font-weight: normal; text-transform: uppercase;
+    letter-spacing: 1px; margin: 0 0 12px; text-align: center;
+  }
+  .selrow { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .selrow span { color: var(--muted); font-size: 13px; }
+  select.rsel {
+    font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer;
+    background: #0a161a; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+    padding: 8px 12px;
+  }
+  select.rsel:focus { outline: none; border-color: var(--gold); }
+  .result {
+    background: rgba(10,22,26,0.5); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 12px 16px 12px; margin-bottom: 12px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .result:hover { border-color: var(--gold); }
+  .rhead { font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+  .rkind { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .rtitle { color: var(--gold); font-style: italic; word-break: break-all; }
+  .rpreview {
+    background: var(--paper); border-radius: 8px; padding: 8px 12px; overflow-x: auto;
+  }
+  .rpreview .page { font-size: 11px; line-height: 1.45; color: var(--ink-paper); min-width: 0; width: 80ch; }
+  .rpreview .line { height: 1.45em; }
+  .line .ctx { color: #9a8f74; }
+  .rloc { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .rloc code { font-size: 11px; }
+  .rnote { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 8px; }
+  .more {
+    display: block; margin: 2px auto 14px; font-size: 12px; padding: 6px 14px; border-radius: 9px;
+    background: #1d3557; color: #fff; cursor: pointer; border: none;
+  }
+  .more:hover { transform: scale(1.03); background: #2a4a75; }
+  .rlist { margin-top: 8px; }
+  .rrow {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 12px; margin-bottom: 6px; cursor: pointer;
+    background: rgba(10,22,26,0.35); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; font-size: 13px;
+    transition: border-color 0.15s;
+  }
+  .rrow:hover { border-color: var(--gold); }
+  .rrow code { font-size: 11px; }
+
+  details.about {
+    margin-top: 26px; background: rgba(10,22,26,0.45); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 12px 18px; font-size: 14px; color: #b9c7d4;
+  }
+  details.about summary { cursor: pointer; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-size: 12px; user-select: none; }
+  details.about p { margin: 10px 0 0; line-height: 1.6; }
+
+  footer { margin-top: 30px; text-align: center; font-size: 12px; color: #54707f; }
+  footer i { color: #6b8ba0; }
+  footer a { color: var(--link); text-decoration: none; }
+
+  @media (max-width: 720px) {
+    .brand { font-size: 21px; }
+    .page { font-size: 11px; }
+  }
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>Colorless Green Ideas</h1>
-  <p class="sub">Syntactically perfect, Semantically meaningless.<br>
-  After <i>Noam Chomsky</i>, 1957</p>
+<div class="wrap">
+  <header>
+    <div class="brand">📚 <span>Library of Babel</span></div>
+    <div class="stat">95 glyphs · 700 books per hexagon<br>~5.1×10<sup>1,659,034,805</sup> volumes</div>
+  </header>
 
-  <div class="quote">
-    <div class="sentence" id="sentence">Colorless green ideas sleep furiously.</div>
-    <div class="attribution" id="attribution"><b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957</div>
-    <div class="rarity" id="rarity"></div>
+  <div class="searchrow">
+    <input type="text" id="q" spellcheck="false" autocomplete="off"
+           placeholder="type any string — \n = new line, \\n = a literal backslash-n — every string opens exactly one book">
+    <button id="find" class="primary">Locate</button>
   </div>
 
-  <div class="actions">
-    <button class="primary" id="gen">✦ Generate</button>
-    <button id="copyCur" title="Copy current quote">⧉ Copy</button>
-    <div class="menu-wrap">
-      <button id="menuBtn" class="ghost" title="More options" aria-expanded="false" aria-controls="menu">☰</button>
-      <div class="menu" id="menu">
-        <button id="chomsky">Noam's Original</button>
-        <button id="tree">Show parse tree</button>
-        <button id="fav" title="Save this quote">♥ Save</button>
-        <button id="theme" class="ghost" title="Toggle theme">☀ Light</button>
-        <div class="menu-sep"></div>
-        <button id="clearFavs">Clear favorites</button>
-      </div>
+  <div class="coords" id="coords">
+    <div class="coordsline" id="coordsLine"></div>
+    <div class="openprev" id="openPreview"></div>
+    <div class="locline">
+      <code id="loc"></code>
+      <button id="copyLoc">⧉ Copy</button>
+      <input type="text" id="paste" style="max-width:340px" placeholder="babel:// catalog number">
+      <button id="go">Open</button>
     </div>
   </div>
 
-  <div class="parse" id="parse"></div>
-
-  <div class="favorites" id="favorites" style="display:none;">
-    <div class="favhead">
-      <span>♥ Favorites</span>
-    </div>
-    <ul id="favList"></ul>
-    <div id="favNote"></div>
+  <div class="page-wrap">
+    <div class="page" id="page"></div>
   </div>
 
-  <div class="tagline" id="tagline"></div>
+  <div class="nav">
+    <button id="prevP">⟲ Prev page</button>
+    <span class="pagelabel" id="pageLabel">page 1 / 262144</span>
+    <button id="nextP">Next page ⟳</button>
+    <button id="top">First page</button>
+  </div>
 
-  <details class="stats" id="statsBox">
-    <summary>Session stats</summary>
-    <div id="stats"></div>
+  <div class="jumpnav" id="jumpNav"></div>
+
+  <div class="subnav">
+    <button id="prevB">Previous book</button>
+    <button id="nextB">Next book</button>
+    <button id="randH">Wander a random hexagon</button>
+    <a href="random-sentence.html" target="_blank" rel="noopener">Generate a quote to search ↗</a>
+  </div>
+
+  <div class="results" id="results" hidden></div>
+
+  <div class="note" id="note"></div>
+
+  <details class="about">
+    <summary>How this library works</summary>
+    <p>Borges imagined a library holding every possible book: 25 symbols × 410 pages × 40 lines × 80 glyphs. Ours are larger — 262144 pages (4<sup>3<sup>2<sup>1</sup></sup></sup>) of 40 lines × 80 glyphs — with an alphabet of 95 glyphs: the printable base-ASCII characters. So this library holds 95<sup>838,860,800</sup> ≈ 5.1×10<sup>1,659,034,805</sup> books, shelved seven hundred to a hexagon.</p>
+    <p>The trick is the catalog number. Every book opens with a unique line, and a book's number <i>is</i> that opening line written as a base-95 integer. So whatever you type, there is exactly one book whose first line is your string — search it, and the shelves give it up. A linebreak is not a glyph of the library: type <code>\n</code> in the search box to end the opening line, voiding the rest of it; otherwise every page is a solid block of text. Everything after the opening is deterministic gibberish seeded by the book and page, so a book is always identical on a second visit. Copy a <code>babel://</code> location and paste it back to reopen the same shelf.</p>
   </details>
+
+  <footer>After Jorge Luis Borges, <i>The Library of Babel</i>, 1941 · 262144 pages × 40 lines × 80 glyphs · 95 glyphs · 700 books per hexagon · catalog numbers in base 95</footer>
 </div>
+
 <script>
-const sentenceEl = document.getElementById('sentence');
-const attrEl = document.getElementById('attribution');
-const parseEl = document.getElementById('parse');
-const favBox = document.getElementById('favorites');
-const favList = document.getElementById('favList');
-const rarityEl = document.getElementById('rarity');
-
-const stats = {
-  total: 0, multi: 0, cond: 0, sub: 0, q: 0, wh: 0, disc: 0, mid: 0, exclaim: 0,
-  compounds: 0, numbers: 0, conjoined: 0, relative: 0, tag: 0, favs: 0
-};
-function renderStats() {
-  const el = document.getElementById('stats');
-  if (!el) return;
-  const rows = [
-    ['Total generated', stats.total],
-    ['Multi-sentence quotes', stats.multi],
-    ['Conditionals', stats.cond],
-    ['Subordinate clauses', stats.sub],
-    ['Two-clause compounds', stats.compounds],
-    ['Questions', stats.q],
-    ['Wh-questions', stats.wh],
-    ['Discourse markers', stats.disc],
-    ['Exclamations', stats.exclaim],
-    ['Mid markers', stats.mid],
-    ['Number words', stats.numbers],
-    ['Conjoined subjects', stats.conjoined],
-    ['Relative clauses', stats.relative],
-    ['Tag questions', stats.tag],
-    ['Favorites saved', stats.favs]
-  ];
-  el.innerHTML = '<table>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
-}
-function noteStats(list) {
-  if (list.length > 1) stats.multi++;
-  stats.total++;
-  for (const s of list) {
-    if (s.cond) stats.cond++;
-    if (s.sub) stats.sub++;
-    if (s.cond || s.sub) stats.compounds++;
-    if (s.q) stats.q++;
-    if (s.wh) stats.wh++;
-    if (s.disc) {
-      stats.disc++;
-      if (EXCLAIM.includes(s.disc)) stats.exclaim++;
-    }
-    if (s.mid) stats.mid++;
-    for (const c of [s.c1, s.c2]) {
-      if (!c) continue;
-      if (c.num) stats.numbers++;
-      if (c.sub2) stats.conjoined++;
-      if (c.rel) stats.relative++;
-    }
-    if (s.tag) stats.tag++;
-  }
-  renderStats();
-}
-
-/* Max distinct sentences and quotes are astronomically large (A alone has
- * ~884.2k digits), so only their scientific-notation mantissa + exponent are
- * stored; see the count comment above powerAdjs() for the formula. Two-clause
- * sentences (conditionals + subordinate adverb clauses) dominate the union
- * and ~triple the clause exponent: conjoined subjects (×S) and relative
- * clauses (×R) each carry their own copy of the astronomical adj-sequence
- * count A, so two-clause sentences scale as (C·S·R)². The (1 + Q + T)
- * question/tag factor (3.3) and (1 + 0.3) discourse factor multiply the
- * total, while the (1 + 0.25) mid-marker factor applies to single clauses
- * only (a negligible tail of the union).
- */
-const SENT_M = '3.53';
-const SENT_E = 5305216;
-/* A quote may hold any number of distinct sentences: an ordered tuple of k
- * distinct sentence-texts, for any k >= 1, so distinct quote-texts number
- * SUM_k SENT!/(SENT-k)! ~ e·SENT!. With attributions:
- *   QUOTE ~ e · TOTAL_ATTRIBUTIONS · SENT!
- *   log10(QUOTE) ~ log10(SENT!) ~ 1.8748 · 10^5305223
- * (the ~1.87·10^6 Stirling correction and log10(e·attributions) only move
- * trailing digits of the 5.3-million-digit exponent, so they vanish here).
- */
-const QUOTE_M = '1.87';
-const QUOTE_E = 5305223;
-
-/* Borges, The Library of Babel: 25 symbols × 1,312,000 chars/book.
- * Books = 25^1312000 ≈ 1.96 × 10^1834097. The quote space outnumbers them by
- * log10(QUOTE) − log10(books) ≈ 1.87 × 10^5305223 − 10^1834097 orders of
- * magnitude (the book count is a negligible tail of the exponent). */
-const BABEL_M = '1.96';
-const BABEL_E = 1834097;
-
-/* Max distinct authors:
- *
- * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  SUFFIX=147  AUTHORS=34  ATTR=20
- * GIVEN initials: 26 distinct first letters.
- * SURNAMES initials: 25 distinct first letters.
- * M = 275 + 653 * (133 + 147) = 183115 possible adjectives (plain, or
- * "anynoun-color", or "anynoun-suffix").
- *
- * fakeAuthor() branches (pick is independent, so with replacement):
- *   Given + Surname              30 * 30                 = 900
- *   Given + initial (Ronald M.)  30 * 25                 = 750
- *   initials, 1 letter           26 * 30                 = 780
- *   initials, 2 letters          26 * 26 * 30            = 20280
- *   titled (50 titles)            50 * 30                 = 1500
- *     + "of <noun>"              50 * 30 * 653            = 979500
- *   <noun> of the <noun>         653 * 653               = 426409
- *   <adj> <noun>                 M * 653                 = 119574095
- *   <adj> <adj> <noun>           M * M * 653             = 21895810405925
- * Fixed pools:
- *   AUTHORS                                              = 34
- *   ATTR authors (pair [0])                              = 20
- *
- * TOTAL = 900 + 750 + 780 + 20280 + (1500 + 979500) + 426409 + 119574095 + 21895810405925 + 34 + 20
- *       = 21895931410193
- */
-const TOTAL_AUTHORS = 21895931410193;
-
-/* Max distinct attributions (author + source pairs):
- *
- * fakeSource() sources (base):
- *   SOURCES static                                         = 32
- *   SOURCES dynamic (circa BC:1000, century:8, time:288,
- *     postmarked:2100, email-time:288)                     = 3684
- *   On the <adj> <noun> of <noun>    M * 653 * 653         = 78081884035
- *   The <adj> <noun> Revisited       M * 653               = 119574095
- *   Journal of <adj> <noun>          M * 653               = 119574095
- *   datePhrase():
- *     circa / c., AD or BC           2100 + 1000 + 2100 + 1000 = 6200
- *     in the <century>               1200s..1900s           = 8
- *     dates                          28 * 12 * 2100 * 291   = 205329600
- *       (291 = 3 formats + 1 format with a time; time:288)
- *     time                                                = 288
- *     subtotal                                            = 205336096
- *   union(SOURCES, datePhrase)  = 32 + 3684 + 205336096 - 1296 (shared circa BC,
- *     century, time)                                      = 205338516
- *   TOTAL base fakeSource     = 205338516 + 78081884035 + 119574095 + 119574095
- *                             = 78526370741
- *   Optional region suffix: 25 prepositions * 80 REGIONS = 2000 variants,
- *     applied with REGION_PROB=0.35 -> each base source x (1 + 2000) = x2001
- *   TOTAL fakeSource          = 78526370741 * 2001            = 157131267852741
- *
- * Attribution branches:
- *   generated author * source  21895931410139 * 157131267852741 = 3440535463291796162726340999
- *   AUTHORS * source           34 * 157131267852741             = 5342463106993194
- *   ATTR random combos         20 names * 1313 sources           = 26260
- *     (sources: 17 static + 1000 circa-BC + 8 centuries + 288 times;
- *      the 5% verbatim-pairs branch re-renders 20 of these combos,
- *      so it adds nothing new to the union)
- *   TOTAL_ATTRIBUTIONS                                            = 3440535463297138625833360453
- */
-const TOTAL_ATTRIBUTIONS = 3440535463297138625833360453n;
-
-const FAV_KEY = 'cgi-favorites';
-let favorites = [];
-try { favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch (e) { favorites = []; }
-
-function currentQuote() {
-  return {
-    text: sentenceEl.textContent,
-    attr: attrEl.textContent
-  };
-}
-
-function quoteString(q) {
-  return `“${q.text}” — ${q.attr}`;
-}
-
-let copyNoteTimer = null;
-function flashNote(msg) {
-  const note = document.getElementById('favNote');
-  note.textContent = msg;
-  clearTimeout(copyNoteTimer);
-  copyNoteTimer = setTimeout(() => { note.textContent = ''; }, 1500);
-}
-
-function copyText(str) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(str);
-  }
-  const ta = document.createElement('textarea');
-  ta.value = str;
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  ta.remove();
-  return Promise.resolve();
-}
-
-document.getElementById('copyCur').addEventListener('click', () => {
-  copyText(quoteString(currentQuote())).then(() => flashNote('✓ Copied current quote'));
-});
-
-function renderFavorites() {
-  favList.innerHTML = '';
-  favorites.forEach((q, i) => {
-    const li = document.createElement('li');
-    const del = document.createElement('button');
-    del.className = 'fdel';
-    del.textContent = '✕';
-    del.title = 'Remove';
-    del.addEventListener('click', () => {
-      favorites.splice(i, 1);
-      localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-      renderFavorites();
-    });
-    const cpy = document.createElement('button');
-    cpy.className = 'fcopy';
-    cpy.textContent = '⧉';
-    cpy.title = 'Copy quote';
-    cpy.addEventListener('click', () => {
-      copyText(quoteString(q)).then(() => flashNote('✓ Copied favorite'));
-    });
-    const qtext = document.createElement('span');
-    qtext.textContent = '“' + q.text + '”';
-    const qattr = document.createElement('span');
-    qattr.className = 'fauth';
-    qattr.textContent = q.attr;
-    li.appendChild(del);
-    li.appendChild(cpy);
-    li.appendChild(qtext);
-    li.appendChild(qattr);
-    favList.appendChild(li);
-  });
-  favBox.style.display = favorites.length ? 'block' : 'none';
-}
-
-document.getElementById('fav').addEventListener('click', () => {
-  const q = currentQuote();
-  if (!q.text || q.text === '—') return;
-  favorites.push(q);
-  stats.favs++;
-  renderStats();
-  localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-  renderFavorites();
-});
-document.getElementById('clearFavs').addEventListener('click', () => {
-  if (!favorites.length) return;
-  if (confirm('Remove all saved favorites?')) {
-    favorites = [];
-    localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-    renderFavorites();
-  }
-});
-
-renderFavorites();
-
-function randomAttribution() {
-  const r = Math.random();
-  let name, source;
-  if (r < 0.30) {
-    name = fakeAuthor();
-    source = fakeSource();
-  } else if (r < 0.85) {
-    name = pick(AUTHORS);
-    source = fakeSource();
-  } else if (r < 0.95) {
-    name = pick(ATTR)[0];
-    source = pick(ATTR)[1];
-    if (typeof source === 'function') source = source();
-  } else {
-    [name, source] = pick(ATTR);
-    if (typeof source === 'function') source = source();
-  }
-  attrEl.innerHTML = `<b>${name}</b>, <i>${source}</i>`;
-}
-
 const DET = ['the', 'some', 'my', 'our', 'no', 'these', 'those', 'all', 'many', 'several', 'few', 'two', 'three', 'most', 'countless', 'several', 'innumerable', 'every', 'each', 'whose', 'certain'];
 const ADJ = [
   'colorless', 'green', 'blue', 'red', 'purple', 'luminous', 'translucent', 'fragile',
@@ -705,48 +388,6 @@ const ADJ_SUFFIX = [
 /* Intransitive verbs. Some entries double as nouns/objects (museum, mutiny,
  * morsel, needle, octopus...) on purpose: "sand paintings that throb could
  * museum" is grammatical — the surrealism is intended, not a bug. */
-const ADJ_TOTAL = ADJ.length + NOUN.length * (COLORS.length + ADJ_SUFFIX.length);
-const COMPOUND_PROB = 0.2;
-const SINGULAR_IRREGULAR = {
-  indices: 'index', salesmen: 'salesman', dodecahedra: 'dodecahedron',
-  memoranda: 'memorandum', nebulae: 'nebula', prismata: 'prism',
-  sarcophagi: 'sarcophagus', pleiades: 'pleiad', narratives: 'narrative',
-  locomotives: 'locomotive', horseshoes: 'horseshoe', avalanches: 'avalanche',
-  zombies: 'zombie', prairies: 'prairie', quiches: 'quiche',
-  purposes: 'purpose', eclipses: 'eclipse', lighthouses: 'lighthouse',
-  remorses: 'remorse', seahorses: 'seahorse', summerhouses: 'summerhouse',
-  tortoises: 'tortoise', universes: 'universe', verses: 'verse',
-  warehouses: 'warehouse', trapezes: 'trapeze',
-  mathematics: 'mathematics', rendezvous: 'rendezvous', silliness: 'silliness',
-  pliers: 'pliers', trousers: 'trousers', rapids: 'rapids'
-};
-function singularize(n) {
-  if (SINGULAR_IRREGULAR[n]) return SINGULAR_IRREGULAR[n];
-  if (n.endsWith('ies')) return n.slice(0, -3) + 'y';
-  if (n.endsWith('sses')) return n.slice(0, -2);
-  if (n.endsWith('ves')) return n.slice(0, -3) + 'f';
-  if (n.endsWith('ses')) return n.slice(0, -2);
-  if (n.endsWith('oes')) return n.slice(0, -2);
-  if (n.endsWith('es')) {
-    const stemEs = n.slice(0, -2);
-    if (stemEs.endsWith('ch') || stemEs.endsWith('sh') || /[sxz]$/.test(stemEs)) return stemEs;
-    return n.slice(0, -1);
-  }
-  if (n.endsWith('s')) return n.slice(0, -1);
-  return n;
-}
-const SINGULAR_VERBS = { have: 'has' };
-function thirdSingular(v) {
-  if (SINGULAR_VERBS[v]) return SINGULAR_VERBS[v];
-  if (/(s|sh|ch|x|z)$/.test(v)) return v + 'es';
-  if (/[^aeiou]o$/.test(v)) return v + 'es';
-  if (/[^aeiou]y$/.test(v)) return v.slice(0, -1) + 'ies';
-  return v + 's';
-}
-function pickAdj() {
-  if (!maybe(COMPOUND_PROB)) return pick(ADJ);
-  return singularize(pick(NOUN)) + '-' + (Math.random() < 0.5 ? pick(COLORS) : pick(ADJ_SUFFIX));
-}
 const VERB = [
   'sleep', 'fight', 'sing', 'dance', 'grow', 'think', 'melt', 'run', 'fly',
   'dream', 'vanish', 'multiply', 'whisper', 'shine', 'sink', 'bloom', 'freeze',
@@ -1210,948 +851,577 @@ const TRANS = [
   'rescue', 'saturate', 'synthesize', 'terrify', 'torture', 'translate', 'transmit',
   'validate', 'venerate', 'vindicate', 'welcome', 'wreck'
 ];
-const AUX = [
-  'can', 'could', 'may', 'might', 'must', 'shall', 'should',
-  'will', 'would', 'ought to', 'used to'
-];
-const FREQ = [
-  'always', 'never', 'usually', 'often', 'sometimes', 'rarely', 'seldom',
-  'occasionally', 'frequently', 'constantly', 'generally', 'normally'
-];
-const NEG = ['not', 'ever'];
-const TAG_POS = {
-  can: 'can', could: 'could', may: 'may', might: 'might', must: 'must',
-  shall: 'shall', should: 'should', will: 'will', would: 'would',
-  'ought to': 'ought', 'used to': 'did'
-};
-const TAG_NEG = {
-  can: "can't", could: "couldn't", may: 'mayn\'t', might: 'mightn\'t', must: 'mustn\'t',
-  shall: 'shan\'t', should: 'shouldn\'t', will: 'won\'t', would: 'wouldn\'t',
-  'ought to': 'oughtn\'t', 'used to': 'didn\'t'
-};
-const DISCOURSE = [
-  'well', 'you know', 'I mean', 'actually', 'frankly', 'honestly', 'say',
-  'mind you', 'after all', 'believe it or not', 'to be honest',
-  'truth be told', 'surprisingly', 'oddly enough', 'ironically',
-  'come to think of it', 'as a matter of fact', 'if you ask me',
-  'just saying', 'no offense', 'for once', 'basically', 'I suppose',
-  'I guess', 'right', 'okay', 'sure', 'then again', 'anyway',
-  'speaking of which', 'now'
-];
-const MID_DISCOURSE = ['you know', 'I mean', 'I suppose', 'mind you', 'like', 'if you will', 'after all', 'just saying'];
-const EXCLAIM = ['oh', 'hey', 'wait', 'hold on', 'listen', 'look', 'come on', 'seriously', 'alright', 'no way'];
-const DISC_PROB = 0.3;
-const MID_PROB = 0.25;
-const EXCLAIM_PROB = 0.1;
-const CONJ = [
-  'if', 'unless', 'provided that', 'so long as', 'as long as',
-  'in case', 'supposing', 'even if', 'assuming that', 'provided'
-];
-const INV_CONJ = ['if', 'even if'];
-const SUB_CONJ = [
-  'because', 'since', 'while', 'although', 'though', 'whenever',
-  'whereas', 'wherever', 'until', 'once', 'when', 'where'
-];
-const COND_PROB = 0.3;
-const SUB_PROB = 0.25;
-const REL_PROB = 0.2;
-const TAG_PROB = 0.15;
-const FRONT_PROB = 0.8;
-const REGIONS = [
-  'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
-  'Sardinia', 'Corsica', 'Flanders', 'Brittany', 'Thuringia', 'Saxony',
-  'Umbria', 'Lombardy', 'Galicia', 'Macedonia', 'Andalusia', 'Sicily',
-  'Normandy', 'Kashmir', 'Patagonia', 'Cappadocia', 'Gascony', 'Dalmatia',
-  'Moravia', 'Livonia', 'Friesland', 'East Prussia', 'the Hebrides', 'the Sahel',
-  'Ohio', 'New Jersey', 'Devon', 'Yorkshire', 'Wessex', 'Cornwall',
-  'the Ruhr', 'the Black Forest', 'the Carpathians', 'the Balkans', 'the Levant',
-  'the Maghreb', 'Mongolia', 'Tibet', 'the Steppe', 'the Gobi', 'the Amazon',
-  'the Pampas', 'Easter Island', 'Svalbard', 'Greenland', 'Antarctica',
-  'the Nullarbor', 'a small principality', 'the middle of nowhere',
-  'the outskirts of everywhere',
-  'the Vatican', 'Byzantium', 'Cathay', 'the Catacombs', 'the Underworld',
-  'Sub-Basement 7', 'the Upper Reaches', 'a flooded atrium', 'the reading room',
-  'the stacks', 'a mezzanine', 'the roof gardens', 'an abandoned subway station',
-  'the salt flats', 'the high desert', 'the deep sea', 'the polar ice cap',
-  'a cave system', 'the rainforest canopy', 'the other side of the moon',
-  'the Dreamlands', 'an alternate dimension', 'the mouth of a volcano',
-  'the ruins of a fallen empire'
-];
-const REGION_PROB = 0.35;
-const REGION_PRE = [
-  'in ', 'somewhere in ', 'near ', 'at the edge of ', 'off the coast of ',
-  'under ', 'beneath ', 'below ', 'underneath ', 'inside ', 'behind ', 'beyond ',
-  'above ', 'deep in ', 'deep inside ', 'somewhere under ', 'somewhere beyond ',
-  'underground in ', 'in the sewers of ', 'in the basement of ', 'in the attic of ',
-  'at the heart of ', 'on the far side of ', 'hidden beneath ', 'buried under '
-];
-function regionPhrase() {
-  return pick(REGION_PRE) + pick(REGIONS);
-}
+</script>
+<script>
+const PAGE_LINES = 40, LINE_CHARS = 80;
+const PAGES = 4 ** 3 ** 2 ** 1;
+const BASE = 95n;
+const CODES = [];
+for (let c = 0x20; c <= 0x7E; c++) CODES.push(c);
+const DIGIT_TO_CODE = CODES;
+const CODE_TO_DIGIT = new Map();
+CODES.forEach((c, i) => CODE_TO_DIGIT.set(c, i));
+const FILLER = " eeeeee tttttt aaaaaa ooooo iiii nnnnn ssss hhhh rrrr dddd lll cccc uuuu mmmm wwww ffff gggg yy pp bb vv kk jj xx qq zz .,,;;:!?-()'\"";
 
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const maybe = (p) => Math.random() < p;
+const pageEl = document.getElementById('page');
+const qEl = document.getElementById('q');
+const coordsLine = document.getElementById('coordsLine');
+const openPreview = document.getElementById('openPreview');
+const locEl = document.getElementById('loc');
+const noteEl = document.getElementById('note');
+const pageLabel = document.getElementById('pageLabel');
+const resultsEl = document.getElementById('results');
 
-const THINK_VERBS = [
-  ['Thinking', 10], ['Pondering', 5], ['Ruminating', 3], ['Musing', 3],
-  ['Contemplating', 3], ['Considering', 3], ['Wondering', 3], ['Processing', 3],
-  ['Hmm', 3], ['Composing', 3], ['Deliberating', 2], ['Meditating', 2],
-  ['Reflecting', 2], ['Daydreaming', 2], ['Conjuring', 2], ['Drafting', 2],
-  ['Brainstorming', 2], ['Calculating', 2], ['Dreaming', 2], ['Deep in thought', 2],
-  ['Let me think', 2], ['Brooding', 1], ['Cogitating', 1], ['Philosophizing', 1],
-  ['Scheming', 1], ['Churning', 1], ['Synthesizing', 1], ['Transcribing', 1]
-];
+const state = { N: 1n, page: 1, opening: '', located: false };
 
-const ATTR_VERBS = [
-  ['Attributing', 8], ['Crediting', 4], ['Citing', 3], ['Sourcing', 2],
-  ['Signing', 2], ['Dedicating', 2], ['Appending', 1]
-];
-
-function pickWeighted(list) {
-  const total = list.reduce((acc, [, w]) => acc + w, 0);
-  let r = Math.random() * total;
-  for (const [item, w] of list) {
-    r -= w;
-    if (r < 0) return item;
+function sanitize(s) {
+  let out = '';
+  for (const ch of s) {
+    const c = ch.codePointAt(0);
+    if (c >= 256) continue;
+    if (c === 0x0A) { out += ch; continue; }
+    const d = CODE_TO_DIGIT.get(c);
+    if (d === undefined) continue;
+    out += ch;
   }
-  return list[list.length - 1][0];
-}
-const NUM_PROB = 0.3;
-const GOOGOL = 100;
-const NUM_DET = ['the', 'my', 'our', 'no', 'whose'];
-const NUM_DET_PLURAL = NUM_DET.concat(['these', 'those']);
-
-const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-const GROUP = ['', 'thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion',
-  'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion', 'duodecillion',
-  'tredecillion', 'quattuordecillion', 'quindecillion', 'sexdecillion', 'septendecillion',
-  'octodecillion', 'novemdecillion', 'vigintillion', 'unvigintillion', 'duovigintillion',
-  'tresvigintillion', 'quattuorvigintillion', 'quinvigintillion', 'sexvigintillion',
-  'septenvigintillion', 'octovigintillion', 'novemvigintillion', 'trigintillion',
-  'untrigintillion', 'duotrigintillion'];
-
-function below100(n) {
-  if (n < 20) return ONES[n];
-  const o = n % 10;
-  return TENS[Math.floor(n / 10)] + (o ? '-' + ONES[o] : '');
+  return out;
 }
 
-function below1000(n) {
-  const h = Math.floor(n / 100);
-  const r = n % 100;
-  return (h ? ONES[h] + ' hundred' + (r ? ' ' : '') : '') + (r ? below100(r) : '');
+function toCatalog(s) {
+  let n = 0n;
+  for (const ch of s) {
+    const c = ch.charCodeAt(0);
+    if (c === 0x0A) continue;
+    const d = CODE_TO_DIGIT.get(c);
+    n = n * BASE + BigInt(d) + 1n;
+  }
+  return n;
 }
 
-function numberToWords(n) {
-  if (n === 0n) return 'zero';
-  const parts = [];
-  let g = 0;
+function fromCatalog(n) {
+  if (n <= 0n) return '';
+  const arr = [];
   while (n > 0n) {
-    const chunk = Number(n % 1000n);
-    if (chunk) parts.push(below1000(chunk) + (GROUP[g] ? ' ' + GROUP[g] : ''));
-    n /= 1000n;
-    g++;
+    const d = Number((n - 1n) % BASE);
+    n = (n - 1n) / BASE;
+    arr.push(DIGIT_TO_CODE[d]);
   }
-  return parts.reverse().join(' ');
+  let out = '';
+  for (let i = arr.length - 1; i >= 0; i--) out += String.fromCharCode(arr[i]);
+  return out;
 }
 
-const CDOT = '·';
-
-function sciM(m, e, sep) {
-  return m + ' ' + sep + ' 10<sup>' + e + '</sup>';
-}
-
-function sciPow(m, e, sep) {
-  return '10<sup>' + m + ' ' + sep + ' 10<sup>' + e + '</sup></sup>';
-}
-
-function sciNote(v, sep) {
-  if (v === 0n) return '0';
-  const d = v.toString();
-  const e = d.length - 1;
-  if (e === 0) return d;
-  let m = d.slice(0, 3);
-  m = m.length > 1 ? m[0] + '.' + m.slice(1) : m;
+function sci(n) {
+  const s = n.toString();
+  if (s.length <= 14) return s;
+  let m = s.slice(0, 4);
+  m = m[0] + '.' + m.slice(1);
   m = m.replace(/\.?0+$/, '');
-  return sciM(m, e, sep);
+  return m + '×10^' + (s.length - 1);
 }
 
-function bigRand(span) {
-  const bytes = Math.ceil(span.toString(2).length / 8);
-  const buf = new Uint8Array(bytes);
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function bookSeed(N, page) {
+  let s = (page * 0x9E3779B9) | 0;
+  let m = N;
+  let guard = 0;
+  while (m > 0n && guard++ < 10000) {
+    s = (Math.imul(s ^ (Number(m & 0xFFFFFFFFn) | 0), 0x85EBCA6B)) | 0;
+    m >>= 32n;
+  }
+  return s | 0;
+}
+
+function fillerChar(r) {
+  return FILLER[Math.floor(r() * FILLER.length)];
+}
+
+const OPEN_CAP = 1000;
+function openingFor(N) {
+  const s = fromCatalog(N);
+  return s.length > OPEN_CAP ? s.slice(0, OPEN_CAP) : s;
+}
+
+function randomBook() {
+  const buf = new Uint8Array(25);
   crypto.getRandomValues(buf);
-  let out = 0n;
-  for (let i = 0; i < bytes; i++) out = (out << 8n) | BigInt(buf[i]);
-  return out % span;
+  let n = 0n;
+  for (const b of buf) n = (n << 8n) | BigInt(b);
+  return n + 1n;
 }
 
-function randomGoogol() {
-  if (Math.random() < 0.02) return 0n;
-  let k = 0;
-  while (k < GOOGOL && Math.random() < 2 / 3) k++;
-  if (k >= GOOGOL) return 10n ** BigInt(GOOGOL);
-  const lo = 10n ** BigInt(k);
-  const hi = 10n ** BigInt(k + 1);
-  return lo + bigRand(hi - lo);
+function openBook(N, page, opening) {
+  const next = opening !== undefined ? opening : openingFor(N);
+  if (next !== state.opening) state.located = opening !== undefined;
+  state.N = N;
+  state.page = Math.max(1, Math.min(PAGES, page));
+  state.opening = next;
+  render();
+  updateCoords();
+  updateNav();
 }
 
-const ADJ_PROB = 1 / 3;
-
-/* Max distinct sentences (finite, because adjectives cannot repeat):
- *
- * Vocab counts: DET=21  ADJ=275  NOUN=653  VERB=3070  ADV=647  TRANS=88
- *              AUX=11  FREQ=12  NEG=2  COLORS=133  SUFFIX=147
- *
- * Each adjective slot holds either a plain adjective (ADJ=275), a compound
- * "anynoun-color" (653 * 133 = 86849), or a compound "anynoun-suffix"
- * (653 * 147 = 95991), so M = 275 + 86849 + 95991 = 183115 possible
- * adjectives. Every compound is hyphenated with a unique noun-color or
- * noun-suffix pair (suffix list is disjoint from the color list), so no two
- * slots can collide on the same string.
- *
- * Ordered no-repeat adjective sequences (k adjectives, k = 1..M):
- *   A = sum_{k=1..M} P(M,k) = floor(e * M!) - 1     (~884.2k digits, so it is
- *   not stored as a literal; only sciNote mantissa + exponent are kept below)
- *
- * Optional adverb factor is (1 + ADV) since both variants are valid sentences.
- * Number factor: no number, or one of 10^100+1 values (0 .. a googol). It
- * always precedes the adjectives (exactly 1 position: front for det-less
- * patterns, after-det otherwise). Numbers combine only with the compatible
- * determiners NUM_DET (the/my/our/no/whose = 5) plus these/those for
- * plural-valued numbers, so the number branch splits by value:
- *   one-valued numbers  (n%10==1 && n%100!=11: 9*10^98 values) use 5 dets
- *   plural-valued       (91*10^98 + 1 values)               use 7 dets
- * giving per-pattern weight B0 + 9*10^98*B_one + (91*10^98+1)*B_plural,
- * where B0 = 126,690,332 (no number, full DET), B_one = 63,079,932 (D=5),
- * B_plural = 71,031,232 (D=7). The number-bearing union is ~0.55x the naive
- * (10^100+1)*B0 figure, and its exponent ~ 107.85 (vs 108.10).
- * VP adjunct factor X: before the verb sits (aux?)(neg?) where
- *   - no aux, no adjunct: 1
- *   - no aux, frequency adverb (FREQ): 12
- *   - aux only (AUX): 11
- *   - aux + frequency adverb (AUX * FREQ): 11 * 12
- *   - aux + negation (AUX * NEG): 11 * 2
- *   (negation/ever only ride an auxiliary; no do-support)
- *   X = 1 + 12 + 11 + 132 + 22 = 178
- * Optional punctuation factor (1+1): every sentence ends in "." or "!".
- * sentence() patterns:
- *   0: A * N * V * (1+W)          (no det)
- *   1: A * D * N * V * (1+W)
- *   2: A * N * V * (1+W)          (no det)
- *   3: A * D * N * V * W          (adverb required)
- *   4: A * N * V * W              (adverb required)
- *   5: A * N * T * N * (1+W)      (transitive verb + object noun)
- *
- * TOTAL = ( A*N*V*X*(1+W)*(2+D) + A*N*V*X*W*(1+D) + A*N*N*T*X*(1+W) ) * 2 * (1 + (10^100+1))
- *   questions: every sentence may instead invert to a question (Q=0.3,
- *   aux-fronting or do-support, optional wh-word); tag questions (T=2,
- *   aux contraction or do/did support) replace non-question sentences, so
- *   questions + tags fold to a single (1 + Q + T) = 3.3 factor.
- *   discourse markers: optional initial filler (~30%, or a rare exclamation)
- *   and optional mid-sentence filler (~25%) -> x (1 + 0.3)(1 + 0.25)
- *   single-clause TOTAL ~ 1.47 * 10^2652608   (tail of the union)
- *
- * New per-clause features (each an optional structure, so it multiplies):
- *   conjoined subject  S = (1 + D)*A*N      (second NP: det-optional, A adjs, N nouns)
- *   relative clause    R = V*(1+W) + (1+D)*A*N*T   (subject-rel, or object-rel
- *                       with a det-optional NP and a transitive verb; the
- *                       (1+D)*A*N*T term dominates, ~1.26e6 * A)
- *   Both apply independently to every clause, so a clause counts C*S*R.
- *
- * Two-clause sentences (conditionals K_cond=10 + subordinating K_sub=12,
- * front or end order) dominate the union:
- *   T_two = 2*(K_cond + K_sub) * (C*S*R)^2 * (1 + Q + T) * (1 + 0.3)
- * "Were X to V" inversion merely re-renders front-order eligible pairs, so it
- * cancels out of the union. Mid-marker fillers apply to single clauses only.
- * log10(C) ~ log10(A) + 112.91, log10(S) ~ log10(A) + 4.16,
- * log10(R) ~ log10(A) + 6.10, so
- *   log10(TOTAL) ~ 2*(3*log10(A) + 123.17) + log10(44) + log10(3.3) + log10(1.3)
- *               ~ 5,305,216.55      (log10 A = 884,161.3215)
- *   TOTAL ~ 3.53 * 10^5305216      (SENT_M * 10^SENT_E)
- *
- * Multi-sentence quotes: a quote holds 1 + (each further sentence added with
- * p = 1/15, no repeats) distinct sentences. Distinct ordered k-tuples of
- * distinct sentences = SENT!/(SENT-k)!, so the number of distinct quote-texts
- * is SUM_{k>=1} SENT!/(SENT-k)! ~ e·SENT!. With attributions:
- *   QUOTE ~ e · TOTAL_ATTRIBUTIONS · SENT!      log10(QUOTE) ~ 1.8748 * 10^5305223
- */
-function powerAdjs() {
-  const used = new Set();
-  const adjs = [];
-  let a = pickAdj();
-  used.add(a);
-  adjs.push(a);
-  while (Math.random() < ADJ_PROB && used.size < ADJ_TOTAL) {
-    let b = pickAdj();
-    while (used.has(b)) b = pickAdj();
-    used.add(b);
-    adjs.push(b);
-  }
-  return adjs;
-}
-const ATTR = [
-  ['an ancient proverb', 'of unknown origin'],
-  ['an unnamed oracle', 'on a hill somewhere'],
-  ['the collective unconscious', 'probably'],
-  ['a forgotten philosopher', () => 'circa ' + randomBCYear() + ' BC'],
-  ['some guy', () => 'in the ' + randomCentury()],
-  ['your subconscious', 'while you slept'],
-  ['a minor prophet', 'witness protection program'],
-  ['a slightly annoyed librarian', 'muttering to themselves'],
-  ['a committee', 'of imaginary experts'],
-  ['an enthusiastic parrot', 'repeating itself'],
-  ['a sleep-deprived linguist', () => randomTime()],
-  ['the ghost of a grammarian', 'unfinished business'],
-  ['a fortune cookie', 'slightly damaged'],
-  ['an emoji', 'deep in thought'],
-  ['a disgruntled muse', 'on strike since 1948'],
-  ['the town soothsayer', 'between appointments'],
-  ['a wandering troubadour', 'in a minor key'],
-  ['an unpaid oracle intern', 'filling in'],
-  ['the night-shift historian', 'open all night'],
-  ['a recovered grammarian', 'sober since the split infinitive']
-];
-
-const AUTHORS = [
-  'a retired semiotician',
-  'a hobbyist cosmologist',
-  'the village eccentric',
-  'a freelance cartographer',
-  'a part-time sphinx',
-  'an itinerant folklorist',
-  'a nocturnal lexicographer',
-  'the last living flâneur',
-  'a professional daydreamer',
-  'a basement etymologist',
-  'a skeptical astrologer',
-  'a misanthropic poet laureate',
-  'a cross-eyed augur',
-  'a temporarily omniscient housecat',
-  'a dissenting committee member',
-  'the curator of a museum of nothing',
-  'an over-caffeinated monk',
-  'a lay philosopher of margins',
-  'the ghost of a thesaurus',
-  'a wandering dowsing-rod maker',
-  'a recovering grammarian',
-  'a nocturnal notary',
-  'a former lighthouse keeper',
-  'a reluctant prophet',
-  'an itinerant piano tuner',
-  'a semi-retired alchemist',
-  'a professional eavesdropper',
-  'a chronicler of small disasters',
-  'an apprentice ornithomancer',
-  'the village ombudsman',
-  'a person of letters',
-  'an authority on nothing in particular',
-  'a bird that reads too much',
-  'a guest lecturer, once'
-];
-
-const SOURCES = [
-  'of unknown origin',
-  'on a hill somewhere',
-  'probably',
-  () => 'circa ' + randomBCYear() + ' BC',
-  () => 'in the ' + randomCentury(),
-  'while you slept',
-  'witness protection program',
-  'muttering to themselves',
-  'of imaginary experts',
-  'repeating itself',
-  () => randomTime(),
-  'unfinished business',
-  'slightly damaged',
-  'deep in thought',
-  'Journal of Imaginary Findings',
-  'Proc. 3rd Int. Conf. on Applied Nonsense',
-  'Quarterly Review of Futile Research',
-  'The Annals of Improbable Results',
-  'Bulletin of the Society for Unsettling Questions',
-  'Journal of Dubious Philology',
-  'Transactions of the Odd Pronouncement Society',
-  'Journal of Circular Reasoning',
-  'The Undertaker’s Almanac',
-  'Marginalia, vol. 7',
-  'a footnote to a footnote',
-  'the appendix of an appendix',
-  'an unfinished manuscript',
-  () => 'a postcard, postmarked ' + randomADYear(),
-  'the margins of a library book',
-  'a napkin in a diner',
-  'the back of an envelope',
-  () => 'an email sent at ' + randomTime(),
-  'the index of a book that doesn’t exist',
-  'a strongly worded footnote',
-  'a deleted scene',
-  'the fine print',
-  'a cargo cult manual'
-];
-
-const GIVEN = [
-  'Margot', 'Alistair', 'Beatrice', 'Conrad', 'Dorothea', 'Edwin', 'Felicity',
-  'Gerald', 'Hilda', 'Ivor', 'Jasper', 'Kathleen', 'Lionel', 'Mabel', 'Neville',
-  'Ophelia', 'Percival', 'Quentin', 'Rosalind', 'Sylvester', 'Theodora', 'Ursula',
-  'Vernon', 'Winifred', 'Xerxes', 'Yolanda', 'Zachary', 'Aurelia', 'Basil', 'Clovis'
-];
-
-const SURNAMES = [
-  'Albright', 'Bracken', 'Calder', 'Driscoll', 'Ellsworth', 'Frobisher',
-  'Grimaldi', 'Halvorsen', 'Ibbotson', 'Jellicoe', 'Kessler', 'Langford',
-  'Merriweather', 'Nettleship', 'Ormandy', 'Pettigrew', 'Quillan', 'Redmayne',
-  'Satterthwaite', 'Tremaine', 'Underwood', 'Voss', 'Whitcomb', 'Yarrow',
-  'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield'
-];
-
-const TITLES = [
-  'Prof.', 'Dr.', 'Regius Prof.', 'Prof. Emeritus', 'Asst. Prof.', 'Assoc. Prof.', 'Chancellor',
-  'Sir', 'Dame', 'Lord', 'Lady', 'Baron', 'Baroness', 'Viscount', 'Marquess', 'Count',
-  'Countess', 'Duke', 'Duchess', 'The Hon.', 'Earl',
-  'Capt.', 'Maj.', 'Col.', 'Gen.', 'Adm.', 'Cmdr.', 'Brig.',
-  'Rev.', 'Fr.', 'Mother', 'Sister', 'Brother', 'Abbot', 'Abbess', 'Cardinal', 'Archbishop',
-  'Bishop', 'The Venerable', 'Right Rev.', 'Rabbi', 'Sheikh', 'Imam', 'Saint',
-  'Wizard', 'Loremaster', 'Chronicler', 'Grand Vizier', 'Archivist', 'Scribe'
-];
-
-function fakeAuthor() {
-  const r = Math.random();
-  if (r < 0.25) {
-    return `${pick(GIVEN)} ${pick(SURNAMES)}`;
-  }
-  if (r < 0.40) {
-    return `${pick(GIVEN)} ${pick(SURNAMES).charAt(0)}.`;
-  }
-  if (r < 0.55) {
-    const s = pick(SURNAMES);
-    return maybe(0.5)
-      ? `${pick(GIVEN).charAt(0)}. ${s}`
-      : `${pick(GIVEN).charAt(0)}. ${pick(GIVEN).charAt(0)}. ${s}`;
-  }
-  if (r < 0.70) {
-    const title = pick(TITLES);
-    const surname = pick(SURNAMES);
-    return maybe(0.4)
-      ? `${title} ${surname} of ${pick(NOUN)}`
-      : `${title} ${surname}`;
-  }
-  if (r < 0.85) return `${pick(NOUN)} of the ${pick(NOUN)}`;
-  if (r < 0.92) return `${pickAdj()} ${pick(NOUN)}`;
-  return `${pickAdj()} ${pickAdj()} ${pick(NOUN)}`;
+function render() {
+  const opening = state.page === 1 ? state.opening : '';
+  const grid = buildGrid(state.N, state.page, opening, {
+    range: state.page === 1 && state.located ? [0, opening.length] : null,
+    mask: false,
+    grayFiller: false,
+  });
+  writePage(pageEl, grid);
 }
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-  'August', 'September', 'October', 'November', 'December'];
-
-function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
-
-function ordinal(n) {
-  if (n % 100 >= 11 && n % 100 <= 13) return n + 'th';
-  return n + ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'][n % 10];
-}
-
-function randomADYear() { return randInt(1, 2100); }
-function randomBCYear() { return randInt(1, 1000); }
-function randomCentury() { return randInt(12, 19) + '00s'; }
-
-function randomTime() {
-  const h = randInt(1, 12);
-  const m = randInt(0, 11) * 5;
-  const ap = Math.random() < 0.5 ? 'AM' : 'PM';
-  return m ? `${h}:${String(m).padStart(2, '0')} ${ap}` : `${h} ${ap}`;
-}
-
-function randomDate() {
-  const d = randInt(1, 28);
-  const mo = pick(MONTHS);
-  const y = randomADYear();
-  return pick([
-    `the ${ordinal(d)} of ${mo} ${y}`,
-    `${ordinal(d)} ${mo} ${y}`,
-    `${mo} ${d}, ${y}`,
-    `the ${ordinal(d)} of ${mo} ${y}, ${randomTime()}`
-  ]);
-}
-
-function datePhrase() {
-  const r = Math.random();
-  const bc = maybe(0.15) ? ' BC' : '';
-  const y = bc ? randomBCYear() : randomADYear();
-  if (r < 0.30) return 'circa ' + y + bc;
-  if (r < 0.45) return 'c. ' + y + bc;
-  if (r < 0.60) return 'in the ' + randomCentury();
-  if (r < 0.80) return randomDate();
-  return randomTime();
-}
-
-function fakeSource() {
-  const r = Math.random();
-  let base;
-  if (r < 0.35) {
-    const s = pick(SOURCES);
-    base = typeof s === 'function' ? s() : s;
-  } else if (r < 0.55) {
-    base = `On the ${pickAdj()} ${pick(NOUN)} of ${pick(NOUN)}`;
-  } else if (r < 0.70) {
-    base = `The ${pickAdj()} ${pick(NOUN)} Revisited`;
-  } else if (r < 0.85) {
-    base = `Journal of ${pickAdj()} ${pick(NOUN)}`;
-  } else {
-    base = datePhrase();
+function buildGrid(N, page, opening, opt) {
+  const rng = mulberry32(bookSeed(N, page));
+  const grid = [];
+  const range = opt.range || null;
+  const mask = !!opt.mask;
+  let row = 0, col = 0, idx = 0;
+  const place = (ch, cls) => {
+    if (row >= PAGE_LINES) return;
+    if (ch === '\n') { row++; col = 0; return; }
+    if (col >= LINE_CHARS) { row++; col = 0; }
+    if (row >= PAGE_LINES) return;
+    if (!grid[row]) grid[row] = [];
+    grid[row].push({ ch, cls });
+    col++;
+  };
+  if (page === 1) {
+    for (const ch of opening) {
+      if (row >= PAGE_LINES) break;
+      const inR = range && idx >= range[0] && idx < range[1];
+      if (mask) place(inR ? ch : ' ', inR ? 'hl' : '');
+      else place(ch, inR ? 'hl' : (range ? 'ctx' : ''));
+      idx++;
+    }
+    if (opening.charAt(opening.length - 1) !== '\n') { row++; col = 0; }
   }
-  return maybe(REGION_PROB) ? base + ', ' + regionPhrase() : base;
-}
-
-function makeClause() {
-  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null, sg: false, one: false };
-
-  if (maybe(NUM_PROB)) {
-    const n = randomGoogol();
-    s.num = numberToWords(n);
-    s.one = n % 10n === 1n && n % 100n !== 11n;
-  }
-
-  const pattern = Math.floor(Math.random() * 6);
-  if (pattern === 0) {
-    // Chomsky canonical-ish: Adj* N V Adv
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.7) ? pick(ADV) : null;
-  } else if (pattern === 1) {
-    s.det = pick(DET);
-    s.sg = s.det === 'each' || s.det === 'every';
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.7) ? pick(ADV) : null;
-  } else if (pattern === 2) {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.8) ? pick(ADV) : null;
-  } else if (pattern === 3) {
-    s.det = pick(DET);
-    s.sg = s.det === 'each' || s.det === 'every';
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = pick(ADV);
-  } else if (pattern === 4) {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = pick(ADV);
-  } else {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(TRANS);
-    s.adv = maybe(0.6) ? pick(ADV) : null;
-    s.object = true;
-    s.obj = pick(NOUN);
-  }
-  s.aux = maybe(0.6) ? pick(AUX) : null;
-  if (s.aux) {
-    const r = Math.random();
-    if (r < 0.5) s.neg = null;
-    else if (r < 0.7) s.neg = pick(NEG);
-    else s.neg = pick(FREQ);
-  } else {
-    s.neg = maybe(0.4) ? pick(FREQ) : null;
-  }
-  if (s.num) {
-    if (s.det) s.numPos = 'after-det';
-    else s.numPos = 'front';
-  }
-  if (s.num && s.det && !(s.one ? NUM_DET : NUM_DET_PLURAL).includes(s.det)) {
-    s.det = pick(s.one ? NUM_DET : NUM_DET_PLURAL);
-    s.sg = false;
-  }
-  if (s.sg || s.one) s.noun = singularize(s.noun);
-  s.sub2 = maybe(0.18) ? (function () {
-    const det2 = maybe(DET);
-    const o = { det: det2, adjs: powerAdjs(), noun: pick(NOUN) };
-    if (det2 === 'each' || det2 === 'every' || s.sg) o.noun = singularize(o.noun);
-    return o;
-  })() : null;
-  s.rel = maybe(REL_PROB) ? (Math.random() < 0.5
-    ? { kind: 'subj', verb: pick(VERB), adv: maybe(0.5) ? pick(ADV) : null }
-    : { kind: 'obj', verb: pick(TRANS), np: { det: maybe(DET), adjs: powerAdjs(), noun: pick(NOUN) } })
-    : null;
-  return s;
-}
-
-function sentence() {
-  const s = {};
-  if (maybe(COND_PROB)) {
-    s.cond = true;
-    s.c1 = makeClause();
-    s.c2 = makeClause();
-    s.conj = pick(CONJ);
-    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
-    s.invert = s.order === 'front' && INV_CONJ.includes(s.conj) && !s.c1.aux && !s.c1.neg;
-  } else if (maybe(SUB_PROB)) {
-    s.sub = true;
-    s.c1 = makeClause();
-    s.c2 = makeClause();
-    s.conj = pick(SUB_CONJ);
-    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
-    s.invert = false;
-  } else {
-    s.cond = false;
-    s.sub = false;
-    s.c1 = makeClause();
-  }
-  s.disc = null;
-  s.mid = null;
-  if (maybe(DISC_PROB)) {
-    s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
-  }
-  if (!s.cond && !s.sub && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
-  s.q = false;
-  s.wh = null;
-  if (maybe(0.3)) {
-    s.q = true;
-    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
-    if (tgt.aux === 'used to' || tgt.aux === 'ought to') tgt.aux = null;
-    if (Math.random() < 0.4) {
-      if (tgt.object && Math.random() < 0.5) {
-        s.wh = 'what';
-      } else {
-        s.wh = pick(['why', 'when', 'where', 'how']);
+  let guard = 0;
+  if (opt.wordFiller && !mask) {
+    const cls = range ? 'ctx' : '';
+    while (row < PAGE_LINES && guard++ < 20000) {
+      const w = WORD_POOL[Math.floor(rng() * WORD_POOL.length)];
+      for (let i = 0; i < w.length; i++) {
+        place(w[i], cls);
+        if (row >= PAGE_LINES) break;
       }
-    }
-  }
-  s.tag = null;
-  if (!s.q && maybe(TAG_PROB)) {
-    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
-    s.tag = { aux: tgt.aux, negated: tgt.neg === 'not' || tgt.neg === 'never', sg: !!(tgt.sg || tgt.one) && !tgt.sub2 };
-  }
-  return s;
-}
-
-const EXTRA_SENTENCE_PROB = 1 / 15;
-const MAX_QUOTE_SENTENCES = 30;
-
-function quoteSentences() {
-  const list = [sentence()];
-  const seen = new Set([words(list[0])]);
-  while (Math.random() < EXTRA_SENTENCE_PROB && list.length < MAX_QUOTE_SENTENCES) {
-    const s = sentence();
-    const w = words(s);
-    if (seen.has(w)) continue;
-    seen.add(w);
-    list.push(s);
-  }
-  return list;
-}
-
-function tagPhrase(t) {
-  const map = t.negated ? TAG_POS : TAG_NEG;
-  let aux = map[t.aux] || (t.negated ? 'do' : "don't");
-  if (t.sg) {
-    if (aux === 'do') aux = 'does';
-    if (aux === "don't") aux = "doesn't";
-    return aux + ' it';
-  }
-  return aux + ' they';
-}
-
-function clauseParts(s, opts) {
-  const q = opts.question, wh = opts.wh, mid = opts.mid;
-  const np = [];
-  if (s.det) np.push({ w: s.det, pos: 'det' });
-  if (s.num) np.push({ w: s.num, pos: 'num' });
-  for (const a of s.adjs) np.push({ w: a, pos: 'adj' });
-  np.push({ w: s.noun, pos: 'noun' });
-  if (s.sub2) {
-    np.push({ w: 'and', pos: 'conj' });
-    if (s.sub2.det) np.push({ w: s.sub2.det, pos: 'det' });
-    for (const a of s.sub2.adjs) np.push({ w: a, pos: 'adj' });
-    np.push({ w: s.sub2.noun, pos: 'noun' });
-  }
-  if (s.rel) {
-    np.push({ w: 'that', pos: 'rel' });
-    if (s.rel.kind === 'subj') {
-      np.push({ w: (s.sg || s.one) && !s.sub2 ? thirdSingular(s.rel.verb) : s.rel.verb, pos: 'verb' });
-      if (s.rel.adv) np.push({ w: s.rel.adv, pos: 'adv' });
-    } else {
-      if (s.rel.np.det) np.push({ w: s.rel.np.det, pos: 'det' });
-      for (const a of s.rel.np.adjs) np.push({ w: a, pos: 'adj' });
-      np.push({ w: s.rel.np.noun, pos: 'noun' });
-      np.push({ w: s.rel.verb, pos: 'verb' });
-    }
-  }
-  let parts;
-  let npStart = 0;
-  if (q) {
-    const fst = [];
-    if (wh) fst.push({ w: wh, pos: 'wh' });
-    if (s.aux) fst.push({ w: s.aux, pos: 'aux' }); else fst.push({ w: (s.sg || s.one) && !s.sub2 ? 'does' : 'do', pos: 'aux' });
-    parts = [...fst, ...np];
-    npStart = fst.length;
-    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
-    parts.push({ w: s.verb, pos: 'verb' });
-    if (s.object && wh !== 'what') parts.push({ w: s.obj, pos: 'obj' });
-    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
-  } else {
-    parts = [...np];
-    if (s.aux) parts.push({ w: s.aux, pos: 'aux' });
-    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
-    parts.push({ w: (s.sg || s.one) && !s.aux && !s.sub2 ? thirdSingular(s.verb) : s.verb, pos: 'verb' });
-    if (s.object) parts.push({ w: s.obj, pos: 'obj' });
-    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
-  }
-  if (mid) {
-    parts.splice(npStart + np.length, 0, { w: ', ' + mid + ',', pos: 'mid' });
-  }
-  return parts;
-}
-
-function sentenceParts(s) {
-  let parts;
-  if (s.cond || s.sub) {
-    const main = clauseParts(s.c2, { question: s.q, wh: s.wh, mid: null });
-    const ifc = clauseParts(s.c1, { question: false, wh: null, mid: null });
-    if (s.invert) {
-      const np = [];
-      if (s.c1.det) np.push({ w: s.c1.det, pos: 'det' });
-      if (s.c1.num) np.push({ w: s.c1.num, pos: 'num' });
-      for (const a of s.c1.adjs) np.push({ w: a, pos: 'adj' });
-      np.push({ w: s.c1.noun, pos: 'noun' });
-      const vp = [];
-      vp.push({ w: s.c1.verb, pos: 'verb' });
-      if (s.c1.object) vp.push({ w: s.c1.obj, pos: 'obj' });
-      if (s.c1.adv) vp.push({ w: s.c1.adv, pos: 'adv' });
-      parts = [{ w: 'were', pos: 'aux' }, ...np, { w: 'to', pos: 'func' }, ...vp, { w: ',', pos: 'punct' }, ...main];
-    } else if (s.order === 'front') {
-      parts = [{ w: s.conj, pos: 'conj' }, ...ifc, { w: ',', pos: 'punct' }, ...main];
-    } else {
-      parts = [...main, { w: s.conj, pos: 'conj' }, ...ifc];
+      if (row < PAGE_LINES && col < LINE_CHARS) place(' ', cls);
     }
   } else {
-    parts = clauseParts(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
-  }
-  if (s.disc) parts = [{ w: s.disc, pos: 'disc' }, { w: ',', pos: 'punct' }, ...parts];
-  if (s.tag) {
-    parts.push({ w: ',', pos: 'punct' }, { w: tagPhrase(s.tag), pos: 'tag' });
-  }
-  return parts;
-}
-
-function joinParts(parts) {
-  let str = '';
-  for (const p of parts) {
-    if (p.w.startsWith(',')) str += p.w;
-    else str += (str ? ' ' : '') + p.w;
-  }
-  return str;
-}
-
-function capFirst(parts) {
-  if (parts.length && parts[0].w) {
-    parts[0].w = parts[0].w.charAt(0).toUpperCase() + parts[0].w.slice(1);
-  }
-}
-
-function words(s) {
-  const parts = sentenceParts(s);
-  capFirst(parts);
-  return joinParts(parts) + (s.q || s.tag ? '?' : (maybe(0.1) ? '!' : '.'));
-}
-
-function npNode(c) {
-  const np = { label: 'NP', children: [] };
-  if (c.det) np.children.push({ label: 'Det', text: c.det });
-  if (c.num) np.children.push({ label: 'Num', text: c.num });
-  for (const a of c.adjs) np.children.push({ label: 'Adj', text: a });
-  np.children.push({ label: 'N', text: c.noun });
-  if (c.rel) {
-    np.children.push({ label: 'Rel', text: 'that' });
-    if (c.rel.kind === 'subj') {
-      np.children.push({ label: 'V', text: (c.sg || c.one) && !c.sub2 ? thirdSingular(c.rel.verb) : c.rel.verb });
-      if (c.rel.adv) np.children.push({ label: 'Adv', text: c.rel.adv });
-    } else {
-      const rn = npNode(c.rel.np);
-      for (const ch of rn.children) np.children.push(ch);
-      np.children.push({ label: 'V', text: c.rel.verb });
+    while (row < PAGE_LINES && guard++ < 50000) {
+      if (mask) place(' ', '');
+      else place(fillerChar(rng), range ? 'ctx' : '');
     }
   }
-  return np;
+  return grid;
 }
 
-function clauseSubtree(c) {
-  const np = c.sub2
-    ? { label: 'NP', children: [npNode(c), { label: 'Conj', text: 'and' }, npNode(c.sub2)] }
-    : npNode(c);
-  const vp = { label: 'VP', children: [] };
-  if (c.aux) vp.children.push({ label: 'Aux', text: c.aux });
-  if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
-  vp.children.push({ label: 'V', text: (c.sg || c.one) && !c.aux && !c.sub2 ? thirdSingular(c.verb) : c.verb });
-  if (c.object) vp.children.push({ label: 'N', text: c.obj });
-  if (c.adv) vp.children.push({ label: 'Adv', text: c.adv });
-  return { np, vp };
-}
-
-function parseTree(s) {
-  const root = { label: s.q ? 'S (Q)' : 'S', children: [] };
-  if (s.wh) root.children.push({ label: 'Wh', text: s.wh });
-  if (s.disc) root.children.push({ label: 'Disc', text: s.disc });
-  if (s.cond || s.sub) {
-    const conjNode = { label: 'Conj', text: s.invert ? 'were to' : s.conj, children: [] };
-    const c1 = clauseSubtree(s.c1);
-    conjNode.children.push(c1.np, c1.vp);
-    root.children.push(conjNode);
+function writePage(container, grid) {
+  container.textContent = '';
+  for (let r = 0; r < PAGE_LINES; r++) {
+    const div = document.createElement('div');
+    div.className = 'line';
+    const cells = grid[r];
+    if (cells) {
+      let buf = '', cls = null;
+      const flush = () => {
+        if (cls) {
+          const sp = document.createElement('span');
+          sp.className = cls;
+          sp.textContent = buf;
+          div.appendChild(sp);
+        } else if (buf) {
+          div.appendChild(document.createTextNode(buf));
+        }
+        buf = ''; cls = null;
+      };
+      for (const c of cells) {
+        if (c.cls === cls) buf += c.ch;
+        else { flush(); buf = c.ch; cls = c.cls; }
+      }
+      flush();
+    }
+    container.appendChild(div);
   }
-  const c2 = clauseSubtree(s.cond || s.sub ? s.c2 : s.c1);
-  root.children.push(c2.np, c2.vp);
-  if (s.tag) root.children.push({ label: 'Tag', text: tagPhrase(s.tag) + '?' });
-  const lines = [];
-  const draw = (n, prefix, isLast) => {
-    lines.push(prefix + (isLast ? '└─ ' : '├─ ') + (n.text ? n.label + '  "' + n.text + '"' : n.label));
-    const cont = isLast ? '    ' : '│   ';
-    (n.children || []).forEach((ch, i) => draw(ch, prefix + cont, i === n.children.length - 1));
+}
+
+function updateCoords() {
+  const N = state.N;
+  const hex = N / 700n + 1n;
+  const rem = N % 700n;
+  const wall = Number(rem / 175n) + 1;
+  const shelf = Number((rem % 175n) / 35n) + 1;
+  const book = Number(rem % 35n) + 1;
+  coordsLine.textContent = '';
+  const frag = document.createDocumentFragment();
+  const add = (text, bold) => {
+    if (bold) { const b = document.createElement('b'); b.textContent = text; frag.appendChild(b); }
+    else frag.appendChild(document.createTextNode(text));
   };
-  lines.push(root.label);
-  root.children.forEach((ch, i) => draw(ch, '', i === root.children.length - 1));
-  return lines.join('\n');
+  add('Book #', false); add(sci(N), true);
+  add('  ·  Hexagon #', false); add(sci(hex), true);
+  add('  ·  Wall ', false); add(String(wall), true);
+  add('  ·  Shelf ', false); add(String(shelf), true);
+  add('  ·  Book ', false); add(String(book), true);
+  coordsLine.appendChild(frag);
+  const preview = (state.opening.length > 90 ? state.opening.slice(0, 90) + '…' : state.opening).replace(/\n/g, '\\n');
+  openPreview.textContent = 'opens with “' + preview + '”';
+  locEl.textContent = 'babel://' + N.toString();
 }
 
-function familyExponent(s) {
-  const lg = Math.log10;
-  const falling = (n, k) => { let x = 0; for (let i = 0; i < k; i++) x += lg(n - i); return x; };
-  const clauseX = (c) => {
-    let x = falling(ADJ_TOTAL, c.adjs.length);
-    x += lg((c.object ? TRANS : VERB).length);
-    if (c.adv) x += lg(ADV.length);
-    if (c.det) x += lg(c.num ? (c.one ? NUM_DET.length : NUM_DET_PLURAL.length) : DET.length);
-    if (c.num) x += 100;
-    if (c.aux) x += lg(AUX.length);
-    if (c.neg) x += lg(c.neg === 'not' || c.neg === 'ever' ? NEG.length : FREQ.length);
-    if (c.sub2) x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.sub2.adjs.length) + lg(NOUN.length);
-    if (c.rel) {
-      if (c.rel.kind === 'subj') x += lg(VERB.length) + lg(1 + ADV.length);
-      else x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.rel.np.adjs.length) + lg(NOUN.length) + lg(TRANS.length);
-    }
-    return x;
+const PAGE_STEPS = [5, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
+const pageStepButtons = [];
+
+function buildJumpNav() {
+  const wrap = document.getElementById('jumpNav');
+  const mk = (text, title, delta) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.title = title;
+    b.dataset.delta = delta;
+    b.addEventListener('click', () => openBook(state.N, state.page + Number(b.dataset.delta)));
+    wrap.appendChild(b);
+    pageStepButtons.push(b);
   };
-  let x;
-  if (s.cond || s.sub) {
-    x = clauseX(s.c1) + clauseX(s.c2) + lg((s.cond ? CONJ : SUB_CONJ).length);
-  } else {
-    x = clauseX(s.c1);
+  for (let i = PAGE_STEPS.length - 1; i >= 0; i--) mk('−' + PAGE_STEPS[i] + 'p', 'page − ' + PAGE_STEPS[i], -PAGE_STEPS[i]);
+  const r = document.createElement('button');
+  r.type = 'button';
+  r.className = 'randp';
+  r.textContent = 'Random page';
+  r.title = 'jump to a random page';
+  r.addEventListener('click', () => {
+    openBook(state.N, 1 + Math.floor(Math.random() * PAGES));
+    note('You flip to a random page…');
+  });
+  wrap.appendChild(r);
+  for (const s of PAGE_STEPS) mk('+' + s + 'p', 'page + ' + s, s);
+}
+
+function updateNav() {
+  pageLabel.textContent = 'page ' + state.page + ' / ' + PAGES;
+  document.getElementById('prevP').disabled = state.page <= 1;
+  document.getElementById('nextP').disabled = state.page >= PAGES;
+  for (const b of pageStepButtons) {
+    const target = state.page + Number(b.dataset.delta);
+    b.disabled = target < 1 || target > PAGES;
   }
-  if (s.disc) x += lg(DISCOURSE.length + EXCLAIM.length);
-  if (s.mid) x += lg(MID_DISCOURSE.length);
-  if (s.wh) x += lg(5);
-  return x;
 }
 
-function generate() {
-  const list = quoteSentences();
-  const genBtn = document.getElementById('gen');
-  const text = list.map(words).join(' ');
-  noteStats(list);
-  sentenceEl.textContent = pickWeighted(THINK_VERBS);
-  sentenceEl.classList.add('thinking');
-  attrEl.textContent = pickWeighted(ATTR_VERBS);
-  attrEl.classList.add('thinking');
-  genBtn.disabled = true;
-  const delay = Math.min(300 + text.split(' ').length * 60 + Math.random() * 200, 4000);
-  setTimeout(() => {
-    sentenceEl.textContent = text;
-    sentenceEl.classList.remove('thinking');
-    attrEl.classList.remove('thinking');
-    genBtn.disabled = false;
-    randomAttribution();
-    const exp = list.reduce((acc, s) => acc + familyExponent(s), 0);
-    rarityEl.textContent = '~1 in 10^' + exp.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' of its family';
-    parseEl.dataset.tree = list.map(parseTree).join('\n\n');
-    if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
-  }, delay);
+let noteTimer = null;
+function note(msg, ms) {
+  noteEl.textContent = msg;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { noteEl.textContent = ''; }, ms || 3200);
 }
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme').textContent = theme === 'light' ? '☾ Dark' : '☀ Light';
-}
-applyTheme(localStorage.getItem('cgi-theme') === 'light' ? 'light' : 'dark');
-document.getElementById('theme').addEventListener('click', () => {
-  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  localStorage.setItem('cgi-theme', next);
-  applyTheme(next);
-});
-let hiddenArmed = false, hiddenTimer = null;
-const HIDDEN_DOUBLE_MS = 700;
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Enter' && e.ctrlKey && e.shiftKey && !e.repeat) {
-    e.preventDefault();
-    if (hiddenArmed) {
-      hiddenArmed = false;
-      clearTimeout(hiddenTimer);
-      document.body.classList.toggle('show-hidden-features');
-    } else {
-      hiddenArmed = true;
-      hiddenTimer = setTimeout(() => { hiddenArmed = false; }, HIDDEN_DOUBLE_MS);
+function unescapeSearch(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '\\' && i + 1 < s.length) {
+      const nx = s[i + 1];
+      if (nx === 'n') { out += '\n'; i++; continue; }
+      if (nx === '\\') { out += '\\'; i++; continue; }
     }
-    return;
+    out += ch;
   }
-  if (e.code !== 'Space' || e.repeat) return;
-  const t = e.target;
-  if (t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY' ||
-            t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-  e.preventDefault();
-  generate();
-});
-
-document.getElementById('gen').addEventListener('click', generate);
-document.getElementById('chomsky').addEventListener('click', () => {
-  sentenceEl.textContent = 'Colorless green ideas sleep furiously.';
-  attrEl.innerHTML = '<b>Noam Chomsky</b>, <i>Syntactic Structures</i>, 1957';
-  rarityEl.textContent = '';
-  parseEl.dataset.tree =
-    'S\n├─ NP\n│   ├─ Adj  "colorless"\n│   ├─ Adj  "green"\n│   └─ N    "ideas"\n└─ VP\n    ├─ V    "sleep"\n    └─ Adv  "furiously"';
-  if (parseEl.style.display !== 'none') parseEl.textContent = parseEl.dataset.tree;
-});
-document.getElementById('tree').addEventListener('click', () => {
-  if (parseEl.style.display === 'none') {
-    parseEl.style.display = 'block';
-    parseEl.textContent = parseEl.dataset.tree || '';
-  } else {
-    parseEl.style.display = 'none';
-  }
-});
-
-generate();
-
-document.getElementById('tagline').innerHTML =
-  'offering ' + sciPow(QUOTE_M, QUOTE_E, CDOT) +
-  ' quotes from ' + sciM(SENT_M, SENT_E, CDOT) +
-  ' sentences and ' + sciNote(TOTAL_ATTRIBUTIONS, CDOT) +
-  ' attributions by ' + sciNote(TOTAL_AUTHORS, CDOT) +
-  ' possible authors.\n' +
-  'Outnumbering the Library of Babel\'s ~' + sciM(BABEL_M, BABEL_E, CDOT) +
-  ' books by ' + sciM(QUOTE_M, QUOTE_E, CDOT) + ' orders of magnitude.';
-
-const menuBtn = document.getElementById('menuBtn');
-const menu = document.getElementById('menu');
-function closeMenu() {
-  menu.classList.remove('open');
-  menuBtn.setAttribute('aria-expanded', 'false');
+  return out;
 }
-menuBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const open = menu.classList.toggle('open');
-  menuBtn.setAttribute('aria-expanded', String(open));
+
+function locate() {
+  const s = sanitize(unescapeSearch(qEl.value));
+  if (!s) { RES = null; resultsEl.hidden = true; note('No searchable glyphs — only the 95 glyphs of the alphabet survive, everything else is lost.'); return; }
+  const N = toCatalog(s);
+  if (N <= 0n) { RES = null; resultsEl.hidden = true; note('No searchable glyphs — only the 95 glyphs of the alphabet survive, everything else is lost.'); return; }
+  openBook(N, 1, s);
+  note('Located. Your string is the opening line of exactly one book — this one.');
+  buildResults(s);
+}
+
+const TITLE_LEN = 13;
+const TITLE_SHIFT = [13, 47, 3, 71, 29, 59, 11, 83, 17, 41, 5, 67, 23];
+
+function deriveTitle(N) {
+  const s = fromCatalog(N);
+  let out = '';
+  for (let i = 0; i < Math.min(s.length, TITLE_LEN); i++) {
+    const d = (CODE_TO_DIGIT.get(s.charCodeAt(i)) + TITLE_SHIFT[i]) % 95;
+    out += String.fromCharCode(DIGIT_TO_CODE[d]);
+  }
+  return out;
+}
+
+function titleDecode(S) {
+  let out = '';
+  for (let i = 0; i < S.length; i++) {
+    const d = (CODE_TO_DIGIT.get(S.charCodeAt(i)) + 95 - TITLE_SHIFT[i]) % 95;
+    out += String.fromCharCode(DIGIT_TO_CODE[d]);
+  }
+  return out;
+}
+
+const FILLER_GLYPHS = [...new Set(FILLER.replace(/ /g, ''))];
+
+function ctxSeed(S, k) {
+  let h = 2166136261 ^ k;
+  for (let i = 0; i < S.length; i++) {
+    h ^= S.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function randCtx(S, seed, len) {
+  const rng = mulberry32(seed);
+  let out = '';
+  while (out.length < len) out += fillerChar(rng);
+  return out;
+}
+
+const WORD_POOL = [].concat(ADJ, NOUN, VERB, ADV);
+
+function wordCtx(S, seed, nWords) {
+  const rng = mulberry32(seed);
+  const words = [];
+  for (let i = 0; i < nWords; i++) words.push(WORD_POOL[Math.floor(rng() * WORD_POOL.length)]);
+  return words.join(' ') + ' ';
+}
+
+let RES = null;
+
+function matchObj(opening, range, opt) {
+  const N = toCatalog(opening);
+  return {
+    opening, range, N, title: deriveTitle(N),
+    mask: !!(opt && opt.mask), grayFiller: !!(opt && opt.grayFiller),
+    wordFiller: !!(opt && opt.wordFiller),
+  };
+}
+
+function exactMatch(S, k) {
+  if (k === 0) return matchObj(S, [0, S.length], { mask: true });
+  const g = FILLER_GLYPHS[(k - 1) % FILLER_GLYPHS.length];
+  const n = Math.floor((k - 1) / FILLER_GLYPHS.length) + 1;
+  const prefix = g.repeat(n);
+  return matchObj(prefix + S, [n, n + S.length], { mask: true });
+}
+
+function charMatch(S, k) {
+  const seed = ctxSeed(S, k);
+  const left = Math.min(45, Math.max(12, Math.floor((LINE_CHARS - Math.min(S.length, 60)) / 2) + (seed % 7)));
+  const prefix = randCtx(S, seed, left);
+  const opening = prefix + S + randCtx(S, seed ^ 0x9E3779B9, 12);
+  return matchObj(opening, [prefix.length, prefix.length + S.length], { grayFiller: true });
+}
+
+function wordMatch(S, k) {
+  const seed = ctxSeed(S, k + 1000);
+  const left = 2 + (seed % 4);
+  const prefix = wordCtx(S, seed, left);
+  const suffix = S.charAt(S.length - 1) === '\n' ? '' : wordCtx(S, seed ^ 0x7F4A7C15, 1);
+  const opening = prefix + S + suffix;
+  return matchObj(opening, [prefix.length, prefix.length + S.length], { grayFiller: true, wordFiller: true });
+}
+
+function titleMatch(S, k) {
+  const t = S.slice(0, TITLE_LEN);
+  const decoded = titleDecode(t);
+  if (k === 0) return { N: toCatalog(decoded), title: t };
+  const g = FILLER_GLYPHS[(k - 1) % FILLER_GLYPHS.length];
+  const n = Math.floor((k - 1) / FILLER_GLYPHS.length) + 1;
+  return { N: toCatalog(decoded + g.repeat(n)), title: t };
+}
+
+function buildResults(S) {
+  RES = {
+    S,
+    sel: 'exact',
+    exact: [exactMatch(S, 0)],
+    char: [charMatch(S, 0)],
+    word: [wordMatch(S, 0)],
+    title: [titleMatch(S, 0)],
+  };
+  renderResults();
+}
+
+const RESULT_KINDS = [
+  { key: 'exact', label: 'exact match', more: 'more exact matches', preview: true },
+  { key: 'char', label: 'with random characters', more: 'more random char matches', preview: true },
+  { key: 'word', label: 'with random English words', more: 'more random word matches', preview: true },
+  { key: 'title', label: 'title search', more: 'more title matches', preview: false },
+];
+
+const RESULT_GEN = {
+  exact: exactMatch,
+  char: charMatch,
+  word: wordMatch,
+  title: titleMatch,
+};
+
+function renderResults() {
+  resultsEl.textContent = '';
+  if (!RES) return;
+  resultsEl.hidden = false;
+  const kind = RESULT_KINDS.find((k) => k.key === RES.sel);
+
+  const head = document.createElement('h2');
+  head.textContent = 'You may also be interested in:';
+  resultsEl.appendChild(head);
+
+  const selrow = document.createElement('div');
+  selrow.className = 'selrow';
+  const label = document.createElement('span');
+  label.textContent = 'View as';
+  const select = document.createElement('select');
+  select.className = 'rsel';
+  for (const k of RESULT_KINDS) {
+    const o = document.createElement('option');
+    o.value = k.key;
+    o.textContent = k.label;
+    if (k.key === RES.sel) o.selected = true;
+    select.appendChild(o);
+  }
+  select.value = RES.sel;
+  select.addEventListener('change', () => { RES.sel = select.value; renderResults(); });
+  selrow.appendChild(label);
+  selrow.appendChild(select);
+  resultsEl.appendChild(selrow);
+
+  resultsEl.appendChild(resultRow(kind, RES[kind.key][0]));
+
+  const list = document.createElement('div');
+  list.className = 'rlist';
+  for (const m of RES[kind.key].slice(1)) list.appendChild(resultRowCompact(kind, m));
+  resultsEl.appendChild(list);
+
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'more';
+  b.textContent = kind.more;
+  b.addEventListener('click', () => {
+    RES[kind.key].push(RESULT_GEN[kind.key](RES.S, RES[kind.key].length));
+    renderResults();
+  });
+  resultsEl.appendChild(b);
+}
+
+function resultRow(kind, m) {
+  const div = document.createElement('div');
+  div.className = 'result';
+  const head = document.createElement('div');
+  head.className = 'rhead';
+  const k = document.createElement('span');
+  k.className = 'rkind';
+  k.textContent = kind.label + ':';
+  const t = document.createElement('span');
+  t.className = 'rtitle';
+  t.textContent = m.title;
+  head.appendChild(k);
+  head.appendChild(t);
+  div.appendChild(head);
+  if (kind.preview) {
+    const p = document.createElement('div');
+    p.className = 'rpreview';
+    const page = document.createElement('div');
+    page.className = 'page';
+    p.appendChild(page);
+    writePage(page, buildGrid(m.N, 1, m.opening, { range: m.range, mask: m.mask, grayFiller: m.grayFiller, wordFiller: m.wordFiller }));
+    div.appendChild(p);
+  }
+  const loc = document.createElement('div');
+  loc.className = 'rloc';
+  const code = document.createElement('code');
+  code.textContent = 'babel://' + m.N.toString();
+  const bn = document.createElement('span');
+  bn.textContent = '· Book #' + sci(m.N);
+  loc.appendChild(code);
+  loc.appendChild(bn);
+  div.appendChild(loc);
+  if (kind.key === 'title' && RES.S.length > TITLE_LEN) {
+    const rn = document.createElement('div');
+    rn.className = 'rnote';
+    rn.textContent = 'Titles hold at most ' + TITLE_LEN + ' glyphs — only the first ' + TITLE_LEN + ' were used.';
+    div.appendChild(rn);
+  }
+  div.addEventListener('click', () => {
+    openBook(m.N, 1, kind.key === 'title' ? undefined : m.opening);
+    note(kind.key === 'title' ? 'Title search — every book titled “' + m.title + '”.' : 'You open the matching book — its first line is your string.');
+  });
+  return div;
+}
+
+function resultRowCompact(kind, m) {
+  const div = document.createElement('div');
+  div.className = 'rrow';
+  const t = document.createElement('span');
+  t.className = 'rtitle';
+  t.textContent = m.title;
+  const code = document.createElement('code');
+  code.textContent = 'babel://' + m.N.toString();
+  div.appendChild(t);
+  div.appendChild(code);
+  div.addEventListener('click', () => {
+    openBook(m.N, 1, kind.key === 'title' ? undefined : m.opening);
+    note('You open the matching book — its first line is your string.');
+  });
+  return div;
+}
+
+function copyText(str) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(str);
+  }
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  return Promise.resolve();
+}
+
+document.getElementById('find').addEventListener('click', locate);
+qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') locate(); });
+
+document.getElementById('prevP').addEventListener('click', () => openBook(state.N, state.page - 1));
+document.getElementById('nextP').addEventListener('click', () => openBook(state.N, state.page + 1));
+document.getElementById('top').addEventListener('click', () => openBook(state.N, 1));
+document.getElementById('prevB').addEventListener('click', () => openBook(state.N > 1n ? state.N - 1n : 1n, 1));
+document.getElementById('nextB').addEventListener('click', () => openBook(state.N + 1n, 1));
+document.getElementById('randH').addEventListener('click', () => {
+  openBook(randomBook(), 1);
+  note('You wander into a random hexagon…');
 });
-document.addEventListener('click', (e) => {
-  if (!menu.classList.contains('open')) return;
-  if (e.target === menuBtn || menu.contains(e.target)) return;
-  closeMenu();
+
+document.getElementById('copyLoc').addEventListener('click', () => {
+  copyText('babel://' + state.N.toString()).then(() => note('✓ Location copied.'));
 });
-menu.addEventListener('click', closeMenu);
+
+document.getElementById('go').addEventListener('click', () => {
+  let v = document.getElementById('paste').value.trim();
+  if (v.startsWith('babel://')) v = v.slice(7).trim();
+  v = v.replace(/,/g, '');
+  if (!/^\d+$/.test(v)) { note('Paste a babel:// location or a bare catalog number.'); return; }
+  const N = BigInt(v);
+  if (N <= 0n) { note('Catalog numbers start at 1 — the empty book stays closed.'); return; }
+  openBook(N, 1);
+  note('Opened book #' + (N.toString().length > 40 ? sci(N) : N.toString()) + '.');
+});
+document.getElementById('paste').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('go').click(); });
+
+buildJumpNav();
+
+openBook(toCatalog(sanitize('colorless green ideas sleep furiously')), 1, 'colorless green ideas sleep furiously');
+qEl.value = 'colorless green ideas sleep furiously';
 </script>
 <footer class="site-footer">
   © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>

@@ -1,0 +1,2948 @@
+<!DOCTYPE html>
+<!--
+  Secure Channel Assistant — end-to-end encrypted messaging with a
+  Double Ratchet (Signal-style) key exchange.
+  Copyright (C) 2026 MINING123STUDIOS
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Secure Channel Assistant v4</title>
+<style>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+:root {
+  --bg: #0b1220;
+  --panel-bg: #111827;
+  --border: #1f2937;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --input-bg: #0b1220;
+  --input-border: #334155;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --iconbtn-bg: #1f2937;
+  --iconbtn-hover: #29354a;
+  --fingerprint-bg: #0f172a;
+  /* Dark mode's default link blue reads muddy against this background,
+     so links get their own brighter variable instead of reusing --accent. */
+  --link: #60a5fa;
+  --link-hover: #93c5fd;
+}
+
+[data-theme="light"] {
+  --bg: #f3f4f6;
+  --panel-bg: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #55606e;
+  /* Slightly brighter than a plain #2563eb while staying >4.5:1 contrast
+     with the white button text (WCAG AA for normal-size text). */
+  --accent: #2e6bec;
+  --accent-hover: #2563eb;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  /* Brighter red than the original #b91c1c; still ~4.8:1 contrast on
+     white, so it stays accessible while looking less heavy. */
+  --danger: #dc2626;
+  --success: #047857;
+  --warning: #b45309;
+  --iconbtn-bg: #e2e8f0;
+  --iconbtn-hover: #cbd5e1;
+  --fingerprint-bg: #eef2f7;
+  --link: #2563eb;
+  --link-hover: #1d4ed8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Noto Sans", system-ui, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+}
+a:hover {
+  color: var(--link-hover);
+}
+a:visited {
+  color: inherit;
+}
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-family: "Noto Sans", system-ui, Arial, sans-serif;
+  margin: 0;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  line-height: 1.3;
+}
+
+.panel {
+  background: var(--panel-bg);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.panel h3 {
+  margin-bottom: 12px;
+}
+
+/* GLOBAL DATA FIELDS */
+textarea,
+input,
+pre {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 10px;
+
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+textarea:focus,
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Clear / Paste buttons — inherit .iconbtn look, override only hover colour */
+.clear-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.paste-btn:hover {
+  background: var(--success);
+  color: white;
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Consistent vertical rhythm: every label+field pair lives in a .field
+   block, textbox on its own line, buttons in a .btnrow underneath —
+   used uniformly across ALL panels now (Key Generation and Shared
+   Secret used to lay the textbox and buttons out side-by-side via
+   .keybox; that's been dropped in favor of this single pattern). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0;
+}
+.field:first-child { margin-top: 0; }
+.field:last-child { margin-bottom: 0; }
+
+.panel > button,
+.panel > .btnrow {
+  margin: 10px 0 18px;
+}
+.panel > button:first-child {
+  margin-top: 0;
+}
+
+/* ROW LAYOUT */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* BUTTONS */
+button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button:hover {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: "Noto Sans", system-ui, Arial, sans-serif;
+}
+
+.iconbtn {
+  background: var(--iconbtn-bg);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.iconbtn:hover {
+  background: var(--iconbtn-hover);
+}
+.iconbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btnrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.danger-btn {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.danger-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+.danger-btn:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.fingerprint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  background: var(--fingerprint-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  white-space: pre-wrap;
+}
+
+/* Eye icon on the private-key Show/Hide button: a diagonal line is
+   overlaid via ::after when the key is currently visible, so the icon
+   itself communicates "click to hide" rather than relying on the
+   label text alone. */
+.eye-icon {
+  position: relative;
+  display: inline-block;
+}
+.eye-icon::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 2px;
+  /* Red (var(--danger)) rather than currentColor, so the "key is
+     visible" state reads as a clear warning cue in both themes. */
+  background: var(--danger);
+  transform: translateY(-50%) rotate(-45deg);
+  transform-origin: center;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.eye-icon.crossed::after {
+  opacity: 1;
+}
+
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 8px 0 20px;
+}
+
+/* ---------- Progress overlay (large-file operations) ----------
+   A single floating pill, created lazily by ui.js, used for any
+   operation that touches a large payload (reading/encrypting/
+   decrypting/importing). Two visual modes:
+   - indeterminate: shown immediately, before we know how long the
+     job will take — a short accent arc spins quickly.
+   - determinate (.determinate): once real progress is available
+     (chunk N of M), the arc grows to reflect it, the spin slows to a
+     more stately pace, and a percentage label appears. */
+#progressOverlay {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 9px 16px 9px 10px;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(10px) scale(0.94);
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 999;
+  font-family: "Noto Sans", system-ui, Arial, sans-serif;
+}
+#progressOverlay.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.progress-ring {
+  --pct: 25;
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: progress-spin 0.9s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+}
+/* Inner ring — counter-rotates for a more dynamic look (inspired by
+   LoadLab's reverse-spinner). Only visual; doesn't affect progress. */
+.progress-ring::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  border-right-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: progress-spin-reverse 1.2s linear infinite;
+}
+.progress-ring.determinate {
+  /* Slower, linear sweep once the fill reflects real progress —
+     reads as "steady work happening" rather than "still figuring out
+     how long this will take". */
+  animation: progress-spin 2.4s linear infinite;
+  transition: background 0.2s ease;
+}
+.progress-ring.determinate::before {
+  animation: progress-spin-reverse 1.8s linear infinite;
+}
+@keyframes progress-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes progress-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+.progress-label {
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.progress-pct {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6em;
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-ring,
+  .progress-ring::before {
+    animation: none;
+  }
+}
+
+.hidden { display: none; }
+
+/* MOBILE */
+@media (max-width: 800px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main>
+<div class="container">
+
+<div class="topbar">
+  <h1>
+    🔐 <b>S</b>ecure <br>
+    🔑 <b>C</b>hannel <br>
+    ⚡ <b>A</b>ssistant<br>
+    <span class="small">Privacy-focused Encryption Tool</span>
+  </h1>
+  <button class="iconbtn" id="themeToggleBtn"
+    title="Toggle light/dark mode" aria-label="Toggle light/dark mode">🌙 Dark</button>
+</div>
+
+<!-- INFO PANEL -->
+<div class="panel">
+  <h3>🧭 How it works</h3>
+
+  <p><b>1. Generate your keys.</b> This creates a 🔓 <b>public key</b> you can share freely, and a 🔐 <b>private key</b> that must stay on this device.</p>
+  <p><b>2. Share only your public key.</b> Send it to your contact over any channel like email, chat, anything. It's safe even if someone else sees it.</p>
+  <p><b>🚫 Never share your private key with anyone, ever.</b> Not your contact, not "support," not a website asking you to "verify" it. Anyone who has it can read your messages and pretend to be you.</p>
+  <p><b>3. Paste their public key</b> and create the shared secret. Both of you do this once, using each other's public key.</p>
+  <p><b>4. Encrypt, send, decrypt.</b> Type a message (or import any file, for example text, image, whatever), encrypt it, and copy the result to your contact through any channel you like. They paste it into Decrypt to read it.</p>
+
+  <p class="small">📨 <b>This tool does NOT send anything for you!</b> It only locks and unlocks messages. You copy the encrypted text to your contact yourself.</p>
+  <p class="small">🔁 Every message uses a fresh key, and the two of you re-key on every reply so even if one message's key were ever exposed, it wouldn't expose past <i>or</i> future messages. See the notes in the Shared Secret panel for details.</p>
+  <p class="small">⚠️ <b>Refreshing or closing this page erases everything</b> including your keys, your session, all of it. There's no account and no cloud backup. Use <b>Export Identity</b> below <i>before</i> you refresh if you want to pick this conversation back up later. Once you've generated keys, your browser will also ask you to confirm before leaving the page, as a safety net.</p>
+  <p class="small">🔍 <b>Fingerprints</b> let you verify you're really talking to the right person (and not someone in the middle). Read the Session Fingerprint aloud to your contact over a trusted channel (a phone call, in person). If it matches on both screens, your connection is genuine.</p>
+  <p class="small">🔒 For best possible security, it is recommended to download the source files to your device and run the tool offline after verifying the program. This is also highly recommended for compatibility reasons.</p>
+</div>
+
+<!-- KEYS -->
+<div class="panel">
+  <h3>1. Key Generation 🔑</h3>
+
+  <div class="btnrow">
+    <button id="generateKeysBtn">✨ Generate Key Pair</button>
+    <button class="iconbtn" id="exportIdentityBtn">⬇️ Export Identity (backup)</button>
+    <button class="iconbtn" id="importIdentityBtn">⬆️ Import Identity (restore)</button>
+  </div>
+
+  <div class="field">
+    <label class="small" for="pubKey">📢 Public Key (safe to share)</label>
+    <textarea id="pubKey" readonly autocomplete="off"></textarea>
+    <div class="btnrow">
+      <button class="iconbtn" id="copyPubKeyBtn" title="Copy">📋 Copy</button>
+      <button class="iconbtn" id="exportPubKeyBtn" title="Export as file">⬇️ Export</button>
+    </div>
+    <div class="small" id="myFingerprintLabel">Fingerprint (yours):</div>
+    <div class="fingerprint" id="myFingerprint" role="status" aria-labelledby="myFingerprintLabel">Generate keys to see this</div>
+  </div>
+
+  <div class="field">
+    <label class="small" for="privKey">🔐 Private Key (🚫 never share this)</label>
+    <input id="privKey" type="password" readonly />
+    <div class="btnrow">
+      <button class="iconbtn" id="togglePrivBtn" title="Show/hide" aria-label="Show or hide private key"><span class="eye-icon" id="eyeIcon">👁️</span> <span id="toggleLabel">Show</span></button>
+      <button class="iconbtn" id="copyPrivKeyBtn" title="Copy">📋 Copy</button>
+      <button class="iconbtn" id="exportPrivKeyBtn" title="Export as file">⬇️ Export</button>
+    </div>
+    <pre id="privKeyOut" aria-live="polite"></pre>
+  </div>
+</div>
+
+<!-- SHARED SECRET -->
+<div class="panel">
+  <h3>2. Shared Secret 🤝</h3>
+
+  <div class="field">
+    <label class="small" for="peerKey">📥 Peer's public key</label>
+    <textarea id="peerKey" placeholder="Paste peer public key" autocomplete="off"></textarea>
+    <div class="btnrow">
+      <button class="iconbtn" id="copyPeerKeyBtn" title="Copy">📋 Copy</button>
+      <button class="iconbtn paste-btn" id="pastePeerKeyBtn" title="Paste from clipboard">📋 Paste</button>
+      <button class="iconbtn" id="exportPeerKeyBtn" title="Export as file">⬇️ Export</button>
+      <button class="iconbtn" id="importPeerKeyBtn" title="Import from file">⬆️ Import</button>
+      <button class="iconbtn clear-btn" id="clearPeerKeyBtn" title="Clear">✕ Clear</button>
+    </div>
+    <div class="small" id="peerFingerprintLabel">Fingerprint (peer's), once entered:</div>
+    <div class="fingerprint" id="peerFingerprint" role="status" aria-labelledby="peerFingerprintLabel">Paste a peer key to see this</div>
+  </div>
+
+  <div class="btnrow">
+    <button id="deriveBtn">🔗 Create Shared Secret</button>
+    <button class="danger-btn" id="resetSessionBtn">🔄 Reset Session</button>
+  </div>
+
+  <pre id="status" aria-live="polite">⏳ Waiting for setup...</pre>
+
+  <div class="field hidden" id="sessionFingerprintField" aria-live="polite">
+    <div class="small" id="sessionFingerprintLabel">🔍 Session Fingerprint (read this aloud to your contact to confirm you're both connected to each other, not an impostor):</div>
+    <div class="fingerprint" id="sessionFingerprint" aria-labelledby="sessionFingerprintLabel">—</div>
+  </div>
+
+  <p class="small">📝 <b>How the forward security works:</b> every reply performs a fresh Diffie-Hellman exchange (a real double ratchet, the same design used by Signal), and every individual message advances a one-way hash chain on top of that. In a normal back-and-forth conversation this means a fresh ECDH computation on effectively every message. A single leaked message key never exposes any other message, and if your device were ever compromised, the very next exchange re-secures the conversation going forward.</p>
+</div>
+
+<!-- CRYPTO -->
+<div class="panel row">
+
+  <div>
+    <h3>3. Encrypt ✉️🔒</h3>
+    <div class="field">
+      <textarea id="msg" placeholder="Type a message, or import any file below (text, image, anything)..." autocomplete="off"></textarea>
+      <div class="btnrow">
+        <button class="iconbtn" id="copyMsgBtn" title="Copy">📋 Copy</button>
+        <button class="iconbtn paste-btn" id="pasteMsgBtn" title="Paste from clipboard">📋 Paste</button>
+        <button class="iconbtn" id="exportMsgBtn" title="Export">⬇️ Export</button>
+        <button class="iconbtn" id="importMsgBtn" title="Import any file">⬆️ Import</button>
+        <button class="iconbtn clear-btn" id="clearMsgBtn" title="Clear">✕ Clear</button>
+      </div>
+    </div>
+    <button id="encryptBtn">🚀 Encrypt</button>
+    <div class="field">
+      <pre id="cipherOut" aria-live="polite"></pre>
+      <div class="btnrow">
+        <button class="iconbtn" id="copyCipherOutBtn" title="Copy">📋 Copy</button>
+        <button class="iconbtn" id="exportCipherOutBtn" title="Export">⬇️ Export</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3>4. Decrypt 📩🔓</h3>
+    <div class="field">
+      <textarea id="cipherIn" placeholder="Paste encrypted message" autocomplete="off"></textarea>
+      <div class="btnrow">
+        <button class="iconbtn" id="copyCipherInBtn" title="Copy">📋 Copy</button>
+        <button class="iconbtn paste-btn" id="pasteCipherInBtn" title="Paste from clipboard">📋 Paste</button>
+        <button class="iconbtn" id="exportCipherInBtn" title="Export">⬇️ Export</button>
+        <button class="iconbtn" id="importCipherInBtn" title="Import">⬆️ Import</button>
+        <button class="iconbtn clear-btn" id="clearCipherInBtn" title="Clear">✕ Clear</button>
+      </div>
+    </div>
+    <button id="decryptBtn">🧪 Decrypt</button>
+    <div class="field">
+      <pre id="plainOut" aria-live="polite"></pre>
+      <div class="btnrow">
+        <button class="iconbtn" id="copyPlainOutBtn" title="Copy">📋 Copy</button>
+        <button class="iconbtn" id="exportPlainOutBtn" title="Export (restores original file if applicable)">⬇️ Export</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>
+  This software is provided "as is", without warranty of any kind, express or implied.<br>
+  In no event shall the authors be liable for any claim, damages or other liability.<br>
+  <a href="https://github.com/MINING123STUDIOs/trinkets/tree/main"
+    target="_blank">Source Code on GitHub (opens in new tab)</a>
+</footer>
+
+<script>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* =========================================================
+   SECURE CHANNEL — DOUBLE RATCHET
+   =========================================================
+   - ECDH (P-256) identity keys bootstrap an initial shared secret.
+   - A real Diffie-Hellman ratchet (Signal-style) re-keys on every
+     reply: whoever sends first after receiving generates a fresh
+     ephemeral key pair and mixes a brand new ECDH result into the
+     root key. In an ordinary back-and-forth conversation this means
+     a fresh ECDH computation on essentially every message.
+   - On top of that, a symmetric hash-chain ratchet advances on every
+     single message (even several in a row from the same sender), so
+     no message key can ever be recomputed from a later one.
+   - AES-GCM's own authentication tag is the only integrity check
+     (a separate HMAC would be redundant). The message header is
+     bound in as associated data, so tampering with the header alone
+     (even without touching the ciphertext) is also detected.
+   - decrypt() is transactional for single-chunk packets: it never mutates
+     any session state until the AES-GCM tag has actually verified. For
+     multi-chunk packets, ratchet state commits after key derivation but
+     before chunk decryption (first chunk must succeed for subsequent
+     chunks to work). This matters more than it sounds — without the
+     single-chunk guarantee, a single corrupted or tampered packet can
+     permanently desynchronize the ratchet and brick the whole
+     conversation. (This was caught and fixed during testing.)
+
+   LARGE PAYLOADS (>~100MB), why this needs special handling:
+   - Chrome/Edge/Node's JS engine (V8) throws a hard RangeError once a
+     single string exceeds ~512M UTF-16 characters. A ~400MB file's
+     base64 form is already ~533M characters — over that line. So the
+     ciphertext is base64-encoded in fixed-size CHUNKS (each safely
+     small) and carried as an array (`dataChunks`), never as one
+     giant string.
+   - That alone isn't enough: JSON.stringify() on the whole packet
+     still has to produce ONE final string, so it hits the same wall
+     for big-enough payloads regardless of internal chunking. Above
+     STREAMING_EXPORT_THRESHOLD, Export bypasses JSON.stringify
+     entirely — it hands the chunk strings directly to `new
+     Blob([...parts])`, which concatenates them at the Blob level
+     without ever forming one oversized JS string. Import mirrors
+     this: for files written in that format, it reads the file in
+     fixed windows via File.slice() instead of file.text(), so it
+     never materializes the whole file as one string either.
+   - Separately, huge text was previously being dumped straight into
+     a <pre>/<textarea> — real browsers become sluggish or unresponsive
+     rendering many MB of text in one DOM node. Above DISPLAY_THRESHOLD,
+     the UI shows a short summary instead, while the real data lives in
+     a JS variable for Export/Copy to use.
+
+   FILE MAP (script split across js/, in load order):
+   - constants.js    — this file: thresholds, byte helpers, the outer
+                        envelope obfuscation layer.
+   - msg.js          — all user-facing strings as named constants.
+   - crypto-core.js  — ECDH/HKDF/HMAC/AES-GCM primitives and the
+                        RatchetSession double-ratchet implementation.
+   - large-payload.js— base64 chunking and the streaming large-file
+                        export/import format built on top of it.
+   - ui.js           — all DOM wiring, session state, and the
+                        Encrypt/Decrypt/Key-management handlers.
+   These load as ordinary classic <script> tags (no bundler, no
+   modules), so they share one global scope exactly like one big file
+   would — order in index.html matters and must match the dependency
+   order above.
+   ========================================================= */
+
+/* ---------- thresholds ---------- */
+
+const MAX_SKIP = 1000;
+const MAX_SKIPPED_KEYS = 2000;
+const DECRYPT_RATE_LIMIT = 2; // max decryptions per second
+
+const CHUNK_BYTES = 64 * 1024 * 1024;              // 64MB raw per base64 chunk (~85MB base64, far under the ~512M char engine limit)
+const DISPLAY_THRESHOLD = 1 * 1024 * 1024;         // above this, show a summary in the UI instead of the full content
+const STREAMING_EXPORT_THRESHOLD = 200 * 1024 * 1024; // above this, Export bypasses JSON.stringify entirely
+// A plain-looking token rather than a self-describing name — on import
+// this is only ever compared byte-for-byte, never displayed, so there's
+// no reason for it to spell out what the format is.
+const LARGE_FORMAT_MAGIC = "N2xkVA1Qy7ZpKf3H";
+const IMPORT_WINDOW = 32 * 1024 * 1024;            // read window size when streaming-importing a large file
+const SPINNER_THRESHOLD = 512 * 1024;              // above this, show the progress indicator for encrypt/decrypt/read/import
+const LARGE_IMPORT_CONFIRM_THRESHOLD = 300 * 1024 * 1024; // above this, ask for confirmation before importing (may crash browser)
+const PRIVKEY_CONFIRM_TIMEOUT = 10_000;             // private-key exposure warnings auto-dismiss (cancel) after this many ms
+const PRIVKEY_AUTOHIDE_TIMEOUT = 15_000;            // revealed private key auto-hides after this many ms
+const FILE_READ_CHUNK = 128 * 1024 * 1024;           // 128 MB — avoids browser 2 GiB arrayBuffer truncation
+const STREAMING_ENCRYPT_THRESHOLD = 256 * 1024 * 1024; // above this, encrypt streams directly from file (avoids holding full plaintext in memory)
+
+// Set to true in the console (DEBUG = true) to enable detailed error logging.
+var DEBUG = false;
+
+// Binary format magic bytes — 4-byte signatures written at the start of
+// exported files so import can distinguish binary from base64 text.
+// "SCBN" = Secure Channel Binary (small/normal), "SCBL" = Secure Channel Binary Large.
+const BIN_MAGIC_SMALL = new Uint8Array([0x53, 0x43, 0x42, 0x4E]); // "SCBN"
+const BIN_MAGIC_LARGE = new Uint8Array([0x53, 0x43, 0x42, 0x4C]); // "SCBL"
+const ID_MAGIC = new Uint8Array([0x53, 0x43, 0x49, 0x44]);         // "SCID" — identity backup
+
+// Yields to the browser between chunks of otherwise-synchronous work
+// (base64 encode/decode loops, file windows) so the tab keeps painting
+// — the progress indicator's animation and percentage — instead of
+// freezing for the whole operation on large files.
+function yieldToUI(){
+  return new Promise((resolve) => {
+    if(typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+}
+
+/* ---------- outer envelope obfuscation ----------
+   This does NOT add security — the real protection is the ECDH/AES-GCM
+   double ratchet in crypto-core.js. All this does is stop the
+   copy/pasted or exported text from visually announcing itself as "an
+   encrypted messenger packet" (readable {"header":..., "dataChunks":...}
+   JSON, or a base64-of-JSON blob starting with the tell-tale "eyJ..."
+   that tools and onlookers recognize on sight). See dev.md §3 before
+   ever treating any part of this as a security boundary — it isn't one.
+
+   Two sub-layers, applied in order by maskBytesOnce():
+
+   1. XOR against a pseudorandom keystream. This is what breaks the
+      brace/quote signature. IMPORTANT — XOR has no diffusion: output
+      byte i depends on input byte i and nothing else, no matter how the
+      keystream is generated. What the keystream generation *does* fix
+      relative to a naive fixed short key is periodicity: a short
+      repeating XOR key leaves a short repeating period in the output,
+      which is itself a giveaway (autocorrelation at the key length, or
+      a byte-frequency count, can reveal it). The keystream here has no
+      such period — see fillPseudorandomStream() below.
+
+   2. A chained ARX (Add / Rotate / Xor-by-position) mixing pass over
+      the XOR'd bytes, taken 4 bytes at a time (arxMixWords()). THIS is
+      what provides actual diffusion: each word's transform folds in an
+      accumulator carried from the *previous* word's output, so changing
+      one word changes every word after it, not just that one word.
+      Within a word, 32-bit addition (real carry propagation across bit
+      positions — unlike XOR, which never carries) and a bitwise
+      rotation (spreads bit influence across byte boundaries) do the
+      mixing. The trailing 0–3 bytes that don't form a full word are
+      left XOR-only (there's nothing after them to diffuse into, and
+      it avoids padding the output to a word boundary).
+
+   That accumulator chain is also this sub-layer's limitation: it only
+   carries FORWARD, so within one maskBytesOnce() pass, a change near the
+   end of the buffer never affects bytes near the start. maskBytes() (the
+   function actually called by encodeOpaquePacket) fixes that by running
+   the above twice with reverseBitOrder() in between:
+
+     maskBytesOnce(tags A) -> reverseBitOrder -> maskBytesOnce(tags B) -> reverseBitOrder
+
+   reverseBitOrder() reverses the ENTIRE bit sequence of the buffer (byte
+   order flips too, not just the bits within each byte), so whatever was
+   near the end for pass 1 is near the start for pass 2. Running the mix
+   again there propagates changes in the other direction; the closing
+   reverseBitOrder() undoes the flip so the output has the original
+   orientation. unmaskBytes() runs all four steps in reverse (reverseBitOrder
+   is its own inverse, so "undoing" it is just calling it again). Pass 2
+   uses its own domain tags (MASK_STREAM_TAG_2 / ROUND_MATERIAL_TAG_2) so
+   it isn't the same keystream/round material re-applied to a permutation
+   of pass 1's own output.
+
+   Keystream generation: rather than hashing every 32-byte block with
+   SHA-256 (the previous approach), which would mean millions of async
+   crypto.subtle.digest calls for this tool's largest supported exports
+   (~200MB), a single 32-bit seed is derived from ENVELOPE_SEED via one
+   SHA-256 call per stream, then expanded with mulberry32, a small fast
+   synchronous PRNG. mulberry32 is NOT cryptographically secure and must
+   never be treated as such — it's chosen purely for speed on large
+   payloads, exactly the way this whole layer is chosen purely for not
+   looking recognizable. Its period (~2^32) comfortably exceeds any
+   realistic message size here, and it has no short repeating structure.
+
+   None of this is a secret: the seed is public, it ships in this file,
+   and anyone with this source can regenerate the exact same streams.
+   That's expected and fine, since it's cosmetic camouflage, not a
+   security boundary. */
+const ENVELOPE_SEED = new Uint8Array([
+  0x5a, 0x3c, 0x91, 0xe7, 0x2d, 0x88, 0x14, 0x6b,
+  0xc2, 0x49, 0xf0, 0x77, 0x8e, 0x03, 0xd5, 0xaa
+]);
+
+
+const MASK_STREAM_TAG = 0x00;  // domain tag for pass 1's XOR keystream
+const ROUND_MATERIAL_TAG = 0x01; // domain tag for pass 1's ARX round constants/rotations
+const MASK_STREAM_TAG_2 = 0x02;  // domain tag for pass 2's XOR keystream (see maskBytes below)
+const ROUND_MATERIAL_TAG_2 = 0x03; // domain tag for pass 2's ARX round constants/rotations
+// Pass 2 gets its own tags rather than reusing pass 1's: reusing them would
+// mean pass 2 XORs/mixes with the exact same keystream and round material as
+// pass 1, just against bit-reversed input. Separate tags mean the two passes
+// are independent-looking layers, not the same layer applied to a permutation
+// of its own output.
+
+// One-time (per call) 32-bit seed for a named stream, derived from the
+// public ENVELOPE_SEED via a single SHA-256 call. Different tags produce
+// unrelated-looking streams from the same base seed — this is the one
+// place a real hash (with its avalanche property) is used; everything
+// after this is fast synchronous PRNG expansion, not hashing.
+async function envelopeDomainSeed(tag){
+  const material = concatBytes(ENVELOPE_SEED, new Uint8Array([tag]));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", material));
+  return new DataView(digest.buffer).getUint32(0, false);
+}
+
+// Fills a `length`-byte stream from a 32-bit seed, 4 bytes per PRNG call.
+// The generator is mulberry32 (small, fast, public-domain; Tommy
+// Ettinger) — not a CSPRNG, fine here since this whole layer is
+// cosmetic, chosen only to expand a SHA-256-derived seed quickly.
+// The PRNG's step is inlined directly in the loop below (rather than
+// called through a returned closure) and written via a Uint32Array view
+// rather than DataView — both matter once this runs millions of times
+// over a large export; profiling a 20MB stream showed the closure-call +
+// DataView version costing ~1.7s here alone, most of which this removes.
+// Yields periodically so very large (near-200MB) payloads don't freeze
+// the tab — see dev.md §2 on async-for-anything-at-scale.
+//
+// NOTE on endianness: this writes through a Uint32Array view, so the
+// byte order of each 4-byte group follows the platform's native order
+// rather than an explicit one. Every mainstream JS engine (all current
+// desktop and mobile browsers, Node) runs on little-endian hardware, so
+// in practice this is consistent for every real user of this tool. That
+// wouldn't be an acceptable assumption for the real cryptography in
+// crypto-core.js — it's fine here only because this layer is cosmetic
+// and both sides of a conversation run the same class of engine.
+async function fillPseudorandomStream(seed32, length){
+  const out = new Uint8Array(length);
+  const wordCount = length >> 2;
+  const words = new Uint32Array(out.buffer, out.byteOffset, wordCount);
+  let a = seed32 >>> 0;
+  for(let i = 0; i < wordCount; i++){
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    words[i] = (t ^ (t >>> 14)) >>> 0;
+    if((i & 0xffffff) === 0) await yieldToUI(); // roughly every 64MB
+  }
+  const rem = length - wordCount * 4;
+  if(rem > 0){
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    const tailWord = (t ^ (t >>> 14)) >>> 0;
+    for(let b = 0; b < rem; b++) out[wordCount * 4 + b] = (tailWord >>> (24 - 8 * b)) & 0xff;
+  }
+  return out;
+}
+
+function rotl32(x, r){
+  const s = r & 31;
+  return ((x << s) | (x >>> (32 - s))) >>> 0;
+}
+function rotr32(x, r){
+  const s = r & 31;
+  return ((x >>> s) | (x << (32 - s))) >>> 0;
+}
+
+// Chained ARX mixing pass over full 4-byte words of `bytes`, mutated in
+// place. `acc` carries the previous word's *output* into the next word's
+// input — that chain is what gives real forward diffusion (change one
+// word, every later word changes), which plain XOR structurally cannot
+// provide regardless of keystream quality. `roundMaterial` supplies one
+// 32-bit addition constant per word (added with ordinary 32-bit
+// wraparound — genuine carry propagation across bit positions); the
+// rotation amount is derived from that same constant (`rc % 31 + 1`)
+// rather than stored separately, since a second independent value adds
+// generation cost without adding anything a cosmetic layer needs. Set
+// `inverse` to undo it — this is why the whole layer needs a separate
+// unmaskBytes() rather than being its own inverse the way plain
+// XOR-only masking was. Uses Uint32Array views for the same performance
+// reason as fillPseudorandomStream above (see its endianness note).
+async function arxMixWords(bytes, roundMaterial, inverse){
+  const wordCount = bytes.length >> 2;
+  const words = new Uint32Array(bytes.buffer, bytes.byteOffset, wordCount);
+  const rm = new Uint32Array(roundMaterial.buffer, roundMaterial.byteOffset, wordCount);
+  let acc = 0;
+  for(let i = 0; i < wordCount; i++){
+    const rc = rm[i];
+    const rot = (rc % 31) + 1;
+    if(!inverse){
+      const mixed = rotl32((words[i] + acc + rc) >>> 0, rot);
+      words[i] = mixed;
+      acc = mixed;
+    } else {
+      const mixed = words[i];
+      words[i] = (rotr32(mixed, rot) - acc - rc) >>> 0;
+      acc = mixed; // the chain is keyed on the OUTPUT word, already known while reading forward
+    }
+    if((i & 0xffffff) === 0) await yieldToUI(); // roughly every 64MB, same cadence as elsewhere
+  }
+}
+
+// Precomputed byte-level bit-reversal table (bit 7 <-> bit 0, bit 6 <-> bit 1,
+// etc. within one byte), used by reverseBitOrder() below. A table lookup is
+// cheaper per byte than re-deriving it with shifts every time, which matters
+// once this runs across a ~200MB buffer.
+const BIT_REVERSE_TABLE = (() => {
+  const t = new Uint8Array(256);
+  for(let i = 0; i < 256; i++){
+    let b = i, r = 0;
+    for(let k = 0; k < 8; k++){ r = (r << 1) | (b & 1); b >>= 1; }
+    t[i] = r;
+  }
+  return t;
+})();
+
+// Reverses the ENTIRE bit sequence of `bytes`, treating the whole buffer as
+// one long bit string rather than reversing bits within each byte in place.
+// The very last bit of the buffer becomes the very first bit of the output,
+// which means byte order flips too: out[i] is BIT_REVERSE_TABLE applied to
+// bytes[length-1-i], not to bytes[i]. It's its own inverse (reversing twice
+// restores the original), which is what lets maskBytes/unmaskBytes below
+// undo it symmetrically without a separate "unreverse" function.
+// Yields periodically for the same reason as fillPseudorandomStream/
+// arxMixWords — a synchronous pass over a near-200MB buffer would freeze
+// the tab (dev.md §2).
+async function reverseBitOrder(bytes){
+  const n = bytes.length;
+  const out = new Uint8Array(n);
+  for(let i = 0; i < n; i++){
+    out[i] = BIT_REVERSE_TABLE[bytes[n - 1 - i]];
+    if((i & 0xffffff) === 0) await yieldToUI(); // roughly every 16M bytes
+  }
+  return out;
+}
+
+// Single application of the XOR-then-ARX layer described above, parameterized
+// on which domain tags to derive its keystream/round material from. This is
+// the whole of what maskBytes/unmaskBytes used to do directly; it's now
+// applied twice (see maskBytes below) with different tags each time, so it's
+// factored out rather than duplicated.
+async function maskBytesOnce(bytes, xorTag, roundTag){
+  const maskSeed = await envelopeDomainSeed(xorTag);
+  const xorStream = await fillPseudorandomStream(maskSeed, bytes.length);
+  const out = new Uint8Array(bytes.length);
+  for(let i = 0; i < bytes.length; i++) out[i] = bytes[i] ^ xorStream[i];
+
+  const wordCount = out.length >> 2;
+  if(wordCount > 0){
+    const roundSeed = await envelopeDomainSeed(roundTag);
+    const roundMaterial = await fillPseudorandomStream(roundSeed, wordCount * 4);
+    await arxMixWords(out.subarray(0, wordCount * 4), roundMaterial, false);
+  }
+  return out;
+}
+
+// Inverse of maskBytesOnce for the same tag pair.
+async function unmaskBytesOnce(bytes, xorTag, roundTag){
+  const out = new Uint8Array(bytes); // copy — never mutate the caller's buffer
+
+  const wordCount = out.length >> 2;
+  if(wordCount > 0){
+    const roundSeed = await envelopeDomainSeed(roundTag);
+    const roundMaterial = await fillPseudorandomStream(roundSeed, wordCount * 4);
+    await arxMixWords(out.subarray(0, wordCount * 4), roundMaterial, true);
+  }
+
+  const maskSeed = await envelopeDomainSeed(xorTag);
+  const xorStream = await fillPseudorandomStream(maskSeed, out.length);
+  for(let i = 0; i < out.length; i++) out[i] ^= xorStream[i];
+  return out;
+}
+
+// maskBytes = maskOnce, reverseBitOrder, maskOnce again (different tags),
+// reverseBitOrder again.
+//
+// WHY: within a single maskBytesOnce pass, arxMixWords' mixing accumulator
+// only carries forward — word i's output folds in word i-1's output, never
+// word i+1's. So in one pass, flipping a byte near the END of the buffer has
+// NO effect at all on bytes near the start; diffusion is one-directional.
+// Reversing the entire buffer's bit order between the two passes (not just
+// each byte's bits — the whole thing, so byte order flips too) means
+// whatever was near the end for pass 1 is near the start for pass 2, and
+// vice versa. Running maskBytesOnce again on that reversed buffer mixes in
+// the other direction. Combined, a change anywhere in the input now
+// propagates through the entire output, not just through what followed it.
+// The final reverseBitOrder restores the original byte/bit orientation so
+// output length and layout otherwise still line up the way callers expect.
+//
+// Pass 2 uses MASK_STREAM_TAG_2/ROUND_MATERIAL_TAG_2 (not the pass-1 tags)
+// so it isn't the same keystream/round material folded over a permutation
+// of its own output — see the comment on those constants.
+async function maskBytes(bytes){
+  const pass1 = await reverseBitOrder(bytes); 
+  const flipped1 = await maskBytesOnce(pass1, MASK_STREAM_TAG, ROUND_MATERIAL_TAG);
+  const pass2 = await reverseBitOrder(flipped1);
+  return await maskBytesOnce(pass2, MASK_STREAM_TAG_2, ROUND_MATERIAL_TAG_2);
+}
+
+// Exact inverse of maskBytes, undoing each step in reverse order. Because
+// reverseBitOrder is its own inverse, undoing it is just calling it again —
+// there's no separate "unreverse" function needed.
+async function unmaskBytes(bytes){
+  const flipped2 = await unmaskBytesOnce(bytes, MASK_STREAM_TAG_2, ROUND_MATERIAL_TAG_2);
+  const pass2Undone = await reverseBitOrder(flipped2);
+  const flipped1 = await unmaskBytesOnce(pass2Undone, MASK_STREAM_TAG, ROUND_MATERIAL_TAG);
+  return await reverseBitOrder(flipped1); 
+}
+
+// packet -> opaque base64 blob (no braces, quotes, or field names visible)
+async function encodeOpaquePacket(packet){
+  const json = JSON.stringify(packet);
+  const masked = await maskBytes(new TextEncoder().encode(json));
+  return b64(masked);
+}
+
+// opaque base64 blob -> packet (throws if it isn't one of ours)
+async function decodeOpaquePacket(str){
+  const cleaned = String(str).trim().replace(/\s+/g, "");
+  const masked = unb64(cleaned);       // throws on invalid base64 — caller already handles that
+  const json = new TextDecoder().decode(await unmaskBytes(masked));
+  return JSON.parse(json);             // throws on malformed JSON — caller already handles that
+}
+
+// packet -> binary blob (small, for file export — raw masked bytes, not base64)
+async function encodeOpaquePacketBinary(packet){
+  const json = JSON.stringify(packet);
+  const masked = await maskBytes(new TextEncoder().encode(json));
+  return concatBytes(BIN_MAGIC_SMALL, masked);
+}
+
+// binary blob -> packet (inverse of encodeOpaquePacketBinary)
+async function decodeOpaquePacketBinary(bytes){
+  const masked = bytes.slice(BIN_MAGIC_SMALL.length);
+  const json = new TextDecoder().decode(await unmaskBytes(masked));
+  return JSON.parse(json);
+}
+
+// identity object -> masked binary with ID_MAGIC prefix
+async function encodeIdentityBytes(identity){
+  const json = new TextEncoder().encode(JSON.stringify(identity));
+  const masked = await maskBytes(json);
+  return concatBytes(ID_MAGIC, masked);
+}
+
+// masked binary -> identity object (inverse of encodeIdentityBytes)
+async function decodeIdentityBytes(bytes){
+  const masked = bytes.slice(ID_MAGIC.length);
+  const json = new TextDecoder().decode(await unmaskBytes(masked));
+  return JSON.parse(json);
+}
+
+/* ---------- secure memory clearing ---------- */
+
+// Best-effort zeroing. Works on Uint8Array and ArrayBuffer.
+// CryptoKey objects are opaque — no JS API can zero their internal material.
+// They are cleared by the engine when garbage collected (timing non-deterministic).
+function secureClear(buf){
+  if(buf instanceof Uint8Array) buf.fill(0);
+  else if(buf instanceof ArrayBuffer) new Uint8Array(buf).fill(0);
+}
+
+/* ---------- byte helpers ---------- */
+
+function b64(bufOrArr){
+  const bytes = bufOrArr instanceof Uint8Array ? bufOrArr : new Uint8Array(bufOrArr);
+  let binary = '';
+  const chunk = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+function unb64(str){
+  const binary = atob(str);
+  const bytes = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function bytesEqual(a, b){
+  if(!a || !b || a.length !== b.length) return false;
+  let diff = 0;
+  for(let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+function compareBytes(a, b){
+  const len = Math.min(a.length, b.length);
+  let diff = 0;
+  let firstDiffPos = 0;
+  for(let i = 0; i < len; i++){
+    diff |= a[i] ^ b[i];
+    if(diff && !firstDiffPos) firstDiffPos = i + 1;
+  }
+  if(diff === 0) return a.length - b.length;
+  return (a[firstDiffPos - 1] < b[firstDiffPos - 1]) ? -1 : 1;
+}
+function concatBytes(...arrs){
+  const total = arrs.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for(const a of arrs){ out.set(a, off); off += a.length; }
+  return out;
+}
+</script>
+<script>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* ---------- Inline messages (showInlineMessage) ---------- */
+
+const MSG_CLIPBOARD_FAILED       = "⚠️ Could not read from clipboard. Please paste manually.";
+const MSG_CLIPBOARD_WRITE_FAILED = "⚠️ Could not write to clipboard. Use Export below to save as a file instead.";
+const MSG_NOTHING_TO_COPY        = "⚠️ Nothing here to copy yet";
+const MSG_TOO_LARGE_TO_COPY      = "⚠️ This message is too large to copy to the clipboard. Use Export below to save it as a file instead.";
+const MSG_NOTHING_DECRYPTED      = "⚠️ Nothing decrypted yet";
+const MSG_FILE_USE_EXPORT        = "This decrypted content is a file — use Export below to save it, not Copy.";
+const MSG_NOTHING_TO_EXPORT      = "⚠️ Nothing here to export yet";
+const MSG_GENERATE_KEYS_FIRST    = "⚠️ Generate a key pair first";
+const MSG_INVALID_IDENTITY_FILE  = "⚠️ That file doesn't look like a valid identity backup.";
+const MSG_CANT_READ_PEER_KEY     = "⚠️ Can't read this as a key yet";
+const MSG_PASTE_PEER_KEY_FIRST   = "Paste a peer key to see this";
+
+/* ---------- Encrypt / Decrypt output messages ---------- */
+
+const MSG_NO_SESSION             = "⚠️ No shared secret — set up a session first";
+const MSG_CANT_READ_FILE         = "❌ Couldn't read the attached file (see console).";
+const MSG_NOTHING_TO_ENCRYPT     = "⚠️ Nothing to encrypt — type a message or import a file first";
+const MSG_ENCRYPTED_LARGE        = (size) => `🔒 Encrypted — approx. ${size}. Too large to display here. Use Export or Copy below.`;
+const MSG_CANT_SEND_YET          = "⚠️ You can't send yet — your peer needs to send the first message in this session before you can reply. (Whoever's public key sorts first becomes the initiator and sends first.)";
+const MSG_ENCRYPT_FAILED         = "❌ Encryption failed unexpectedly (see console).";
+const MSG_DECRYPT_FILE_PROMPT    = (name, size) => `🔓 [File: ${name} — ${size}] Use Export below to save it.`;
+const MSG_DECRYPTED_LARGE        = (size) => `🔓 Decrypted — ${size} of text. Too large to display here. Use Export or Copy below.`;
+const MSG_DECRYPTED_PREFIX        = "🔓 ";
+const MSG_DECRYPT_FAILED         = "❌ Couldn't decrypt this message — ";
+const MSG_DECRYPT_BAD_FORMAT     = "it isn't in a format this tool recognizes (wrong version, or not from this tool at all).";
+const MSG_DECRYPT_MISSING_FIELDS = "the message header is missing required fields.";
+const MSG_DECRYPT_CORRUPTED      = "it may be corrupted, tampered with, encrypted for someone else, or already read.";
+const MSG_INVALID_CIPHER         = "❌ That doesn't look like a valid encrypted message — check you copied the whole thing.";
+
+/* ---------- Key generation / session status messages ---------- */
+
+const STATUS_KEYS_GENERATED      = "✅ Keys generated. Awaiting peer...";
+const STATUS_IDENTITY_RESTORED   = "✅ Identity restored. Awaiting peer...";
+const STATUS_GENERATE_FIRST      = "⚠️ Generate your key pair first";
+const STATUS_PASTE_PEER_KEY      = "⚠️ Paste a peer public key first";
+const STATUS_INVALID_PEER_KEY    = "⚠️ That doesn't look like a valid public key — check for missing characters or extra text";
+const STATUS_OWN_KEY             = "⚠️ That's your own public key, not a peer's — you need a key from the other person";
+const STATUS_SESSION_ESTABLISHED = (canSend) => "🔐 Secure session established. You can " + (canSend ? "send right away." : "reply once your peer sends the first message.");
+const STATUS_SESSION_FAILED      = "❌ Couldn't set up the session (see browser console for details). Double-check the pasted key and try again.";
+const STATUS_NOTHING_TO_RESET    = "Nothing to reset — no session is active.";
+const STATUS_SESSION_RESET       = "🔄 Session reset. Create a new shared secret to keep talking.";
+
+/* ---------- Confirmation warning messages & button labels ---------- */
+
+const CONFIRM_PRIVKEY_EXPOSURE   = (action) =>
+  `⚠️ You're about to ${action} your PRIVATE key. ` +
+  `Anyone who obtains it can read your messages and impersonate you. ` +
+  `Only continue if you're sure of where it's going (or who's looking at your screen).`;
+const CONFIRM_SESSION_RESET      = "This will end the current secure session. You won't be able to decrypt any messages from this conversation afterward (though your keys stay intact). Continue?";
+const CONFIRM_KEY_REPLACEMENT    = "You already have a key pair. Generating a new one will replace it — any encrypted messages sent to you with the old key won't be decryptable anymore. Continue?";
+const CONFIRM_LARGE_IMPORT       = (size) => `⚠️ File is ${size} — too large to import safely. The browser may crash or become unresponsive.`;
+const CONFIRM_LARGE_ENCRYPT      = (size) => `⚠️ File is ${size}. Your browser will need roughly twice that much RAM to encrypt and download it. Continue?`;
+const MSG_STREAMING_UNAVAILABLE  = "⚠️ Your browser doesn't support direct-to-disk saving. The encrypted file will be buffered in memory — may use a lot of RAM.";
+const BTN_CONTINUE               = "✅ Continue";
+const BTN_CANCEL                 = "❌ Cancel";
+const BTN_IMPORT_ANYWAY          = "✅ Import anyway";
+const BTN_RESET_SESSION          = "✅ Reset session";
+const BTN_GENERATE_NEW_KEYS      = "✅ Generate new keys";
+
+/* ---------- Progress labels ---------- */
+
+const PROGRESS_WORKING           = "Working…";
+const PROGRESS_READING           = "Reading file…";
+const PROGRESS_ENCRYPTING        = "Encrypting…";
+const PROGRESS_DECRYPTING        = "Decrypting…";
+
+/* ---------- UI labels ---------- */
+
+const LABEL_SHOW                 = "Show";
+const LABEL_HIDE                 = "Hide";
+const LABEL_THEME_DARK           = "🌙 Dark";
+const LABEL_THEME_LIGHT          = "☀️ Light";
+const MSG_FILE_ATTACHED          = (name, size) => `📎 Attached: ${name} (${size}) — click Encrypt to send it, or type here to replace it with text.`;
+
+/* ---------- Import / file errors ---------- */
+
+const MSG_WRONG_FORMAT_LARGE     = (size) =>
+  `⚠️ This file is ${size} and isn't in this tool's format — ` +
+  `it may fail to load. If it came from this tool's Export, that's unexpected; otherwise it wasn't meant for direct import this large.`;
+const MSG_CANT_READ_CIPHER_FILE  = (name) => `❌ Couldn't read ${name} as an encrypted message (see console).`;
+const MSG_CIPHER_IMPORTED        = (name, size) => `📎 Imported: ${name} (${size}) — click Decrypt to process it, or edit/paste here to replace it.`;
+</script>
+<script>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* ---------- low-level crypto ---------- */
+
+async function generateIdentityKeyPair(){
+  return await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+}
+async function generateDHKeyPair(){
+  return await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+}
+async function exportPub(pubKey){
+  return new Uint8Array(await crypto.subtle.exportKey("spki", pubKey));
+}
+async function importPub(rawBytes){
+  return await crypto.subtle.importKey("spki", rawBytes, { name: "ECDH", namedCurve: "P-256" }, true, []);
+}
+async function dh(privateKey, publicKey){
+  const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: publicKey }, privateKey, 256);
+  return new Uint8Array(bits);
+}
+async function hmacRaw(keyBytes, byteTag){
+  const hk = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", hk, new Uint8Array([byteTag]));
+  return new Uint8Array(sig);
+}
+async function kdfCK(ckBytes){
+  const mkSeed = await hmacRaw(ckBytes, 0x01);
+  const nextCK = await hmacRaw(ckBytes, 0x02);
+  return { mkSeed, nextCK };
+}
+async function kdfRK(rkBytes, dhOutBytes){
+  const ikm = await crypto.subtle.importKey("raw", dhOutBytes, "HKDF", false, ["deriveBits"]);
+  const out = new Uint8Array(await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt: rkBytes, info: new TextEncoder().encode("dr-root") },
+    ikm, 512
+  ));
+  const newRK = out.slice(0, 32);
+  const newCKseed = out.slice(32, 64);
+  secureClear(out);
+  return { newRK, newCKseed };
+}
+async function deriveMessageAesKey(mkSeedBytes){
+  const ikm = await crypto.subtle.importKey("raw", mkSeedBytes, "HKDF", false, ["deriveKey"]);
+  return await crypto.subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("dr-msg-key") },
+    ikm, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+  );
+}
+async function fingerprintOf(rawBytes){
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-512", rawBytes));
+  const hex = Array.from(hash).map(b => b.toString(16).padStart(2, '0')).join('');
+  const first = hex.slice(0, 64).match(/.{1,4}/g).join(' ').toUpperCase();
+  const second = hex.slice(64).match(/.{1,4}/g).join(' ').toUpperCase();
+  return ' ' + first + '\n[' + second + ']';
+}
+
+var GCM_CHUNK_BYTES = 512 * 1024 * 1024; // 512 MB – well under the 2 GiB SubtleCrypto limit
+
+async function deriveChunkIv(baseIv, chunkIndex){
+  const ikm = await crypto.subtle.importKey("raw", baseIv, "HKDF", false, ["deriveBits"]);
+  const derived = new Uint8Array(await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0),
+      info: new TextEncoder().encode("gcm-iv-" + chunkIndex) },
+    ikm, 96
+  ));
+  return derived;
+}
+async function computeInitialSharedSecret(myPriv, peerPub){
+  const raw = await dh(myPriv, peerPub);
+  const ikm = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveBits"]);
+  const out = new Uint8Array(await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt: new TextEncoder().encode("dr-init-salt"), info: new TextEncoder().encode("dr-init-root") },
+    ikm, 256
+  ));
+  secureClear(raw);
+  return out;
+}
+
+/* ---------- Double Ratchet session ---------- */
+
+class RatchetSession {
+  constructor(){
+    this.DHs = null;
+    this.DHr = null;
+    this.DHrRaw = null;
+    this.RK = null;
+    this.CKs = null;
+    this.CKr = null;
+    this.Ns = 0;
+    this.Nr = 0;
+    this.PN = 0;
+    this.skipped = new Map();
+    this._decryptTimestamps = [];
+  }
+
+  clear(){
+    this.DHs = null;
+    this.DHr = null;
+    this.DHrRaw = null;
+    if(this.RK) secureClear(this.RK);
+    if(this.CKs) secureClear(this.CKs);
+    if(this.CKr) secureClear(this.CKr);
+    this.RK = null;
+    this.CKs = null;
+    this.CKr = null;
+    for(const [, key] of this.skipped) secureClear(key);
+    this.skipped.clear();
+    this.Ns = 0;
+    this.Nr = 0;
+    this.PN = 0;
+  }
+
+  static async initAsInitiator(sharedSecretBytes, peerStaticPubKey, peerStaticPubRaw){
+    const s = new RatchetSession();
+    s.DHs = await generateDHKeyPair();
+    s.DHr = peerStaticPubKey;
+    s.DHrRaw = peerStaticPubRaw;
+    const dhOut = await dh(s.DHs.privateKey, s.DHr);
+    const { newRK, newCKseed } = await kdfRK(sharedSecretBytes, dhOut);
+    secureClear(dhOut);
+    s.RK = newRK;
+    s.CKs = newCKseed;
+    s.CKr = null;
+    return s;
+  }
+
+  static initAsResponder(sharedSecretBytes, myStaticKeyPair){
+    const s = new RatchetSession();
+    s.DHs = myStaticKeyPair;
+    s.DHr = null;
+    s.DHrRaw = null;
+    s.RK = sharedSecretBytes;
+    s.CKs = null;
+    s.CKr = null;
+    return s;
+  }
+
+  // extraHeaderFields (optional): merged into the header — e.g. file
+  // metadata for attachments. It rides along as AEAD associated data,
+  // so it's authenticated (tamper-evident) even though not encrypted.
+  async encrypt(plaintextBytes, extraHeaderFields, onProgress){
+    if(!this.CKs) throw new Error("no sending chain established yet");
+
+    const myPubRawLocal = await exportPub(this.DHs.publicKey);
+    const header = Object.assign({ dh: b64(myPubRawLocal), pn: this.PN, n: this.Ns }, extraHeaderFields || {});
+
+    // Save state for rollback if encryption fails mid-loop.
+    const savedNs = this.Ns;
+    const savedCKs = this.CKs;
+    this.Ns++;
+
+    const baseIv = crypto.getRandomValues(new Uint8Array(12));
+    const aad = new TextEncoder().encode(JSON.stringify(header));
+
+    // Chunk plaintext into GCM_CHUNK_BYTES pieces so each
+    // crypto.subtle.encrypt() call stays well under the 2 GiB limit.
+    // Single-chunk packets use baseIv directly (full backward compat);
+    // multi-chunk packets derive a unique IV per chunk via HKDF.
+    // Each chunk advances the sending chain independently (matching
+    // how the receiver's decrypt loop advances the receiving chain).
+    const totalChunks = Math.max(1, Math.ceil(plaintextBytes.length / GCM_CHUNK_BYTES));
+    const cipherChunks = [];
+    const chunkIvs = [];
+
+    try {
+      for(let i = 0; i < totalChunks; i++){
+        const { mkSeed, nextCK } = await kdfCK(this.CKs);
+        this.CKs = nextCK;
+        const aesKey = await deriveMessageAesKey(mkSeed);
+        secureClear(mkSeed);
+
+        const start = i * GCM_CHUNK_BYTES;
+        const chunk = plaintextBytes.subarray(start, Math.min(start + GCM_CHUNK_BYTES, plaintextBytes.length));
+        const chunkIv = totalChunks > 1 ? await deriveChunkIv(baseIv, i) : baseIv;
+        const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv: chunkIv, additionalData: aad }, aesKey, chunk);
+        secureClear(aesKey);
+        cipherChunks.push(new Uint8Array(cipher));
+        chunkIvs.push(b64(chunkIv));
+        if(onProgress) onProgress((i + 1) / totalChunks);
+        await yieldToUI();
+      }
+    } catch(e) {
+      this.Ns = savedNs;
+      if(this.CKs) secureClear(this.CKs);
+      this.CKs = savedCKs;
+      throw e;
+    }
+
+    // Single-chunk packets use the legacy monolithic dataChunks format
+    // (full backward compat). Multi-chunk packets store each GCM chunk
+    // as a raw Uint8Array so the b64() call (which uses
+    // String.fromCharCode.apply) is never given a 512 MB+ array.
+    let dataChunks;
+    if(totalChunks === 1){
+      dataChunks = await bytesToBase64Chunks(cipherChunks[0], onProgress);
+    } else {
+      dataChunks = cipherChunks; // Uint8Array[] — handled by decrypt & export
+    }
+    const packet = { v: 3, header, iv: b64(baseIv), dataChunks };
+    if(totalChunks > 1) packet.chunkIvs = chunkIvs;
+    return packet;
+  }
+
+  // Advance the receive chain ahead to catch up with the sender,
+  // caching derived message keys for out-of-order delivery.
+  // Returns the updated chain state without committing to `this`
+  // (caller decides when to commit).
+  async _advanceReceiveChain(ckr, nr, dhKeyB64, until){
+    const staged = [];
+    if(ckr == null) return { ckr, nr, staged };
+    if(until - nr > MAX_SKIP) throw new Error("peer skipped too many messages at once");
+    while(nr < until){
+      const { mkSeed, nextCK } = await kdfCK(ckr);
+      const aesKey = await deriveMessageAesKey(mkSeed);
+      secureClear(mkSeed);
+      // Evict oldest entries when cache is full — CryptoKey objects are
+      // opaque; the engine zeroes material when garbage collected.
+      while(this.skipped.size + staged.length >= MAX_SKIPPED_KEYS){
+        const oldest = this.skipped.keys().next().value;
+        this.skipped.delete(oldest);
+      }
+      staged.push({ key: dhKeyB64 + ":" + nr, aesKey });
+      ckr = nextCK;
+      nr++;
+    }
+    return { ckr, nr, staged };
+  }
+
+  // Shared ratchet logic used by both the chunked and legacy decrypt
+  // paths.  Performs DH ratchet (if the peer's static key changed),
+  // advances the receive chain, and derives a message key — all into
+  // tentative locals.  Returns the computed state WITHOUT committing
+  // to `this`, so each caller can decide when to commit:
+  //   - chunked path: commits after key derivation (before decryption)
+  //   - legacy path:  commits only after AES-GCM tag verifies
+  async _ratchetAndDerive(header, dhRawIncoming){
+    let tDHs = this.DHs, tDHr = this.DHr, tDHrRaw = this.DHrRaw;
+    let tRK = this.RK, tCKr = this.CKr, tCKs = this.CKs;
+    let tNs = this.Ns, tNr = this.Nr, tPN = this.PN;
+    const stagedSkips = [];
+    const isNewDHKey = !tDHrRaw || !bytesEqual(tDHrRaw, dhRawIncoming);
+
+    if(isNewDHKey){
+      const oldDhLabel = tDHrRaw ? b64(tDHrRaw) : "__none__";
+      const skip1 = await this._advanceReceiveChain(tCKr, tNr, oldDhLabel, header.pn);
+      tCKr = skip1.ckr; tNr = skip1.nr;
+      stagedSkips.push(...skip1.staged);
+
+      const newPeerPub = await importPub(dhRawIncoming);
+      tPN = tNs; tNs = 0; tNr = 0;
+      tDHr = newPeerPub; tDHrRaw = dhRawIncoming;
+
+      const dhOut1 = await dh(tDHs.privateKey, tDHr);
+      const step1 = await kdfRK(tRK, dhOut1);
+      secureClear(dhOut1);
+      tRK = step1.newRK; tCKr = step1.newCKseed;
+
+      tDHs = await generateDHKeyPair();
+      const dhOut2 = await dh(tDHs.privateKey, tDHr);
+      const step2 = await kdfRK(tRK, dhOut2);
+      secureClear(dhOut2);
+      tRK = step2.newRK;
+      tCKs = step2.newCKseed;
+
+      const skip2 = await this._advanceReceiveChain(tCKr, tNr, b64(tDHrRaw), header.n);
+      tCKr = skip2.ckr; tNr = skip2.nr;
+      stagedSkips.push(...skip2.staged);
+
+      const { mkSeed, nextCK } = await kdfCK(tCKr);
+      const aesKey = await deriveMessageAesKey(mkSeed);
+      secureClear(mkSeed);
+      tCKr = nextCK;
+
+      return {
+        aesKey, stagedSkips,
+        DHs: tDHs, DHr: tDHr, DHrRaw: tDHrRaw,
+        RK: tRK, CKs: tCKs, CKr: tCKr,
+        Ns: tNs, Nr: tNr + 1, PN: tPN
+      };
+    }
+
+    const skip = await this._advanceReceiveChain(tCKr, tNr, b64(tDHrRaw), header.n);
+    tCKr = skip.ckr; tNr = skip.nr;
+    stagedSkips.push(...skip.staged);
+
+    const { mkSeed, nextCK } = await kdfCK(tCKr);
+    const aesKey = await deriveMessageAesKey(mkSeed);
+    secureClear(mkSeed);
+    tCKr = nextCK;
+
+    return {
+      aesKey, stagedSkips,
+      DHs: tDHs, DHr: tDHr, DHrRaw: tDHrRaw,
+      RK: tRK, CKs: tCKs, CKr: tCKr,
+      Ns: tNs, Nr: tNr + 1, PN: tPN
+    };
+  }
+
+  // Accepts either { dataChunks: [...] } (normal path — decoded here)
+  // or { cipherBytes: Uint8Array } (already reconstructed by the
+  // streaming importer for a very large file) so both paths converge
+  // on the same decryption logic below.
+  async decrypt(packet, onProgress){
+    const now = Date.now();
+    this._decryptTimestamps = this._decryptTimestamps.filter(t => now - t < 1000);
+    if(this._decryptTimestamps.length >= DECRYPT_RATE_LIMIT){
+      throw new Error("decryption rate limit exceeded");
+    }
+    this._decryptTimestamps.push(now);
+    if(!packet || packet.v !== 3 || !packet.header) throw new Error("unrecognized packet format");
+    const header = packet.header;
+    if(typeof header.dh !== "string" || typeof header.n !== "number" || typeof header.pn !== "number"){
+      throw new Error("malformed header");
+    }
+    if(header.n < 0 || header.pn < 0 || !Number.isInteger(header.n) || !Number.isInteger(header.pn)){
+      throw new Error("invalid header numbers");
+    }
+    if(header.dh.length > 200 || !/^[A-Za-z0-9+/=]+$/.test(header.dh)){
+      throw new Error("invalid dh field");
+    }
+    if(!packet.iv || typeof packet.iv !== "string" || packet.iv.length > 50){
+      throw new Error("invalid iv");
+    }
+    const dhRawIncoming = unb64(header.dh);
+    if(dhRawIncoming.length < 80 || dhRawIncoming.length > 120){
+      throw new Error("invalid public key length");
+    }
+    const skipKey = header.dh + ":" + header.n;
+    const iv = unb64(packet.iv);
+    if(iv.length !== 12){
+      throw new Error("invalid iv length");
+    }
+    const aad = new TextEncoder().encode(JSON.stringify(header));
+
+    // Determine which decrypt sub-path to use.
+    // chunkIvs present → new chunked format (512 MB per-chunk AES-GCM)
+    // otherwise        → legacy single-IV format (backward compatible)
+    const useChunked = Array.isArray(packet.chunkIvs);
+
+    let plainBuf;
+
+    if(useChunked){
+      // ---- chunked path: each chunk is an independent AES-GCM ciphertext ----
+      const chunkIvs = packet.chunkIvs;
+      const chunkCount = chunkIvs.length;
+      const plainChunks = [];
+
+      for(let i = 0; i < chunkCount; i++){
+        const chunkIv = unb64(chunkIvs[i]);
+        if(chunkIv.length !== 12) throw new Error("invalid chunk IV length");
+
+        // Case 1a: key already cached from an earlier out-of-order skip.
+        if(this.skipped.has(skipKey)){
+          const aesKey = this.skipped.get(skipKey);
+          const cipherChunk = packet.cipherBytes
+            ? packet.cipherBytes.subarray(i * GCM_CHUNK_BYTES, Math.min((i + 1) * GCM_CHUNK_BYTES, packet.cipherBytes.length))
+            : packet.dataChunks[i] instanceof Uint8Array
+              ? packet.dataChunks[i]
+              : unb64(packet.dataChunks[i]);
+          plainChunks.push(new Uint8Array(await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: chunkIv, additionalData: aad }, aesKey, cipherChunk)));
+          secureClear(aesKey);
+          if(onProgress) onProgress((i + 1) / chunkCount);
+          continue;
+        }
+
+        // Case 1b: ratchet + key derivation via shared helper.
+        // Commit state immediately — subsequent chunks in this packet
+        // depend on the chain advancement.
+        const result = await this._ratchetAndDerive(header, dhRawIncoming);
+        this.DHs = result.DHs; this.DHr = result.DHr; this.DHrRaw = result.DHrRaw;
+        this.RK = result.RK; this.CKs = result.CKs; this.CKr = result.CKr;
+        this.Ns = result.Ns; this.Nr = result.Nr; this.PN = result.PN;
+        for(const s of result.stagedSkips) this.skipped.set(s.key, s.aesKey);
+
+        // Decrypt this chunk — if the tag fails, an exception propagates
+        // and the committed state above is already correct (it committed
+        // the key derivation, not the plaintext).
+        const cipherChunk = packet.cipherBytes
+          ? packet.cipherBytes.subarray(i * GCM_CHUNK_BYTES, Math.min((i + 1) * GCM_CHUNK_BYTES, packet.cipherBytes.length))
+          : packet.dataChunks[i] instanceof Uint8Array
+            ? packet.dataChunks[i]
+            : unb64(packet.dataChunks[i]);
+        plainChunks.push(new Uint8Array(await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: chunkIv, additionalData: aad }, result.aesKey, cipherChunk)));
+        secureClear(result.aesKey);
+        if(this.skipped.has(skipKey)) this.skipped.delete(skipKey);
+        if(onProgress) onProgress((i + 1) / chunkCount);
+      }
+
+      // Concatenate all decrypted chunks
+      const totalLen = plainChunks.reduce((s, c) => s + c.length, 0);
+      plainBuf = new Uint8Array(totalLen);
+      let offset = 0;
+      for(const c of plainChunks){ plainBuf.set(c, offset); offset += c.length; }
+
+    } else {
+      // ---- legacy path: single IV, single AES-GCM ciphertext ----
+      const data = packet.cipherBytes
+        ? packet.cipherBytes
+        : packet.dataChunks[0] instanceof Uint8Array
+          ? concatBytes(...packet.dataChunks)
+          : await base64ChunksToBytes(packet.dataChunks, onProgress);
+
+      if(this.skipped.has(skipKey)){
+        const aesKey = this.skipped.get(skipKey);
+        plainBuf = new Uint8Array(await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv, additionalData: aad }, aesKey, data));
+        this.skipped.delete(skipKey);
+        return plainBuf;
+      }
+
+      const result = await this._ratchetAndDerive(header, dhRawIncoming);
+
+      plainBuf = new Uint8Array(await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv, additionalData: aad }, result.aesKey, data));
+      secureClear(result.aesKey);
+
+      // Commit only after AES-GCM tag verifies — transactional safety.
+      this.DHs = result.DHs; this.DHr = result.DHr; this.DHrRaw = result.DHrRaw;
+      this.RK = result.RK; this.CKs = result.CKs; this.CKr = result.CKr;
+      this.Ns = result.Ns; this.Nr = result.Nr; this.PN = result.PN;
+      for(const s of result.stagedSkips) this.skipped.set(s.key, s.aesKey);
+      return plainBuf;
+    }
+
+    return plainBuf;
+  }
+}
+
+async function establishSession(myKp, myPubRawLocal, peerPubRawLocal){
+  const peerPubKey = await importPub(peerPubRawLocal);
+  const sharedSecret = await computeInitialSharedSecret(myKp.privateKey, peerPubKey);
+  const iAmInitiator = compareBytes(myPubRawLocal, peerPubRawLocal) < 0;
+  if(iAmInitiator){
+    return await RatchetSession.initAsInitiator(sharedSecret, peerPubKey, peerPubRawLocal);
+  } else {
+    return RatchetSession.initAsResponder(sharedSecret, myKp);
+  }
+}
+
+async function sessionFingerprintOf(myPubRawLocal, peerPubRawLocal){
+  const ordered = compareBytes(myPubRawLocal, peerPubRawLocal) < 0
+    ? concatBytes(myPubRawLocal, peerPubRawLocal)
+    : concatBytes(peerPubRawLocal, myPubRawLocal);
+  return await fingerprintOf(ordered);
+}
+</script>
+<script>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* ---------- byte <-> base64 chunk helpers ----------
+   Split raw bytes into base64 CHUNKS, each individually far under the
+   engine's max string length, instead of one monolithic base64 string.
+   Async so it can yield between chunks — for very large files this
+   loop alone can take seconds, and without yielding the tab would
+   freeze (and any progress indicator would freeze right along with it). */
+
+async function bytesToBase64Chunks(bytes, onProgress){
+  const chunks = [];
+  const total = bytes.length || 1;
+  for(let offset = 0; offset < bytes.length; offset += CHUNK_BYTES){
+    chunks.push(b64(bytes.subarray(offset, offset + CHUNK_BYTES)));
+    if(onProgress) onProgress(Math.min(offset + CHUNK_BYTES, bytes.length) / total);
+    await yieldToUI();
+  }
+  if(chunks.length === 0) chunks.push("");
+  return chunks;
+}
+async function base64ChunksToBytes(chunks, onProgress){
+  const decoded = [];
+  const total = chunks.length || 1;
+  for(let i = 0; i < chunks.length; i++){
+    decoded.push(unb64(chunks[i]));
+    if(onProgress) onProgress((i + 1) / total);
+    await yieldToUI();
+  }
+  const totalLen = decoded.reduce((s, c) => s + c.length, 0);
+  const out = new Uint8Array(totalLen);
+  let offset = 0;
+  for(const c of decoded){ out.set(c, offset); offset += c.length; }
+  return out;
+}
+
+/* ---------- large-payload export / import helpers ---------- */
+
+// Builds an array of string PARTS (never concatenated into one JS
+// string) describing a packet in a simple, streamable line format.
+// Handed directly to `new Blob(parts)`, which does the concatenation
+// at the Blob level — that's what avoids the engine's string-length
+// ceiling for huge payloads.
+async function buildLargeExportParts(packet){
+  const parts = [];
+  parts.push(LARGE_FORMAT_MAGIC + "\n");
+  const headerBytes = new TextEncoder().encode(JSON.stringify(packet.header));
+  parts.push(b64(await maskBytes(headerBytes)) + "\n");
+  parts.push(packet.iv + "\n");
+  parts.push(String(packet.dataChunks.length) + "\n");
+  for(const c of packet.dataChunks){
+    parts.push(c);
+    parts.push("\n");
+  }
+  return parts;
+}
+
+// Reads a File/Blob in fixed windows via .slice()/.text() — never
+// calling .text() on the whole file — and reconstructs {header, iv,
+// cipherBytes}. Mirrors buildLargeExportParts()'s format exactly.
+async function streamingParseLargeFile(blob, windowSize, onProgress){
+  windowSize = windowSize || IMPORT_WINDOW;
+  let offset = 0;
+  let residual = "";
+  let state = "magic"; // magic -> header -> iv -> count -> chunks -> done
+  let expectedChunks = 0;
+  let chunkBytesList = [];
+  let headerObj = null;
+  let ivStr = null;
+
+  function extractLines(){
+    const lines = [];
+    let idx;
+    while((idx = residual.indexOf("\n")) !== -1){
+      lines.push(residual.slice(0, idx));
+      residual = residual.slice(idx + 1);
+    }
+    return lines;
+  }
+
+  while(state !== "done"){
+    if(offset >= blob.size) throw new Error("file ended before all expected chunks were read");
+    const slice = blob.slice(offset, Math.min(offset + windowSize, blob.size));
+    offset += slice.size;
+    residual += await slice.text();
+
+    for(const line of extractLines()){
+      if(state === "magic"){
+        if(line !== LARGE_FORMAT_MAGIC) throw new Error("not a recognized large-file export");
+        state = "header";
+      } else if(state === "header"){
+        const headerBytes = await unmaskBytes(unb64(line));
+        headerObj = JSON.parse(new TextDecoder().decode(headerBytes));
+        state = "iv";
+      } else if(state === "iv"){
+        ivStr = line;
+        state = "count";
+      } else if(state === "count"){
+        expectedChunks = parseInt(line, 10);
+        if(!(expectedChunks >= 0)) throw new Error("malformed chunk count");
+        state = "chunks";
+      } else if(state === "chunks"){
+        chunkBytesList.push(unb64(line));
+        if(chunkBytesList.length === expectedChunks){
+          state = "done";
+          break;
+        }
+      }
+    }
+
+    if(onProgress) onProgress(Math.min(offset, blob.size) / (blob.size || 1));
+    await yieldToUI();
+  }
+
+  return { v: 3, header: headerObj, iv: ivStr, dataChunks: chunkBytesList };
+}
+
+/* ---------- binary large-payload export ---------- */
+
+/**
+ * Build the binary-export parts array from an already-encrypted packet.
+ * This is the non-streaming path used by the legacy base64-chunked export.
+ *
+ * Binary layout (each field is concatenated in order):
+ *   magic        4 bytes  – BIN_MAGIC_LARGE
+ *   headerLen    4 bytes  – big-endian uint32
+ *   header       variable – masked JSON header
+ *   iv          12 bytes  – raw AES-GCM IV
+ *   chunkCount   4 bytes  – big-endian uint32
+ *   chunks       variable – for each chunk: length (4 bytes BE) + raw cipher bytes
+ *
+ * @param {object} packet – encrypted packet with .header, .iv, .dataChunks[]
+ * @returns {Promise<Uint8Array[]>} ordered array of binary parts
+ */
+async function buildLargeExportPartsBinary(packet){
+  const headerBytes = await maskBytes(new TextEncoder().encode(JSON.stringify(packet.header)));
+  const ivBytes = unb64(packet.iv);
+  const chunkCount = packet.dataChunks.length;
+
+  // Build binary export parts array (all chunks held in memory until Blob is created)
+  const parts = [];
+  parts.push(new Uint8Array(BIN_MAGIC_LARGE));
+
+  // header length (4 bytes big-endian) + masked header
+  const headerLenBuf = new Uint8Array(4);
+  new DataView(headerLenBuf.buffer).setUint32(0, headerBytes.length, false);
+  parts.push(headerLenBuf);
+  parts.push(headerBytes);
+
+  // IV (12 bytes raw)
+  parts.push(ivBytes);
+
+  // chunk count (4 bytes big-endian)
+  const countBuf = new Uint8Array(4);
+  new DataView(countBuf.buffer).setUint32(0, chunkCount, false);
+  parts.push(countBuf);
+
+  // each chunk: length (4 bytes) + raw bytes
+  for(const c of packet.dataChunks){
+    const raw = c instanceof Uint8Array ? c : unb64(c);
+    const lenBuf = new Uint8Array(4);
+    new DataView(lenBuf.buffer).setUint32(0, raw.length, false);
+    parts.push(lenBuf);
+    parts.push(raw);
+  }
+
+  return parts;
+}
+
+/* ---------- binary large-payload import ---------- */
+
+async function streamingParseLargeBinaryFile(blob, windowSize, onProgress){
+  windowSize = windowSize || IMPORT_WINDOW;
+  let offset = 0;
+  let buf = new Uint8Array(0);
+
+  function ensure(n){
+    // Ensure buf has at least n bytes, reading more from the file if needed
+    return (async () => {
+      while(buf.length < n){
+        if(offset >= blob.size) throw new Error("binary file ended unexpectedly");
+        const slice = await blob.slice(offset, Math.min(offset + windowSize, blob.size)).arrayBuffer();
+        offset += slice.byteLength;
+        const newBuf = new Uint8Array(buf.length + slice.byteLength);
+        newBuf.set(buf);
+        newBuf.set(new Uint8Array(slice), buf.length);
+        buf = newBuf;
+        if(onProgress) onProgress(Math.min(offset, blob.size) / (blob.size || 1));
+        await yieldToUI();
+      }
+    })();
+  }
+
+  function readU32(){
+    const v = new DataView(buf.buffer, buf.byteOffset, 4).getUint32(0, false);
+    buf = buf.slice(4);
+    return v;
+  }
+
+  function readBytes(n){
+    const out = buf.slice(0, n);
+    buf = buf.slice(n);
+    return out;
+  }
+
+  // magic (already verified by caller, skip 4 bytes)
+  await ensure(4);
+  buf = buf.slice(4);
+
+  // header
+  await ensure(4);
+  const headerLen = readU32();
+  await ensure(headerLen);
+  const maskedHeader = readBytes(headerLen);
+  const headerObj = JSON.parse(new TextDecoder().decode(await unmaskBytes(maskedHeader)));
+
+  // IV (12 bytes raw, encode to base64 for the packet)
+  await ensure(12);
+  const ivBytes = readBytes(12);
+  const ivStr = b64(ivBytes);
+
+  // chunk count
+  await ensure(4);
+  const chunkCount = readU32();
+
+  // chunks
+  const chunkBytesList = [];
+  for(let i = 0; i < chunkCount; i++){
+    await ensure(4);
+    const chunkLen = readU32();
+    await ensure(chunkLen);
+    chunkBytesList.push(readBytes(chunkLen));
+    if(onProgress) onProgress((i + 1) / chunkCount);
+    await yieldToUI();
+  }
+
+  return { v: 3, header: headerObj, iv: ivStr, dataChunks: chunkBytesList };
+}
+
+/* ---------- streaming encrypt + export ----------
+   Reads a File via File.slice(), encrypts each chunk immediately, and yields
+   binary export parts incrementally.  Neither the full plaintext nor the full
+   ciphertext is ever held in memory — peak RAM stays near GCM_CHUNK_BYTES + one
+   cipher chunk (~512 MB + ~512 MB overhead, ~1 GB total). */
+
+async function* streamingEncryptExport(session, file, extraHeader, onProgress){
+  const chunkCount = Math.max(1, Math.ceil(file.size / GCM_CHUNK_BYTES));
+
+  // --- header (compute once, reuse for every yielded part) ---
+  const myPubRawLocal = await exportPub(session.DHs.publicKey);
+  const header = Object.assign(
+    { dh: b64(myPubRawLocal), pn: session.PN, n: session.Ns },
+    extraHeader || {}
+  );
+
+  const baseIv = crypto.getRandomValues(new Uint8Array(12));
+  const aad = new TextEncoder().encode(JSON.stringify(header));
+  const maskedHeader = await maskBytes(new TextEncoder().encode(JSON.stringify(header)));
+  const ivBytes = unb64(b64(baseIv));
+
+  // Yield: magic + header length + masked header + IV + chunk count
+  yield new Uint8Array(BIN_MAGIC_LARGE);
+  const headerLenBuf = new Uint8Array(4);
+  new DataView(headerLenBuf.buffer).setUint32(0, maskedHeader.length, false);
+  yield headerLenBuf;
+  yield maskedHeader;
+  yield ivBytes;
+  const countBuf = new Uint8Array(4);
+  new DataView(countBuf.buffer).setUint32(0, chunkCount, false);
+  yield countBuf;
+
+  // --- stream: read → encrypt → yield cipher chunk ---
+  let offset = 0;
+  let ckCursor = session.CKs;
+  try{
+    for(let i = 0; i < chunkCount; i++){
+      const { mkSeed, nextCK } = await kdfCK(ckCursor);
+      ckCursor = nextCK;
+      const aesKey = await deriveMessageAesKey(mkSeed);
+      secureClear(mkSeed);
+
+      const end = Math.min(offset + GCM_CHUNK_BYTES, file.size);
+      const plainBuf = await file.slice(offset, end).arrayBuffer();
+      const chunk = new Uint8Array(plainBuf);
+      offset = end;
+
+      const chunkIv = chunkCount > 1 ? await deriveChunkIv(baseIv, i) : baseIv;
+      const cipher = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: chunkIv, additionalData: aad },
+        aesKey, chunk
+      );
+      secureClear(chunk);
+      secureClear(aesKey);
+
+      // Yield: chunk length (4 bytes) + raw cipher bytes
+      const lenBuf = new Uint8Array(4);
+      new DataView(lenBuf.buffer).setUint32(0, cipher.byteLength, false);
+      yield lenBuf;
+      yield new Uint8Array(cipher);
+
+      if(onProgress) onProgress((i + 1) / chunkCount);
+      await yieldToUI();
+    }
+    // Commit state only after all chunks succeed.
+    session.CKs = ckCursor;
+    session.Ns++;
+  } catch(e){
+    // On failure, state was never mutated — session remains consistent
+    // at the pre-streaming snapshot.  Rethrow for the consumer.
+    throw e;
+  }
+}
+</script>
+<script>
+/*
+ * Secure Channel Assistant — end-to-end encrypted messaging with a
+ * Double Ratchet (Signal-style) key exchange.
+ * Copyright (C) 2026 MINING123STUDIOS
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* ---------- session state ---------- */
+
+let kp = null;           // my long-term identity key pair
+let myPubRaw = null;     // raw bytes of my identity public key
+let myPrivKeyB64 = null; // private key base64, kept out of DOM
+let session = null;      // RatchetSession once established
+let peerPubRawCached = null;
+
+// --- state for large-payload / attachment handling ---
+let pendingAttachment = null;   // { file, name, type, size } set by importMsgBox()
+let lastEncryptedPacket = null; // the actual packet object behind cipherOut's display
+let lastEncryptedPacketB64 = null; // cached base64 for clipboard
+let pendingDecryptPacket = null;// a packet reconstructed from a large imported file
+let lastDecrypted = null;       // { bytes: Uint8Array, fileMeta: {name,type}|null } behind plainOut's display
+
+/* ---------- UI: theme ---------- */
+
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggleBtn');
+  btn.textContent = theme === 'light' ? LABEL_THEME_LIGHT : LABEL_THEME_DARK;
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+(function initTheme(){
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  applyTheme(prefersLight ? 'light' : 'dark');
+})();
+
+/* ---------- UI: reload confirmation ---------- */
+
+window.addEventListener('beforeunload', (e) => {
+  if(!kp) return; // nothing generated yet — nothing to lose, don't nag
+  e.preventDefault();
+  e.returnValue = ''; // browsers show their own generic wording; the string itself isn't shown
+});
+
+/* ---------- UI: progress indicator ----------
+   One floating overlay, created lazily on first use, reused for any
+   large-payload step (reading a file, encrypting, decrypting, or
+   streaming-importing). Progress.show() puts it in a quick
+   "indeterminate" spin; once a step can report real progress,
+   Progress.update(fraction) switches it to a slower determinate sweep
+   with a percentage. Progress.hide() fades it out. */
+const Progress = (() => {
+  let el = null, ring = null, labelEl = null, pctEl = null, visible = false;
+
+  function ensure(){
+    if(el) return;
+    el = document.createElement('div');
+    el.id = 'progressOverlay';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    const r = document.createElement('div');
+    r.className = 'progress-ring';
+    r.setAttribute('aria-hidden', 'true');
+    const l = document.createElement('span');
+    l.className = 'progress-label';
+    const p = document.createElement('span');
+    p.className = 'progress-pct';
+    el.appendChild(r); el.appendChild(l); el.appendChild(p);
+    document.body.appendChild(el);
+    ring = r; labelEl = l; pctEl = p;
+  }
+
+  function show(label){
+    ensure();
+    ring.classList.remove('determinate');
+    ring.style.setProperty('--pct', 25);
+    labelEl.textContent = label || PROGRESS_WORKING;
+    pctEl.textContent = '';
+    el.classList.add('visible');
+    visible = true;
+  }
+
+  function update(fraction, label){
+    if(!visible) ensure();
+    if(label !== undefined) labelEl.textContent = label;
+    ring.classList.add('determinate');
+    const pct = Math.max(0, Math.min(100, Math.round(fraction * 100)));
+    ring.style.setProperty('--pct', pct);
+    pctEl.textContent = pct + '%';
+    if(!visible){ el.classList.add('visible'); visible = true; }
+  }
+
+  function hide(){
+    if(!el) return;
+    el.classList.remove('visible');
+    visible = false;
+  }
+
+  return { show, update, hide };
+})();
+
+/* ---------- UI: status / small helpers ---------- */
+
+function setStatus(text){
+  document.getElementById("status").textContent = text;
+}
+
+// Centralized warning for anything that shows, copies, or exports the
+// private key, so the message is consistent no matter which action
+// triggered it. Returns a Promise<boolean> — true if the user confirmed.
+async function confirmPrivateKeyExposure(action, outEl){
+  return showConfirmWarning(
+    outEl,
+    CONFIRM_PRIVKEY_EXPOSURE(action),
+    BTN_CONTINUE,
+    BTN_CANCEL,
+    PRIVKEY_CONFIRM_TIMEOUT
+  );
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function pickFile(accept){
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    if(accept) input.accept = accept;
+    input.onchange = () => resolve(input.files[0] || null);
+    input.click();
+  });
+}
+
+function formatBytes(n){
+  if(n < 1024) return n + " B";
+  if(n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+/* ---------- Clear button functionality ---------- */
+
+function clearInputField(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  
+  // Clear the field
+  el.value = '';
+  
+  // Handle specific field logic
+  if (id === 'msg') {
+    pendingAttachment = null;
+  } else if (id === 'cipherIn') {
+    pendingDecryptPacket = null;
+  } else if (id === 'peerKey') {
+    updatePeerFingerprint();
+  }
+}
+
+/* ---------- Paste button functionality ---------- */
+
+async function pasteInputField(id) {
+  try {
+    const text = await navigator.clipboard.readText();
+    const el = document.getElementById(id);
+    if (!el) return;
+    
+    el.value = text;
+    
+    // Handle specific field logic
+    if (id === 'peerKey') {
+      updatePeerFingerprint();
+    }
+  } catch(e) {
+    if(DEBUG) console.error('Paste failed:', e.message);
+    showInlineMessage(document.getElementById(id), MSG_CLIPBOARD_FAILED);
+  }
+}
+
+/* ---------- Large file import confirmation ---------- */
+
+function showLargeImportWarning(outEl, file, onConfirm){
+  outEl.textContent = CONFIRM_LARGE_IMPORT(formatBytes(file.size));
+  const row = document.createElement('div');
+  row.className = 'confirm-row';
+  const yes = document.createElement('button');
+  yes.textContent = BTN_IMPORT_ANYWAY;
+  const no = document.createElement('button');
+  no.className = 'danger-btn';
+  no.textContent = BTN_CANCEL;
+  function cleanup(){ row.remove(); outEl.textContent = ''; }
+  yes.onclick = () => { cleanup(); onConfirm(file); };
+  no.onclick = cleanup;
+  row.appendChild(yes);
+  row.appendChild(no);
+  outEl.parentElement.insertBefore(row, outEl.nextSibling);
+}
+
+/* ---------- Generic inline confirmation warning ---------- */
+/* Active confirmations keyed by output element. Each entry stores
+   { resolve, cleanup }. Clicking a button that would trigger a new
+   confirmation in the same element cancels the previous one: resolves
+   it as false AND removes the old DOM elements synchronously. */
+const _activeConfirms = new Map();
+
+function showConfirmWarning(outEl, message, yesLabel, noLabel, timeout){
+  /* cancel any previous confirmation on this same element */
+  if(_activeConfirms.has(outEl)){
+    const prev = _activeConfirms.get(outEl);
+    prev.resolve(false);
+    prev.cleanup();
+  }
+  return new Promise(resolve => {
+    outEl.textContent = message;
+    const row = document.createElement('div');
+    row.className = 'confirm-row';
+    const yes = document.createElement('button');
+    yes.textContent = yesLabel || BTN_CONTINUE;
+    const no = document.createElement('button');
+    no.className = 'danger-btn';
+    no.textContent = noLabel || BTN_CANCEL;
+    function cleanup(){ row.remove(); outEl.textContent = ''; _activeConfirms.delete(outEl); if(timer) clearTimeout(timer); }
+    _activeConfirms.set(outEl, { resolve, cleanup });
+    yes.onclick = () => { cleanup(); resolve(true); };
+    no.onclick = () => { cleanup(); resolve(false); };
+    const timer = timeout ? setTimeout(() => { cleanup(); resolve(false); }, timeout) : null;
+    row.appendChild(yes);
+    row.appendChild(no);
+    outEl.parentElement.insertBefore(row, outEl.nextSibling);
+  });
+}
+
+/* ---------- Inline dismissible message (no user choice required) ---------- */
+const _activeWarnings = new Map();
+
+function showInlineMessage(outEl, message, ms){
+  if(_activeWarnings.has(outEl)) clearTimeout(_activeWarnings.get(outEl));
+  outEl.textContent = message;
+  const t = setTimeout(() => { outEl.textContent = ''; _activeWarnings.delete(outEl); }, ms || 3500);
+  _activeWarnings.set(outEl, t);
+}
+
+function estimateChunksByteLength(chunks){
+  return chunks.reduce((s, c) => s + (c instanceof Uint8Array ? c.length : Math.floor(c.length * 0.75)), 0);
+}
+
+/* ---------- UI: generic copy / export / import for text boxes ----------
+   Note: cipherOut, plainOut, and privKeyOut are RESULT boxes (Encrypt/Decrypt
+   output, or inline confirmations), not inputs — there's deliberately no
+   Import button wired to them in index.html, since importing a file into
+   an output space doesn't make sense. Only genuine input fields (peerKey,
+   msg, cipherIn) support Import. */
+
+async function copyBox(id){
+  if(id === 'cipherOut'){
+    if(!lastEncryptedPacket){ showInlineMessage(document.getElementById("cipherOut"), MSG_NOTHING_TO_COPY); return; }
+    if(estimateChunksByteLength(lastEncryptedPacket.dataChunks) > STREAMING_EXPORT_THRESHOLD){
+      showInlineMessage(document.getElementById("cipherOut"), MSG_TOO_LARGE_TO_COPY);
+      return;
+    }
+    try { await navigator.clipboard.writeText(lastEncryptedPacketB64); }
+    catch(e){ showInlineMessage(document.getElementById("cipherOut"), MSG_CLIPBOARD_WRITE_FAILED); }
+    return;
+  }
+  if(id === 'plainOut'){
+    if(!lastDecrypted){ showInlineMessage(document.getElementById("plainOut"), MSG_NOTHING_DECRYPTED); return; }
+    if(lastDecrypted.fileMeta){
+      showInlineMessage(document.getElementById("plainOut"), MSG_FILE_USE_EXPORT);
+      return;
+    }
+    if(lastDecrypted.bytes.length > STREAMING_EXPORT_THRESHOLD){
+      showInlineMessage(document.getElementById("plainOut"), MSG_TOO_LARGE_TO_COPY);
+      return;
+    }
+    try { await navigator.clipboard.writeText(new TextDecoder().decode(lastDecrypted.bytes)); }
+    catch(e){ showInlineMessage(document.getElementById("plainOut"), MSG_CLIPBOARD_WRITE_FAILED); }
+    return;
+  }
+  if(id === 'privKey'){
+    if(!await confirmPrivateKeyExposure("copy", document.getElementById("privKeyOut"))) return;
+    try { await navigator.clipboard.writeText(myPrivKeyB64); }
+    catch(e){ showInlineMessage(document.getElementById("privKeyOut"), MSG_CLIPBOARD_WRITE_FAILED); }
+    return;
+  }
+  const el = document.getElementById(id);
+  const text = el.value !== undefined ? el.value : el.textContent;
+  try { await navigator.clipboard.writeText(text); }
+  catch(e){ showInlineMessage(el, MSG_CLIPBOARD_WRITE_FAILED); }
+}
+
+async function exportTextBox(id, filename, isSensitive){
+  if(id === 'cipherOut'){
+    if(!lastEncryptedPacket){ showInlineMessage(document.getElementById("cipherOut"), MSG_NOTHING_TO_EXPORT); return; }
+    if(estimateChunksByteLength(lastEncryptedPacket.dataChunks) > STREAMING_EXPORT_THRESHOLD){
+      const parts = await buildLargeExportPartsBinary(lastEncryptedPacket);
+      downloadBlob(new Blob(parts, { type: 'application/octet-stream' }), filename.replace(/\.[^.]+$/, '.scb'));
+    } else {
+      downloadBlob(new Blob([await encodeOpaquePacketBinary(lastEncryptedPacket)], { type: 'application/octet-stream' }), filename);
+    }
+    return;
+  }
+  if(id === 'privKey'){
+    if(!myPrivKeyB64){ showInlineMessage(document.getElementById("privKeyOut"), MSG_NOTHING_TO_EXPORT); return; }
+    if(!await confirmPrivateKeyExposure("export", document.getElementById("privKeyOut"))) return;
+    downloadBlob(new Blob([myPrivKeyB64], { type: 'text/plain' }), filename);
+    return;
+  }
+  const el = document.getElementById(id);
+  const text = el.value !== undefined ? el.value : el.textContent;
+  if(!text){ showInlineMessage(document.getElementById(id), MSG_NOTHING_TO_EXPORT); return; }
+  downloadBlob(new Blob([text], { type: 'text/plain' }), filename);
+}
+
+async function importIntoTextareaProcess(id, file){
+  if(id === 'cipherIn'){
+    pendingDecryptPacket = null;
+    if(file.size > DISPLAY_THRESHOLD){
+      const showSpinner = file.size > SPINNER_THRESHOLD;
+      try {
+        if(showSpinner) Progress.show(PROGRESS_READING);
+
+        // Peek at the first bytes to detect format
+        const magicSlice = await file.slice(0, 4).arrayBuffer();
+        const magicBytes = new Uint8Array(magicSlice);
+        const isBinSmall = bytesEqual(magicBytes, BIN_MAGIC_SMALL);
+        const isBinLarge = bytesEqual(magicBytes, BIN_MAGIC_LARGE);
+
+        if(isBinSmall){
+          const fullBytes = new Uint8Array(await file.arrayBuffer());
+          pendingDecryptPacket = await decodeOpaquePacketBinary(fullBytes);
+        } else if(isBinLarge){
+          pendingDecryptPacket = await streamingParseLargeBinaryFile(
+            file, undefined,
+            showSpinner ? (f) => Progress.update(f, PROGRESS_READING) : null
+          );
+        } else {
+          // Not binary — try text formats (old .scl or base64)
+          const magicPeek = new TextDecoder().decode(magicBytes);
+          if(magicPeek.startsWith(LARGE_FORMAT_MAGIC)){
+            pendingDecryptPacket = await streamingParseLargeFile(
+              file, undefined,
+              showSpinner ? (f) => Progress.update(f, PROGRESS_READING) : null
+            );
+          } else if(file.size > STREAMING_EXPORT_THRESHOLD){
+            document.getElementById('cipherIn').value = MSG_WRONG_FORMAT_LARGE(formatBytes(file.size));
+            return;
+          } else {
+            pendingDecryptPacket = await decodeOpaquePacket(await file.text());
+          }
+        }
+      } catch(e){
+        if(DEBUG) console.error('File import failed:', e.message);
+        document.getElementById('cipherIn').value = MSG_CANT_READ_CIPHER_FILE(file.name);
+        return;
+      } finally {
+        if(showSpinner) Progress.hide();
+      }
+      document.getElementById('cipherIn').value = MSG_CIPHER_IMPORTED(file.name, formatBytes(file.size));
+      return;
+    }
+  }
+
+  document.getElementById(id).value = (await file.text()).trim();
+  if(id === 'peerKey') await updatePeerFingerprint();
+}
+
+async function importIntoTextarea(id){
+  const file = await pickFile();
+  if(!file) return;
+  if(file.size > LARGE_IMPORT_CONFIRM_THRESHOLD){
+    const outEl = id === 'cipherIn' ? document.getElementById('plainOut') : document.getElementById('cipherOut');
+    showLargeImportWarning(outEl, file, (f) => importIntoTextareaProcess(id, f));
+    return;
+  }
+  await importIntoTextareaProcess(id, file);
+}
+
+/* ---------- Key generation & identity import/export ---------- */
+
+async function updateMyFingerprint(){
+  const fp = await fingerprintOf(myPubRaw);
+  document.getElementById("myFingerprint").textContent = fp;
+}
+
+function resetTransientState(){
+  if(session) session.clear();
+  session = null;
+  peerPubRawCached = null;
+  pendingAttachment = null;
+  lastEncryptedPacket = null;
+  lastEncryptedPacketB64 = null;
+  pendingDecryptPacket = null;
+  if(lastDecrypted && lastDecrypted.bytes) secureClear(lastDecrypted.bytes);
+  lastDecrypted = null;
+  document.getElementById("pubKey").value = "";
+  document.getElementById("cipherOut").textContent = "";
+  document.getElementById("plainOut").textContent = "";
+  document.getElementById("sessionFingerprintField").classList.add("hidden");
+}
+
+async function generateKeys(){
+  if(kp){
+    if(!await showConfirmWarning(
+      document.getElementById("privKeyOut"),
+      CONFIRM_KEY_REPLACEMENT,
+      BTN_GENERATE_NEW_KEYS,
+      BTN_CANCEL
+    )) return;
+  }
+
+  kp = await generateIdentityKeyPair();
+  myPubRaw = await exportPub(kp.publicKey);
+  const privRaw = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
+
+  resetTransientState();
+
+  document.getElementById("pubKey").value = b64(myPubRaw);
+  myPrivKeyB64 = b64(privRaw);
+  document.getElementById("privKey").value = '•'.repeat(myPrivKeyB64.length);
+  secureClear(privRaw);
+  await updateMyFingerprint();
+
+  setStatus(STATUS_KEYS_GENERATED);
+}
+
+async function exportIdentity(){
+  if(!kp){ showInlineMessage(document.getElementById("privKeyOut"), MSG_GENERATE_KEYS_FIRST); return; }
+  if(!await confirmPrivateKeyExposure("export (as part of your identity backup)", document.getElementById("privKeyOut"))) return;
+  const privRaw = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
+  const payload = {
+    kind: "secure-channel-identity",
+    v: 1,
+    publicKey: b64(myPubRaw),
+    privateKey: b64(privRaw)
+  };
+  secureClear(privRaw);
+  const bytes = await encodeIdentityBytes(payload);
+  downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), 'secure-channel-identity.scid');
+}
+
+async function importIdentity(){
+  const file = await pickFile('.scid,.json');
+  if(!file) return;
+  try {
+    let obj;
+    const magicSlice = await file.slice(0, 4).arrayBuffer();
+    const magicBytes = new Uint8Array(magicSlice);
+
+    if(bytesEqual(magicBytes, ID_MAGIC)){
+      const fullBytes = new Uint8Array(await file.arrayBuffer());
+      obj = await decodeIdentityBytes(fullBytes);
+      secureClear(fullBytes);
+    } else {
+      obj = JSON.parse(await file.text());
+    }
+
+    if(!obj.publicKey || !obj.privateKey) throw new Error("missing fields");
+
+    const privBytes = unb64(obj.privateKey);
+    const pubBytes = unb64(obj.publicKey);
+    const privateKey = await crypto.subtle.importKey("pkcs8", privBytes, { name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+    const publicKey = await crypto.subtle.importKey("spki", pubBytes, { name: "ECDH", namedCurve: "P-256" }, true, []);
+
+    const derivedPub = await exportPub(privateKey);
+    if(!bytesEqual(derivedPub, pubBytes)) throw new Error("key pair mismatch");
+    secureClear(derivedPub);
+    secureClear(privBytes);
+
+    kp = { privateKey, publicKey };
+    myPubRaw = pubBytes;
+    resetTransientState();
+
+    document.getElementById("pubKey").value = obj.publicKey;
+    myPrivKeyB64 = obj.privateKey;
+    document.getElementById("privKey").value = '•'.repeat(myPrivKeyB64.length);
+    await updateMyFingerprint();
+
+    setStatus(STATUS_IDENTITY_RESTORED);
+  } catch(e){
+    if(DEBUG) console.error('Identity import failed:', e.message);
+    showInlineMessage(document.getElementById("cipherOut"), MSG_INVALID_IDENTITY_FILE);
+  }
+}
+
+let _privKeyAutohideTimer = null;
+
+// Show/Hide toggle: swaps the field type, the button label, and marks
+// the eye icon with a diagonal strike-through while the key is visible.
+async function togglePriv(){
+  const el = document.getElementById("privKey");
+  const icon = document.getElementById("eyeIcon");
+  const label = document.getElementById("toggleLabel");
+  if(!myPrivKeyB64) return;
+  if(el.type === "password"){
+    if(!await confirmPrivateKeyExposure("reveal", document.getElementById("privKeyOut"))) return;
+    el.value = myPrivKeyB64;
+    el.type = "text";
+    icon.classList.add("crossed");
+    label.textContent = LABEL_HIDE;
+    if(_privKeyAutohideTimer) clearTimeout(_privKeyAutohideTimer);
+    _privKeyAutohideTimer = setTimeout(() => {
+      el.type = "password";
+      el.value = '•'.repeat(myPrivKeyB64.length);
+      icon.classList.remove("crossed");
+      label.textContent = LABEL_SHOW;
+      _privKeyAutohideTimer = null;
+    }, PRIVKEY_AUTOHIDE_TIMEOUT);
+  } else {
+    el.type = "password";
+    el.value = '•'.repeat(myPrivKeyB64.length);
+    icon.classList.remove("crossed");
+    label.textContent = LABEL_SHOW;
+    if(_privKeyAutohideTimer){ clearTimeout(_privKeyAutohideTimer); _privKeyAutohideTimer = null; }
+  }
+}
+
+/* ---------- Shared secret / session ---------- */
+
+async function updatePeerFingerprint(){
+  const raw = document.getElementById("peerKey").value.trim().replace(/\s+/g, "");
+  const el = document.getElementById("peerFingerprint");
+  if(!raw){ el.textContent = MSG_PASTE_PEER_KEY_FIRST; return; }
+  try {
+    const bytes = unb64(raw);
+    el.textContent = await fingerprintOf(bytes);
+  } catch(e){
+    el.textContent = MSG_CANT_READ_PEER_KEY;
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('peerKey').addEventListener('input', updatePeerFingerprint);
+  document.getElementById('msg').addEventListener('input', function(){
+    pendingAttachment = null;
+    if(this.value === MSG_NOTHING_TO_EXPORT) this.value = '';
+  });
+  document.getElementById('cipherIn').addEventListener('input', () => { pendingDecryptPacket = null; });
+
+  /* ---------- button bindings ---------- */
+
+  document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+  document.getElementById('generateKeysBtn').addEventListener('click', generateKeys);
+  document.getElementById('exportIdentityBtn').addEventListener('click', exportIdentity);
+  document.getElementById('importIdentityBtn').addEventListener('click', importIdentity);
+
+  document.getElementById('copyPubKeyBtn').addEventListener('click', () => copyBox('pubKey'));
+  document.getElementById('exportPubKeyBtn').addEventListener('click', () => exportTextBox('pubKey', 'my-public-key.txt'));
+
+  document.getElementById('togglePrivBtn').addEventListener('click', togglePriv);
+  document.getElementById('copyPrivKeyBtn').addEventListener('click', () => copyBox('privKey'));
+  document.getElementById('exportPrivKeyBtn').addEventListener('click', () => exportTextBox('privKey', 'my-private-key.txt', true));
+
+  document.getElementById('copyPeerKeyBtn').addEventListener('click', () => copyBox('peerKey'));
+  document.getElementById('pastePeerKeyBtn').addEventListener('click', () => pasteInputField('peerKey'));
+  document.getElementById('exportPeerKeyBtn').addEventListener('click', () => exportTextBox('peerKey', 'peer-public-key.txt'));
+  document.getElementById('importPeerKeyBtn').addEventListener('click', () => importIntoTextarea('peerKey'));
+  document.getElementById('clearPeerKeyBtn').addEventListener('click', () => clearInputField('peerKey'));
+
+  document.getElementById('deriveBtn').addEventListener('click', derive);
+  document.getElementById('resetSessionBtn').addEventListener('click', resetSessionUI);
+
+  document.getElementById('copyMsgBtn').addEventListener('click', () => copyBox('msg'));
+  document.getElementById('pasteMsgBtn').addEventListener('click', () => pasteInputField('msg'));
+  document.getElementById('exportMsgBtn').addEventListener('click', exportMsgBox);
+  document.getElementById('importMsgBtn').addEventListener('click', importMsgBox);
+  document.getElementById('clearMsgBtn').addEventListener('click', () => clearInputField('msg'));
+
+  document.getElementById('encryptBtn').addEventListener('click', doEncrypt);
+
+  document.getElementById('copyCipherOutBtn').addEventListener('click', () => copyBox('cipherOut'));
+  document.getElementById('exportCipherOutBtn').addEventListener('click', () => exportTextBox('cipherOut', 'encrypted-message.bin'));
+
+  document.getElementById('copyCipherInBtn').addEventListener('click', () => copyBox('cipherIn'));
+  document.getElementById('pasteCipherInBtn').addEventListener('click', () => pasteInputField('cipherIn'));
+  document.getElementById('exportCipherInBtn').addEventListener('click', () => exportTextBox('cipherIn', 'encrypted-message.bin'));
+  document.getElementById('importCipherInBtn').addEventListener('click', () => importIntoTextarea('cipherIn'));
+  document.getElementById('clearCipherInBtn').addEventListener('click', () => clearInputField('cipherIn'));
+
+  document.getElementById('decryptBtn').addEventListener('click', doDecrypt);
+
+  document.getElementById('copyPlainOutBtn').addEventListener('click', () => copyBox('plainOut'));
+  document.getElementById('exportPlainOutBtn').addEventListener('click', exportPlainOut);
+});
+
+async function derive(){
+  try {
+    if(!kp){
+      setStatus(STATUS_GENERATE_FIRST);
+      return;
+    }
+
+    const raw = document.getElementById("peerKey").value.trim();
+    if(!raw){
+      setStatus(STATUS_PASTE_PEER_KEY);
+      return;
+    }
+    const peerText = raw.replace(/\s+/g, "");
+
+    let peerPubRaw;
+    try {
+      peerPubRaw = unb64(peerText);
+      await importPub(peerPubRaw); // validates it's actually a usable EC public key
+    } catch(e){
+      setStatus(STATUS_INVALID_PEER_KEY);
+      return;
+    }
+
+    if(compareBytes(myPubRaw, peerPubRaw) === 0){
+      setStatus(STATUS_OWN_KEY);
+      return;
+    }
+
+    session = await establishSession(kp, myPubRaw, peerPubRaw);
+    peerPubRawCached = peerPubRaw;
+
+    const sessFp = await sessionFingerprintOf(myPubRaw, peerPubRaw);
+    document.getElementById("sessionFingerprint").textContent = sessFp;
+    document.getElementById("sessionFingerprintField").classList.remove("hidden");
+    await updatePeerFingerprint();
+
+    setStatus(STATUS_SESSION_ESTABLISHED(!!session.CKs));
+  } catch(e){
+    if(DEBUG) console.error("DERIVE ERROR:", e.message);
+    setStatus(STATUS_SESSION_FAILED);
+  }
+}
+
+async function resetSessionUI(){
+  if(!session){
+    setStatus(STATUS_NOTHING_TO_RESET);
+    return;
+  }
+  if(!await showConfirmWarning(
+    document.getElementById("cipherOut"),
+    CONFIRM_SESSION_RESET,
+    BTN_RESET_SESSION,
+    BTN_CANCEL
+  )){
+    return;
+  }
+  resetTransientState();
+  setStatus(STATUS_SESSION_RESET);
+}
+
+/* ---------- Encrypt / Decrypt ---------- */
+/* Both now report errors the same way: written into their own "console"
+   output box (cipherOut / plainOut) with a ❌ prefix, rather than a
+   popup alert() — consistent command-line-style feedback either way. */
+
+async function doEncrypt(){
+  const outEl = document.getElementById("cipherOut");
+  if(!session){
+    outEl.textContent = MSG_NO_SESSION;
+    return;
+  }
+
+  let plaintextBytes;
+  let extraHeader;
+  const willBeLarge = pendingAttachment
+    ? pendingAttachment.size > SPINNER_THRESHOLD
+    : document.getElementById("msg").value.length > SPINNER_THRESHOLD;
+
+  // --- streaming path: large file attachments ---
+  if(pendingAttachment && pendingAttachment.size > STREAMING_ENCRYPT_THRESHOLD){
+    const file = pendingAttachment.file;
+    const filename = pendingAttachment.name.replace(/\.[^.]+$/, '') + '.scb';
+    const canStreamToDisk = typeof showSaveFilePicker === 'function';
+    const confirmMsg = canStreamToDisk
+      ? CONFIRM_LARGE_ENCRYPT(formatBytes(file.size))
+      : CONFIRM_LARGE_ENCRYPT(formatBytes(file.size)) + "\n\n" + MSG_STREAMING_UNAVAILABLE;
+    if(!await showConfirmWarning(outEl, confirmMsg, BTN_CONTINUE, BTN_CANCEL)) return;
+
+    try {
+      Progress.show(PROGRESS_ENCRYPTING);
+      const header = { file: { name: pendingAttachment.name, type: pendingAttachment.type } };
+
+      if(canStreamToDisk){
+        // Chrome/Edge: write directly to disk — zero extra memory.
+        const handle = await showSaveFilePicker({ suggestedName: filename });
+        const writable = await handle.createWritable();
+        let size = 0;
+        for await(const part of streamingEncryptExport(session, file, header, (f) => Progress.update(f, PROGRESS_ENCRYPTING))){
+          await writable.write(part);
+          size += part.byteLength;
+        }
+        await writable.close();
+        lastEncryptedPacket = null;
+        lastEncryptedPacketB64 = null;
+        outEl.textContent = MSG_ENCRYPTED_LARGE(formatBytes(size));
+      } else {
+        // Firefox/Safari: stream into a Blob via Response, still buffers in memory
+        // but avoids accumulating a parts[] array.
+        let size = 0;
+        const src = streamingEncryptExport(session, file, header, (f) => Progress.update(f, PROGRESS_ENCRYPTING));
+        const stream = new ReadableStream({
+          async start(ctrl){
+            try {
+              for await(const part of src){
+                size += part.byteLength;
+                ctrl.enqueue(part);
+              }
+              ctrl.close();
+            } catch(e){ ctrl.error(e); }
+          }
+        });
+        const blob = await new Response(stream).blob();
+        lastEncryptedPacket = null;
+        lastEncryptedPacketB64 = null;
+        outEl.textContent = MSG_ENCRYPTED_LARGE(formatBytes(size));
+        downloadBlob(blob, filename);
+      }
+    } catch(e){
+      if(DEBUG) console.error('Streaming encryption failed:', e.message);
+      outEl.textContent = MSG_ENCRYPT_FAILED;
+    } finally {
+      Progress.hide();
+    }
+    return;
+  }
+
+  // --- standard path: text messages and small file attachments ---
+  if(willBeLarge) Progress.show(PROGRESS_READING);
+
+  if(pendingAttachment){
+    try {
+      const file = pendingAttachment.file;
+      const totalChunks = Math.ceil(file.size / FILE_READ_CHUNK);
+      plaintextBytes = new Uint8Array(file.size);
+      let offset = 0;
+      for(let i = 0; i < totalChunks; i++){
+        const end = Math.min(offset + FILE_READ_CHUNK, file.size);
+        const chunkBuf = await file.slice(offset, end).arrayBuffer();
+        plaintextBytes.set(new Uint8Array(chunkBuf), offset);
+        offset = end;
+        if(willBeLarge) Progress.update(i / totalChunks, PROGRESS_READING);
+        await yieldToUI();
+      }
+    } catch(e){
+      if(DEBUG) console.error('File read failed:', e.message);
+      outEl.textContent = MSG_CANT_READ_FILE;
+      if(willBeLarge) Progress.hide();
+      return;
+    }
+    extraHeader = { file: { name: pendingAttachment.name, type: pendingAttachment.type } };
+  } else {
+    const msgText = document.getElementById("msg").value;
+    if(!msgText){
+      if(willBeLarge) Progress.hide();
+      outEl.textContent = MSG_NOTHING_TO_ENCRYPT;
+      return;
+    }
+    plaintextBytes = new TextEncoder().encode(msgText);
+  }
+
+  try {
+    if(willBeLarge) Progress.show(PROGRESS_ENCRYPTING);
+    const packet = await session.encrypt(
+      plaintextBytes, extraHeader,
+      willBeLarge ? (f) => Progress.update(f, PROGRESS_ENCRYPTING) : null
+    );
+    lastEncryptedPacket = packet;
+    // Multi-chunk packets store Uint8Array cipher chunks which can't be
+    // JSON-serialized; they're accessed via binary export only.
+    lastEncryptedPacketB64 = Array.isArray(packet.chunkIvs)
+      ? null
+      : await encodeOpaquePacket(packet);
+
+    if(plaintextBytes.length > DISPLAY_THRESHOLD){
+      const approxCipherSize = estimateChunksByteLength(packet.dataChunks);
+      outEl.textContent = MSG_ENCRYPTED_LARGE(formatBytes(approxCipherSize));
+    } else {
+      outEl.textContent = lastEncryptedPacketB64;
+    }
+  } catch(e){
+    if(DEBUG) console.error('Encryption failed:', e.message);
+    if(e.message && e.message.includes("no sending chain")){
+      outEl.textContent = MSG_CANT_SEND_YET;
+    } else {
+      outEl.textContent = MSG_ENCRYPT_FAILED;
+    }
+  } finally {
+    if(willBeLarge) Progress.hide();
+  }
+}
+
+async function doDecryptProcess(packet){
+  const outEl = document.getElementById("plainOut");
+  const approxSize = packet.cipherBytes
+    ? packet.cipherBytes.length
+    : estimateChunksByteLength(packet.dataChunks || []);
+  const willBeLarge = approxSize > SPINNER_THRESHOLD;
+
+  try {
+    if(willBeLarge) Progress.show(PROGRESS_DECRYPTING);
+    const plainBytes = await session.decrypt(
+      packet,
+      willBeLarge ? (f) => Progress.update(f, PROGRESS_DECRYPTING) : null
+    );
+    const fileMeta = (packet.header && packet.header.file) ? packet.header.file : null;
+    lastDecrypted = { bytes: plainBytes, fileMeta };
+
+    if(fileMeta){
+      outEl.textContent = MSG_DECRYPT_FILE_PROMPT(fileMeta.name, formatBytes(plainBytes.length));
+    } else if(plainBytes.length > DISPLAY_THRESHOLD){
+      outEl.textContent = MSG_DECRYPTED_LARGE(formatBytes(plainBytes.length));
+    } else {
+      outEl.textContent = MSG_DECRYPTED_PREFIX + new TextDecoder().decode(plainBytes);
+    }
+  } catch(e){
+    if(DEBUG) console.error("DECRYPT ERROR:", e.message);
+    lastDecrypted = null;
+    let msg = MSG_DECRYPT_FAILED;
+    if(e.message && e.message.includes("unrecognized packet")){
+      msg += MSG_DECRYPT_BAD_FORMAT;
+    } else if(e.message && e.message.includes("malformed header")){
+      msg += MSG_DECRYPT_MISSING_FIELDS;
+    } else if(e.message && e.message.includes("too many")){
+      msg += e.message + ".";
+    } else {
+      msg += MSG_DECRYPT_CORRUPTED;
+    }
+    outEl.textContent = msg;
+  } finally {
+    if(willBeLarge) Progress.hide();
+  }
+}
+
+async function doDecrypt(){
+  const outEl = document.getElementById("plainOut");
+  if(!session){
+    outEl.textContent = MSG_NO_SESSION;
+    return;
+  }
+
+  let packet = pendingDecryptPacket;
+  if(!packet){
+    try {
+      packet = await decodeOpaquePacket(document.getElementById("cipherIn").value);
+    } catch(e){
+      outEl.textContent = MSG_INVALID_CIPHER;
+      return;
+    }
+  }
+
+  const approxSize = packet.cipherBytes
+    ? packet.cipherBytes.length
+    : estimateChunksByteLength(packet.dataChunks || []);
+
+  if(approxSize > LARGE_IMPORT_CONFIRM_THRESHOLD){
+    showLargeImportWarning(outEl, { size: approxSize, name: 'encrypted message' }, () => doDecryptProcess(packet));
+    return;
+  }
+
+  await doDecryptProcess(packet);
+}
+
+/* ---------- msg box: attach any file, any size ---------- */
+
+function importMsgBoxAttach(file){
+  pendingAttachment = { file, name: file.name, type: file.type || 'application/octet-stream', size: file.size };
+  document.getElementById('msg').value = MSG_FILE_ATTACHED(file.name, formatBytes(file.size));
+}
+
+async function importMsgBox(){
+  const file = await pickFile();
+  if(!file) return;
+  if(file.size > LARGE_IMPORT_CONFIRM_THRESHOLD){
+    showLargeImportWarning(document.getElementById('cipherOut'), file, importMsgBoxAttach);
+    return;
+  }
+  importMsgBoxAttach(file);
+}
+
+function exportMsgBox(){
+  if(pendingAttachment){
+    downloadBlob(pendingAttachment.file, pendingAttachment.name);
+    return;
+  }
+  const text = document.getElementById("msg").value;
+  if(!text){ showInlineMessage(document.getElementById("cipherOut"), MSG_NOTHING_TO_EXPORT); return; }
+  downloadBlob(new Blob([text], { type: 'text/plain' }), 'message.txt');
+}
+
+/* ---------- plainOut box: export reconstructs the original file ---------- */
+
+function exportPlainOut(){
+  if(!lastDecrypted){
+    showInlineMessage(document.getElementById("plainOut"), MSG_NOTHING_DECRYPTED);
+    return;
+  }
+  if(lastDecrypted.fileMeta){
+    downloadBlob(new Blob([lastDecrypted.bytes], { type: lastDecrypted.fileMeta.type || 'application/octet-stream' }), lastDecrypted.fileMeta.name);
+  } else {
+    downloadBlob(new Blob([lastDecrypted.bytes], { type: 'text/plain' }), 'decrypted-message.txt');
+  }
+}
+</script>
+</body>
+</html>

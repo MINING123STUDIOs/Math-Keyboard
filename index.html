@@ -1,13 +1,30 @@
 <!DOCTYPE html>
+<!--
+  Web Tools — A collection of self-contained browser tools.
+  Copyright (C) 2026 MINING123STUDIOS
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Web Toys</title>
-<meta name="description" content="Eight self-contained browser toys: a math keyboard, a 1-bit calculator, a code editor, an arbitrary-precision numerical analysis app, a Turing-machine visualizer, a cellular-automaton cell battle, a Chomsky sentence generator, and an elementary CA explorer.">
+<title>Web Tools</title>
+<meta name="description" content="Ten self-contained browser tools: a math keyboard, a 1-bit calculator, a code editor, an arbitrary-precision numerical analysis app, an end-to-end encrypted messaging demo, a Turing-machine toolchain, a cellular-automaton cell battle, a Chomsky sentence generator, a Library-of-Babel locator, and an elementary CA explorer.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Web Toys">
-<meta property="og:description" content="Math Keyboard · 1-Bit Calculator · Clean Editor · Numerical Analysis · TM0 Visualizer · Cell Battles · Colorless Green Ideas · Elementary CA Explorer">
+<meta property="og:title" content="Web Tools">
+<meta property="og:description" content="Math Keyboard · 1-Bit Calculator · Clean Editor · Numerical Analysis · TM0 Visualizer · Cell Battles · Colorless Green Ideas · Library of Babel · Elementary CA Explorer · Secure Channel">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>">
 <style>
@@ -81,19 +98,19 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">🧩 <span>Web Toys</span></div>
+    <div class="brand">🧩 <span>Web Tools</span></div>
     <nav>
-      <a href="#toys">Toys</a>
+      <a href="#tools">Tools</a>
       <a href="#about">About</a>
     </nav>
   </header>
 
   <section class="hero">
-    <h1>Web Toys</h1>
-    <p>Eight small, self-contained browser toys. No frameworks, no dependencies, no tracking — just open and play.</p>
+    <h1>Web Tools</h1>
+    <p>Ten small, self-contained browser tools. No frameworks, no dependencies, no tracking — just open and use.</p>
   </section>
 
-  <section id="toys">
+  <section id="tools">
     <div class="grid">
       <div class="card">
         <div class="icon">∑</div>
@@ -113,14 +130,28 @@
         <div class="icon">✍️</div>
         <h2>Clean Editor</h2>
         <p>A fast, minimal code editor with syntax styling, light/dark theme and keyboard-friendly controls.</p>
-        <a class="btn" href="clean-editor/index.html">Launch</a>
+        <a class="btn" href="clean-editor.html">Launch</a>
       </div>
 
       <div class="card">
         <div class="icon">🔢</div>
         <h2>Numerical Analysis</h2>
         <p>Arbitrary-precision math in your browser: big-number calculator, calculus and more, up to 100,000 digits.</p>
-        <a class="btn" href="numerical-analysis-app/index.html">Launch</a>
+        <a class="btn" href="numerical-analysis-app.html">Launch</a>
+      </div>
+
+      <div class="card">
+        <div class="icon">🔐</div>
+        <h2>Secure Channel Assistant</h2>
+        <p>An end-to-end encrypted messaging demo with a Signal-style Double Ratchet key exchange, running entirely in your browser.</p>
+        <a class="btn" href="secure-channel.html">Launch</a>
+      </div>
+
+      <div class="card">
+        <div class="icon">⚙️</div>
+        <h2>TM0 Visualizer</h2>
+        <p>A toolchain for TM0, a tiny Turing-machine dialect: write assembly or high-level IR, compile to .tm0 and watch it run.</p>
+        <a class="btn" href="tm0.html">Launch</a>
       </div>
 
       <div class="card">
@@ -138,17 +169,17 @@
       </div>
 
       <div class="card">
+        <div class="icon">📚</div>
+        <h2>Library of Babel</h2>
+        <p>Type any string and find the exact book whose first line is your words. 95 glyphs, 262144 pages per book, ~5.1×10<sup>1,659,034,805</sup> volumes.</p>
+        <a class="btn" href="babel.html">Launch</a>
+      </div>
+
+      <div class="card">
         <div class="icon">🌱</div>
         <h2>Elementary CA Explorer</h2>
         <p>All 256 elementary cellular automaton rules, from Rule 30 chaos to Rule 110 Turing-completeness.</p>
         <a class="btn" href="rule30-explorer.html">Launch</a>
-      </div>
-
-      <div class="card">
-        <div class="icon">⚙️</div>
-        <h2>TM0 Visualizer</h2>
-        <p>A toolchain for TM0, a tiny Turing-machine dialect: write assembly or high-level IR, compile to .tm0 and watch it run.</p>
-        <a class="btn" href="web/index.html">Launch</a>
       </div>
     </div>
   </section>
@@ -159,8 +190,15 @@
   </section>
 
   <footer>
-    Web Toys · plain HTML/CSS/JS · no dependencies · no tracking
+    Web Tools · plain HTML/CSS/JS · no dependencies · no tracking
   </footer>
 </div>
+<footer class="site-footer">
+  © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>
+  This software is provided "as is", without warranty of any kind, express or implied.<br>
+  In no event shall the authors be liable for any claim, damages or other liability.<br>
+  <a href="https://github.com/MINING123STUDIOs/trinkets/tree/main"
+    target="_blank">Source Code on GitHub (opens in new tab)</a>
+</footer>
 </body>
 </html>

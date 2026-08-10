@@ -1,4 +1,21 @@
 <!DOCTYPE html>
+<!--
+  Elementary CA Explorer — All 256 elementary cellular automaton rules.
+  Copyright (C) 2026 MINING123STUDIOS
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -31,7 +48,13 @@
   .card .rnum { font-size: 8px; color: #777; text-align: center; }
   #main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
   canvas#game { background: #0a0a12; image-rendering: pixelated; }
-  #footer { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.35); font-size: 11px; }
+  #footer { position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.35); font-size: 11px; }
+  footer.site-footer {
+    position: fixed; bottom: 0; left: 0; right: 0; text-align: center;
+    padding: 6px 16px 10px; font-size: 11px; line-height: 1.6;
+    color: rgba(234,234,234,0.35); background: rgba(0,0,0,0.4);
+  }
+  footer.site-footer a { color: #74b9ff; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -272,5 +295,12 @@ reset();
 setRule(30);
 requestAnimationFrame(frame);
 </script>
+<footer class="site-footer">
+  © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>
+  This software is provided "as is", without warranty of any kind, express or implied.<br>
+  In no event shall the authors be liable for any claim, damages or other liability.<br>
+  <a href="https://github.com/MINING123STUDIOs/trinkets/tree/main"
+    target="_blank">Source Code on GitHub (opens in new tab)</a>
+</footer>
 </body>
 </html>
