@@ -206,14 +206,14 @@
   html[data-theme="light"] .stats td { border-bottom: 1px solid rgba(15, 30, 50, 0.07); }
   html[data-theme="light"] .stats td:last-child { color: #2f6f4f; }
 
-  footer.site-footer {
-    position: fixed; bottom: 0; left: 0; right: 0; text-align: center;
-    padding: 10px 16px 14px; font-size: 12px; line-height: 1.6;
-    color: rgba(154, 208, 255, 0.55); background: rgba(6, 11, 18, 0.55);
+  .menu .site-footer {
+    margin: 2px 2px 4px; padding: 10px 12px; white-space: normal;
+    font-size: 11px; line-height: 1.6; color: #7c8aa0; text-align: left;
+    border-top: 1px solid rgba(255,255,255,0.08);
   }
-  footer.site-footer a { color: #9ad0ff; text-decoration: none; }
-  html[data-theme="light"] footer.site-footer { color: #4a5a6e; background: rgba(247, 250, 252, 0.9); }
-  html[data-theme="light"] footer.site-footer a { color: #2f6f9f; }
+  .menu .site-footer a { color: #9ad0ff; text-decoration: none; }
+  html[data-theme="light"] .menu .site-footer { color: #4a5a6e; border-top: 1px solid rgba(15, 30, 50, 0.1); }
+  html[data-theme="light"] .menu .site-footer a { color: #2f6f9f; }
 </style>
 </head>
 <body>
@@ -240,6 +240,14 @@
         <button id="theme" class="ghost" title="Toggle theme">☀ Light</button>
         <div class="menu-sep"></div>
         <button id="clearFavs">Clear favorites</button>
+        <div class="menu-sep"></div>
+        <div class="site-footer">
+          © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>
+          This software is provided "as is", without warranty of any kind, express or implied.<br>
+          In no event shall the authors be liable for any claim, damages or other liability.<br>
+          <a href="https://github.com/MINING123STUDIOs/trinkets/tree/main"
+            target="_blank">Source Code on GitHub (opens in new tab)</a>
+        </div>
       </div>
     </div>
   </div>
@@ -2153,12 +2161,5 @@ document.addEventListener('click', (e) => {
 });
 menu.addEventListener('click', closeMenu);
 </script>
-<footer class="site-footer">
-  © MINING123STUDIOS 2026 &middot; Licensed under GPL-3.0<br>
-  This software is provided "as is", without warranty of any kind, express or implied.<br>
-  In no event shall the authors be liable for any claim, damages or other liability.<br>
-  <a href="https://github.com/MINING123STUDIOs/trinkets/tree/main"
-    target="_blank">Source Code on GitHub (opens in new tab)</a>
-</footer>
 </body>
 </html>
