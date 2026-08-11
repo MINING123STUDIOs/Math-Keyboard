@@ -268,278 +268,12 @@
     <summary>Session stats</summary>
     <div id="stats"></div>
   </details>
-</div>
-<script>
-const sentenceEl = document.getElementById('sentence');
-const attrEl = document.getElementById('attribution');
-const parseEl = document.getElementById('parse');
-const favBox = document.getElementById('favorites');
-const favList = document.getElementById('favList');
-const rarityEl = document.getElementById('rarity');
-
-const stats = {
-  total: 0, multi: 0, cond: 0, sub: 0, q: 0, wh: 0, disc: 0, mid: 0, exclaim: 0,
-  compounds: 0, numbers: 0, conjoined: 0, relative: 0, tag: 0, favs: 0
-};
-function renderStats() {
-  const el = document.getElementById('stats');
-  if (!el) return;
-  const rows = [
-    ['Total generated', stats.total],
-    ['Multi-sentence quotes', stats.multi],
-    ['Conditionals', stats.cond],
-    ['Subordinate clauses', stats.sub],
-    ['Two-clause compounds', stats.compounds],
-    ['Questions', stats.q],
-    ['Wh-questions', stats.wh],
-    ['Discourse markers', stats.disc],
-    ['Exclamations', stats.exclaim],
-    ['Mid markers', stats.mid],
-    ['Number words', stats.numbers],
-    ['Conjoined subjects', stats.conjoined],
-    ['Relative clauses', stats.relative],
-    ['Tag questions', stats.tag],
-    ['Favorites saved', stats.favs]
-  ];
-  el.innerHTML = '<table>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
-}
-function noteStats(list) {
-  if (list.length > 1) stats.multi++;
-  stats.total++;
-  for (const s of list) {
-    if (s.cond) stats.cond++;
-    if (s.sub) stats.sub++;
-    if (s.cond || s.sub) stats.compounds++;
-    if (s.q) stats.q++;
-    if (s.wh) stats.wh++;
-    if (s.disc) {
-      stats.disc++;
-      if (EXCLAIM.includes(s.disc)) stats.exclaim++;
-    }
-    if (s.mid) stats.mid++;
-    for (const c of [s.c1, s.c2]) {
-      if (!c) continue;
-      if (c.num) stats.numbers++;
-      if (c.sub2) stats.conjoined++;
-      if (c.rel) stats.relative++;
-    }
-    if (s.tag) stats.tag++;
-  }
-  renderStats();
-}
-
-/* Max distinct sentences and quotes are astronomically large (A alone has
- * ~884.2k digits), so only their scientific-notation mantissa + exponent are
- * stored; see the count comment above powerAdjs() for the formula. Two-clause
- * sentences (conditionals + subordinate adverb clauses) dominate the union
- * and ~triple the clause exponent: conjoined subjects (×S) and relative
- * clauses (×R) each carry their own copy of the astronomical adj-sequence
- * count A, so two-clause sentences scale as (C·S·R)². The (1 + Q + T)
- * question/tag factor (3.3) and (1 + 0.3) discourse factor multiply the
- * total, while the (1 + 0.25) mid-marker factor applies to single clauses
- * only (a negligible tail of the union).
- */
-const SENT_M = '3.53';
-const SENT_E = 5305216;
-/* A quote may hold any number of distinct sentences: an ordered tuple of k
- * distinct sentence-texts, for any k >= 1, so distinct quote-texts number
- * SUM_k SENT!/(SENT-k)! ~ e·SENT!. With attributions:
- *   QUOTE ~ e · TOTAL_ATTRIBUTIONS · SENT!
- *   log10(QUOTE) ~ log10(SENT!) ~ 1.8748 · 10^5305223
- * (the ~1.87·10^6 Stirling correction and log10(e·attributions) only move
- * trailing digits of the 5.3-million-digit exponent, so they vanish here).
- */
-const QUOTE_M = '1.87';
-const QUOTE_E = 5305223;
-
-/* Borges, The Library of Babel: 25 symbols × 1,312,000 chars/book.
- * Books = 25^1312000 ≈ 1.96 × 10^1834097. The quote space outnumbers them by
- * log10(QUOTE) − log10(books) ≈ 1.87 × 10^5305223 − 10^1834097 orders of
- * magnitude (the book count is a negligible tail of the exponent). */
-const BABEL_M = '1.96';
-const BABEL_E = 1834097;
-
-/* Max distinct authors:
- *
- * Counts: GIVEN=30  SURNAMES=30  ADJ=275  NOUN=653  COLORS=133  SUFFIX=147  AUTHORS=34  ATTR=20
- * GIVEN initials: 26 distinct first letters.
- * SURNAMES initials: 25 distinct first letters.
- * M = 275 + 653 * (133 + 147) = 183115 possible adjectives (plain, or
- * "anynoun-color", or "anynoun-suffix").
- *
- * fakeAuthor() branches (pick is independent, so with replacement):
- *   Given + Surname              30 * 30                 = 900
- *   Given + initial (Ronald M.)  30 * 25                 = 750
- *   initials, 1 letter           26 * 30                 = 780
- *   initials, 2 letters          26 * 26 * 30            = 20280
- *   titled (50 titles)            50 * 30                 = 1500
- *     + "of <noun>"              50 * 30 * 653            = 979500
- *   <noun> of the <noun>         653 * 653               = 426409
- *   <adj> <noun>                 M * 653                 = 119574095
- *   <adj> <adj> <noun>           M * M * 653             = 21895810405925
- * Fixed pools:
- *   AUTHORS                                              = 34
- *   ATTR authors (pair [0])                              = 20
- *
- * TOTAL = 900 + 750 + 780 + 20280 + (1500 + 979500) + 426409 + 119574095 + 21895810405925 + 34 + 20
- *       = 21895931410193
- */
-const TOTAL_AUTHORS = 21895931410193;
-
-/* Max distinct attributions (author + source pairs):
- *
- * fakeSource() sources (base):
- *   SOURCES static                                         = 32
- *   SOURCES dynamic (circa BC:1000, century:8, time:288,
- *     postmarked:2100, email-time:288)                     = 3684
- *   On the <adj> <noun> of <noun>    M * 653 * 653         = 78081884035
- *   The <adj> <noun> Revisited       M * 653               = 119574095
- *   Journal of <adj> <noun>          M * 653               = 119574095
- *   datePhrase():
- *     circa / c., AD or BC           2100 + 1000 + 2100 + 1000 = 6200
- *     in the <century>               1200s..1900s           = 8
- *     dates                          28 * 12 * 2100 * 291   = 205329600
- *       (291 = 3 formats + 1 format with a time; time:288)
- *     time                                                = 288
- *     subtotal                                            = 205336096
- *   union(SOURCES, datePhrase)  = 32 + 3684 + 205336096 - 1296 (shared circa BC,
- *     century, time)                                      = 205338516
- *   TOTAL base fakeSource     = 205338516 + 78081884035 + 119574095 + 119574095
- *                             = 78526370741
- *   Optional region suffix: 25 prepositions * 80 REGIONS = 2000 variants,
- *     applied with REGION_PROB=0.35 -> each base source x (1 + 2000) = x2001
- *   TOTAL fakeSource          = 78526370741 * 2001            = 157131267852741
- *
- * Attribution branches:
- *   generated author * source  21895931410139 * 157131267852741 = 3440535463291796162726340999
- *   AUTHORS * source           34 * 157131267852741             = 5342463106993194
- *   ATTR random combos         20 names * 1313 sources           = 26260
- *     (sources: 17 static + 1000 circa-BC + 8 centuries + 288 times;
- *      the 5% verbatim-pairs branch re-renders 20 of these combos,
- *      so it adds nothing new to the union)
- *   TOTAL_ATTRIBUTIONS                                            = 3440535463297138625833360453
- */
-const TOTAL_ATTRIBUTIONS = 3440535463297138625833360453n;
-
-const FAV_KEY = 'cgi-favorites';
-let favorites = [];
-try { favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch (e) { favorites = []; }
-
-function currentQuote() {
-  return {
-    text: sentenceEl.textContent,
-    attr: attrEl.textContent
-  };
-}
-
-function quoteString(q) {
-  return `“${q.text}” — ${q.attr}`;
-}
-
-let copyNoteTimer = null;
-function flashNote(msg) {
-  const note = document.getElementById('favNote');
-  note.textContent = msg;
-  clearTimeout(copyNoteTimer);
-  copyNoteTimer = setTimeout(() => { note.textContent = ''; }, 1500);
-}
-
-function copyText(str) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(str);
-  }
-  const ta = document.createElement('textarea');
-  ta.value = str;
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  ta.remove();
-  return Promise.resolve();
-}
-
-document.getElementById('copyCur').addEventListener('click', () => {
-  copyText(quoteString(currentQuote())).then(() => flashNote('✓ Copied current quote'));
-});
-
-function renderFavorites() {
-  favList.innerHTML = '';
-  favorites.forEach((q, i) => {
-    const li = document.createElement('li');
-    const del = document.createElement('button');
-    del.className = 'fdel';
-    del.textContent = '✕';
-    del.title = 'Remove';
-    del.addEventListener('click', () => {
-      favorites.splice(i, 1);
-      localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-      renderFavorites();
-    });
-    const cpy = document.createElement('button');
-    cpy.className = 'fcopy';
-    cpy.textContent = '⧉';
-    cpy.title = 'Copy quote';
-    cpy.addEventListener('click', () => {
-      copyText(quoteString(q)).then(() => flashNote('✓ Copied favorite'));
-    });
-    const qtext = document.createElement('span');
-    qtext.textContent = '“' + q.text + '”';
-    const qattr = document.createElement('span');
-    qattr.className = 'fauth';
-    qattr.textContent = q.attr;
-    li.appendChild(del);
-    li.appendChild(cpy);
-    li.appendChild(qtext);
-    li.appendChild(qattr);
-    favList.appendChild(li);
-  });
-  favBox.style.display = favorites.length ? 'block' : 'none';
-}
-
-document.getElementById('fav').addEventListener('click', () => {
-  const q = currentQuote();
-  if (!q.text || q.text === '—') return;
-  favorites.push(q);
-  stats.favs++;
-  renderStats();
-  localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-  renderFavorites();
-});
-document.getElementById('clearFavs').addEventListener('click', () => {
-  if (!favorites.length) return;
-  if (confirm('Remove all saved favorites?')) {
-    favorites = [];
-    localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-    renderFavorites();
-  }
-});
-
-renderFavorites();
-
-function randomAttribution() {
-  const r = Math.random();
-  let name, source;
-  if (r < 0.30) {
-    name = fakeAuthor();
-    source = fakeSource();
-  } else if (r < 0.85) {
-    name = pick(AUTHORS);
-    source = fakeSource();
-  } else if (r < 0.95) {
-    name = pick(ATTR)[0];
-    source = pick(ATTR)[1];
-    if (typeof source === 'function') source = source();
-  } else {
-    [name, source] = pick(ATTR);
-    if (typeof source === 'function') source = source();
-  }
-  attrEl.innerHTML = `<b>${name}</b>, <i>${source}</i>`;
-}
-
+</div><script>
 const DET = ['the', 'some', 'my', 'our', 'no', 'these', 'those', 'all', 'many', 'several', 'few', 'two', 'three', 'most', 'countless', 'several', 'innumerable', 'every', 'each', 'whose', 'certain'];
 const ADJ = [
   'colorless', 'green', 'blue', 'red', 'purple', 'luminous', 'translucent', 'fragile',
-  'furious', 'sleepy', 'quiet', 'loud', 'absurd', 'stubborn', 'hollow', 'imaginary',
-  'circular', 'invisible', 'unripe', 'synthetic', 'jagged', 'gaseous', 'enormous',
+  'cold', 'furious', 'sleepy', 'quiet', 'loud', 'absurd', 'stubborn', 'hollow', 'imaginary',
+  'circular', 'current', 'invisible', 'unripe', 'synthetic', 'jagged', 'gaseous', 'enormous',
   'miniature', 'hungry', 'jealous', 'melancholy', 'rusty', 'crystalline', 'velvet',
   'amber', 'ashen', 'azure', 'bleached', 'burnished', 'cavernous', 'ceramic', 'chlorinated',
   'cinnabar', 'colossal', 'contrary', 'corrugated', 'crimson', 'damp', 'diaphanous',
@@ -646,7 +380,7 @@ const NOUN = [
   'subterfuges', 'suburbs', 'sugarloaves', 'suits', 'summerhouses', 'summits', 'sunbeams',
   'sunflowers', 'superstitions', 'surgeons', 'swallows', 'swans', 'swarmings', 'sweatshops',
   'swords', 'syllables', 'symmetries', 'synagogues', 'tadpoles', 'tambourines', 'tandems',
-  'tapestries', 'tarantulas', 'tariffs', 'taxicabs', 'teacups', 'teapots', 'teddy-bears',
+  'tapestries', 'tarantulas', 'tariffs', 'taxicabs', 'teacups', 'teapots', 'teas', 'teddy-bears',
   'telegrams', 'telescopes', 'tempests', 'temples', 'tents', 'terminals', 'terrariums',
   'territories', 'testimonies', 'theaters', 'theorems', 'thermostats', 'thickets', 'thistles',
   'thoroughfares', 'thrones', 'thunderstorms', 'tickertapes', 'tides', 'tigresses', 'toboggans',
@@ -667,7 +401,42 @@ const NOUN = [
   'weeds', 'whales', 'wharves', 'whims', 'whirlpools', 'whirlwinds', 'whistles', 'wildernesses',
   'willow-trees', 'windsocks', 'windstorms', 'wintergardens', 'wisdom', 'witchcraft', 'witnesses',
   'wolves', 'woodlands', 'workshops', 'worlds', 'wrestlers', 'xenophobes', 'xeroxes', 'yachts',
-  'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists'
+  'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists',
+  'letters', 'directors', 'boards'
+];
+/* Uncountable/mass nouns, always used bare with singular copula agreement:
+ * "there is a lot of sand." */
+const MASS = [
+  'sand', 'water', 'steel', 'metal', 'PVC', 'iron', 'copper', 'brass', 'bronze',
+  'tin', 'lead', 'zinc', 'gold', 'silver', 'platinum', 'aluminum', 'titanium',
+  'chromium', 'nickel', 'mercury', 'glass', 'plastic', 'rubber', 'wood', 'timber',
+  'bamboo', 'cork', 'clay', 'concrete', 'cement', 'stone', 'gravel', 'rock',
+  'soil', 'dirt', 'mud', 'dust', 'ash', 'snow', 'ice', 'hail', 'oil', 'petrol',
+  'gasoline', 'diesel', 'kerosene', 'petroleum', 'tar', 'asphalt', 'resin',
+  'glue', 'wax', 'paint', 'ink', 'chalk', 'soap', 'sugar', 'salt', 'pepper',
+  'flour', 'rice', 'wheat', 'grain', 'bread', 'butter', 'cheese', 'cream',
+  'milk', 'yogurt', 'honey', 'chocolate', 'jam', 'syrup', 'soup', 'broth',
+  'wine', 'beer', 'tea', 'coffee', 'juice', 'air', 'oxygen', 'hydrogen',
+  'nitrogen', 'helium', 'methane', 'smoke', 'fog', 'mist', 'steam', 'foam',
+  'leather', 'silk', 'cotton', 'wool', 'linen', 'nylon', 'polyester', 'paper',
+  'porcelain', 'ceramic', 'enamel', 'fiberglass', 'carbon', 'silicon'
+];
+/* Partitive measure nouns for existential clauses: "a cloud of dust", "a pane
+ * of glass", "a slab of steel". Paired with MASS without regard for whether the
+ * combination is physically sensible — the surrealism is the point. */
+const PARTITIVE = [
+  'cloud', 'pane', 'drop', 'slab', 'mound', 'pool', 'wisp', 'block', 'dollop',
+  'speck', 'puddle', 'stream', 'column', 'pile', 'layer', 'sheet', 'gust',
+  'strand', 'lump', 'chunk', 'vein', 'reservoir', 'torrent', 'cascade',
+  'fragment', 'shard', 'splash', 'ribbon', 'swath', 'scrap', 'heap', 'bed',
+  'bank', 'film', 'carpet', 'drift', 'dune', 'wave', 'sea', 'runnel', 'rivulet',
+  'streamlet', 'ingot', 'bar', 'rod', 'coil', 'spool', 'cone', 'pyramid',
+  'globule', 'bead', 'grain', 'flake', 'chip', 'crumb', 'mote', 'particle',
+  'atom', 'molecule', 'fleck', 'patch', 'stain', 'smudge', 'trail', 'swirl',
+  'vortex', 'pillar', 'tower', 'spire', 'sculpture', 'monument', 'edifice',
+  'ruin', 'statue', 'obelisk', 'goblet', 'vessel', 'bottle', 'jar', 'vial',
+  'cup', 'mug', 'bowl', 'bucket', 'barrel', 'cask', 'vault', 'armful',
+  'handful', 'mouthful', 'spoonful', 'cupful', 'bucketful', 'shovelful'
 ];
 const COLORS = [
   'colorless', 'green', 'blue', 'red', 'purple', 'amber', 'ashen', 'azure', 'cinnabar', 'crimson',
@@ -713,48 +482,6 @@ const ADJ_SUFFIX = [
 /* Intransitive verbs. Some entries double as nouns/objects (museum, mutiny,
  * morsel, needle, octopus...) on purpose: "sand paintings that throb could
  * museum" is grammatical — the surrealism is intended, not a bug. */
-const ADJ_TOTAL = ADJ.length + NOUN.length * (COLORS.length + ADJ_SUFFIX.length);
-const COMPOUND_PROB = 0.2;
-const SINGULAR_IRREGULAR = {
-  indices: 'index', salesmen: 'salesman', dodecahedra: 'dodecahedron',
-  memoranda: 'memorandum', nebulae: 'nebula', prismata: 'prism',
-  sarcophagi: 'sarcophagus', pleiades: 'pleiad', narratives: 'narrative',
-  locomotives: 'locomotive', horseshoes: 'horseshoe', avalanches: 'avalanche',
-  zombies: 'zombie', prairies: 'prairie', quiches: 'quiche',
-  purposes: 'purpose', eclipses: 'eclipse', lighthouses: 'lighthouse',
-  remorses: 'remorse', seahorses: 'seahorse', summerhouses: 'summerhouse',
-  tortoises: 'tortoise', universes: 'universe', verses: 'verse',
-  warehouses: 'warehouse', trapezes: 'trapeze',
-  mathematics: 'mathematics', rendezvous: 'rendezvous', silliness: 'silliness',
-  pliers: 'pliers', trousers: 'trousers', rapids: 'rapids'
-};
-function singularize(n) {
-  if (SINGULAR_IRREGULAR[n]) return SINGULAR_IRREGULAR[n];
-  if (n.endsWith('ies')) return n.slice(0, -3) + 'y';
-  if (n.endsWith('sses')) return n.slice(0, -2);
-  if (n.endsWith('ves')) return n.slice(0, -3) + 'f';
-  if (n.endsWith('ses')) return n.slice(0, -2);
-  if (n.endsWith('oes')) return n.slice(0, -2);
-  if (n.endsWith('es')) {
-    const stemEs = n.slice(0, -2);
-    if (stemEs.endsWith('ch') || stemEs.endsWith('sh') || /[sxz]$/.test(stemEs)) return stemEs;
-    return n.slice(0, -1);
-  }
-  if (n.endsWith('s')) return n.slice(0, -1);
-  return n;
-}
-const SINGULAR_VERBS = { have: 'has' };
-function thirdSingular(v) {
-  if (SINGULAR_VERBS[v]) return SINGULAR_VERBS[v];
-  if (/(s|sh|ch|x|z)$/.test(v)) return v + 'es';
-  if (/[^aeiou]o$/.test(v)) return v + 'es';
-  if (/[^aeiou]y$/.test(v)) return v.slice(0, -1) + 'ies';
-  return v + 's';
-}
-function pickAdj() {
-  if (!maybe(COMPOUND_PROB)) return pick(ADJ);
-  return singularize(pick(NOUN)) + '-' + (Math.random() < 0.5 ? pick(COLORS) : pick(ADJ_SUFFIX));
-}
 const VERB = [
   'sleep', 'fight', 'sing', 'dance', 'grow', 'think', 'melt', 'run', 'fly',
   'dream', 'vanish', 'multiply', 'whisper', 'shine', 'sink', 'bloom', 'freeze',
@@ -1207,64 +934,90 @@ const TRANS = [
   'shatter', 'devour', 'pursue', 'surround', 'embrace', 'consume', 'dissolve',
   'measure', 'swallow', 'bewilder', 'uproot', 'outline', 'ferment', 'overhear',
   'ignite', 'interpret', 'decorate', 'unravel', 'assemble', 'attract', 'bother',
-  'collect', 'conquer', 'construct', 'contain', 'criticize', 'describe', 'disguise',
-  'disrupt', 'document', 'educate', 'examine', 'excite', 'explain', 'expose',
-  'frighten', 'harvest', 'humiliate', 'illuminate', 'imitate', 'impress', 'inflate',
+  'break', 'bring', 'build', 'buy', 'catch', 'choose', 'collect', 'conquer',
+  'construct', 'contain', 'criticize', 'describe', 'disguise',
+  'disrupt', 'document', 'draw', 'drink', 'eat', 'educate', 'examine', 'excite',
+  'explain', 'expose', 'feed', 'frighten', 'give', 'harvest', 'humiliate',
+  'illuminate', 'imitate', 'impress', 'inflate',
   'inspire', 'interrogate', 'intimidate', 'investigate', 'invite', 'irritate',
   'jettison', 'kidnap', 'liberate', 'manipulate', 'memorize', 'mention', 'obliterate',
   'observe', 'obstruct', 'occupy', 'organize', 'overthrow', 'photograph', 'placate',
   'pollinate', 'preserve', 'proclaim', 'propagate', 'protect', 'purify', 'reanimate',
   'rebuild', 'reconstruct', 'recount', 'regenerate', 'rehearse', 'remodel', 'reproduce',
-  'rescue', 'saturate', 'synthesize', 'terrify', 'torture', 'translate', 'transmit',
-  'validate', 'venerate', 'vindicate', 'welcome', 'wreck'
+  'rescue', 'saturate', 'see', 'synthesize', 'take', 'terrify', 'torture',
+  'translate', 'transmit', 'validate', 'venerate', 'vindicate', 'welcome', 'win',
+  'write', 'wreck'
 ];
-const AUX = [
-  'can', 'could', 'may', 'might', 'must', 'shall', 'should',
-  'will', 'would', 'ought to', 'used to'
+
+/* Proper names: title/given/surname banks shared by sentence subjects
+ * (person()) and attribution authors. */
+const TITLES = [
+  'Prof.', 'Dr.', 'Regius Prof.', 'Prof. Emeritus', 'Asst. Prof.', 'Assoc. Prof.', 'Chancellor',
+  'Sir', 'Dame', 'Lord', 'Lady', 'Baron', 'Baroness', 'Viscount', 'Marquess', 'Count',
+  'Countess', 'Duke', 'Duchess', 'The Hon.', 'Earl',
+  'Capt.', 'Maj.', 'Col.', 'Gen.', 'Adm.', 'Cmdr.', 'Brig.',
+  'Rev.', 'Fr.', 'Mother', 'Sister', 'Brother', 'Abbot', 'Abbess', 'Cardinal', 'Archbishop',
+  'Bishop', 'The Venerable', 'Right Rev.', 'Rabbi', 'Sheikh', 'Imam', 'Saint',
+  'Wizard', 'Loremaster', 'Chronicler', 'Grand Vizier', 'Archivist', 'Scribe'
 ];
-const FREQ = [
-  'always', 'never', 'usually', 'often', 'sometimes', 'rarely', 'seldom',
-  'occasionally', 'frequently', 'constantly', 'generally', 'normally'
+
+const GIVEN = [
+  'Margot', 'Alistair', 'Beatrice', 'Conrad', 'Dorothea', 'Edwin', 'Felicity',
+  'Gerald', 'Hilda', 'Ivor', 'Jasper', 'Kathleen', 'Lionel', 'Mabel', 'Neville',
+  'Ophelia', 'Percival', 'Quentin', 'Rosalind', 'Sylvester', 'Theodora', 'Ursula',
+  'Vernon', 'Winifred', 'Xerxes', 'Yolanda', 'Zachary', 'Aurelia', 'Basil', 'Clovis',
+  'Phil'
 ];
-const NEG = ['not', 'ever'];
-const TAG_POS = {
-  can: 'can', could: 'could', may: 'may', might: 'might', must: 'must',
-  shall: 'shall', should: 'should', will: 'will', would: 'would',
-  'ought to': 'ought', 'used to': 'did'
-};
-const TAG_NEG = {
-  can: "can't", could: "couldn't", may: 'mayn\'t', might: 'mightn\'t', must: 'mustn\'t',
-  shall: 'shan\'t', should: 'shouldn\'t', will: 'won\'t', would: 'wouldn\'t',
-  'ought to': 'oughtn\'t', 'used to': 'didn\'t'
-};
-const DISCOURSE = [
-  'well', 'you know', 'I mean', 'actually', 'frankly', 'honestly', 'say',
-  'mind you', 'after all', 'believe it or not', 'to be honest',
-  'truth be told', 'surprisingly', 'oddly enough', 'ironically',
-  'come to think of it', 'as a matter of fact', 'if you ask me',
-  'just saying', 'no offense', 'for once', 'basically', 'I suppose',
-  'I guess', 'right', 'okay', 'sure', 'then again', 'anyway',
-  'speaking of which', 'now'
+
+const SURNAMES = [
+  'Albright', 'Bracken', 'Calder', 'Driscoll', 'Ellsworth', 'Frobisher',
+  'Grimaldi', 'Halvorsen', 'Ibbotson', 'Jellicoe', 'Kessler', 'Langford',
+  'Merriweather', 'Nettleship', 'Ormandy', 'Pettigrew', 'Quillan', 'Redmayne',
+  'Satterthwaite', 'Tremaine', 'Underwood', 'Voss', 'Whitcomb', 'Yarrow',
+  'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield',
+  'Doe'
 ];
-const MID_DISCOURSE = ['you know', 'I mean', 'I suppose', 'mind you', 'like', 'if you will', 'after all', 'just saying'];
-const EXCLAIM = ['oh', 'hey', 'wait', 'hold on', 'listen', 'look', 'come on', 'seriously', 'alright', 'no way'];
-const DISC_PROB = 0.3;
-const MID_PROB = 0.25;
-const EXCLAIM_PROB = 0.1;
-const CONJ = [
-  'if', 'unless', 'provided that', 'so long as', 'as long as',
-  'in case', 'supposing', 'even if', 'assuming that', 'provided'
+
+/* Descriptive person phrases (part of the generic person() space). */
+const AUTHORS = [
+  'a retired semiotician',
+  'a hobbyist cosmologist',
+  'the village eccentric',
+  'a freelance cartographer',
+  'a part-time sphinx',
+  'an itinerant folklorist',
+  'a nocturnal lexicographer',
+  'the last living flâneur',
+  'a professional daydreamer',
+  'a basement etymologist',
+  'a skeptical astrologer',
+  'a misanthropic poet laureate',
+  'a cross-eyed augur',
+  'a temporarily omniscient housecat',
+  'a dissenting committee member',
+  'the curator of a museum of nothing',
+  'an over-caffeinated monk',
+  'a lay philosopher of margins',
+  'the ghost of a thesaurus',
+  'a wandering dowsing-rod maker',
+  'a recovering grammarian',
+  'a nocturnal notary',
+  'a former lighthouse keeper',
+  'a reluctant prophet',
+  'an itinerant piano tuner',
+  'a semi-retired alchemist',
+  'a professional eavesdropper',
+  'a chronicler of small disasters',
+  'an apprentice ornithomancer',
+  'the village ombudsman',
+  'a person of letters',
+  'an authority on nothing in particular',
+  'a bird that reads too much',
+  'a guest lecturer, once'
 ];
-const INV_CONJ = ['if', 'even if'];
-const SUB_CONJ = [
-  'because', 'since', 'while', 'although', 'though', 'whenever',
-  'whereas', 'wherever', 'until', 'once', 'when', 'where'
-];
-const COND_PROB = 0.3;
-const SUB_PROB = 0.25;
-const REL_PROB = 0.2;
-const TAG_PROB = 0.15;
-const FRONT_PROB = 0.8;
+
+/* Regions and region prepositions: locationPhrase() composes these, and
+ * attribution sources append a region suffix (regionPhrase()). */
 const REGIONS = [
   'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
   'Sardinia', 'Corsica', 'Flanders', 'Brittany', 'Thuringia', 'Saxony',
@@ -1285,7 +1038,6 @@ const REGIONS = [
   'the Dreamlands', 'an alternate dimension', 'the mouth of a volcano',
   'the ruins of a fallen empire'
 ];
-const REGION_PROB = 0.35;
 const REGION_PRE = [
   'in ', 'somewhere in ', 'near ', 'at the edge of ', 'off the coast of ',
   'under ', 'beneath ', 'below ', 'underneath ', 'inside ', 'behind ', 'beyond ',
@@ -1293,27 +1045,156 @@ const REGION_PRE = [
   'underground in ', 'in the sewers of ', 'in the basement of ', 'in the attic of ',
   'at the heart of ', 'on the far side of ', 'hidden beneath ', 'buried under '
 ];
-function regionPhrase() {
-  return pick(REGION_PRE) + pick(REGIONS);
-}
+
+/* Tuning knobs for the generator: every probability, cap and grammar
+ * vocabulary lives here so the behavior of the whole app can be adjusted in
+ * one place. Load order matters: this file must come before
+ * language_primitives.js and sentence.js. */
+
+/* Session / UI flags. */
+const FAV_KEY = 'cgi-favorites';
+const HIDDEN_DOUBLE_MS = 700;
+
+/* Quote assembly. */
+const EXTRA_SENTENCE_PROB = 1 / 15;
+
+/* Numbers. */
+const NUM_PROB = 0.3;
+const GOOGOL = 100;
+const NUM_DET = ['the', 'my', 'our', 'no', 'whose'];
+const NUM_DET_PLURAL = NUM_DET.concat(['these', 'those']);
+
+/* Adjectives. */
+const ADJ_PROB = 1 / 3;
+const COMPOUND_PROB = 0.2;
+
+/* Pronouns and aspect. */
+const PRON_PROB = 0.35;
+const PERFECT_PROB = 0.35;
+const PAST_PROB = 0.45;
+const DID_PROB = 0.5;
+const PRONOUNS = ['he', 'she', 'it', 'they', 'we', 'I', 'you'];
+const PRONOUN_SG = ['he', 'she', 'it'];
+const PRONOUN_OBJ = ['him', 'her', 'it', 'them', 'us', 'me'];
+const PERFECT_AUX = ['have', 'has', 'had'];
+
+/* Copular clauses: subject is/are/was/were [degree] ADJ [noun]. */
+const COPULA_PROB = 0.12;
+const INTENSIFIERS = ['very', 'quite', 'rather', 'extremely', 'truly', 'remarkably', 'unusually', 'particularly'];
+
+/* Existential clauses: "there is/was [quantifier] MASS [locative]". */
+const EXIST_PROB = 0.08;
+const EXIST_QUANT = [
+  'a lot of', 'much', 'plenty of', 'some', 'a little', 'a great deal of',
+  'tons of', 'an ocean of', 'heaps of', 'masses of'
+];
+const EXIST_WORDS = [
+  'everywhere', 'all around', 'anywhere', 'somewhere', 'here',
+  'in every corner', 'throughout the city', 'in great quantities'
+];
+/* Expressiveness knobs for existential clauses: an alternate existential verb
+ * ("there lies water"), an adjective on the mass noun ("molten steel"), a
+ * partitive quantifier ("a cloud of dust"), an origin ("gold from the river")
+ * and template locatives ("in every corner of the world"). */
+const EXIST_VERB_PROB = 0.4;
+const MASS_ADJ_PROB = 0.55;
+const PARTITIVE_PROB = 0.5;
+const ORIGIN_PROB = 0.35;
+const EXIST_LOC_PROB = 0.5;
+const EXIST_VERBS = [
+  'remain', 'lie', 'flow', 'drift', 'hang', 'accumulate', 'gather', 'stand',
+  'gleam', 'glow', 'swirl', 'seep', 'pool', 'settle', 'glisten', 'shimmer',
+  'creep', 'ooze', 'percolate', 'stagnate'
+];
+const EXIST_LOC_TEMPLATES = [
+  'in every corner of the <adj> <noun>',
+  'at the bottom of the <adj> <noun>',
+  'beneath the surface of the <adj> <noun>',
+  'in the heart of the <adj> <noun>',
+  'along the <adj> <noun>',
+  'between the <adj> <noun> and the <adj> <noun>',
+  'behind the walls of the <adj> <noun>',
+  'on the far side of the <adj> <noun>',
+  'within the <adj> <noun>',
+  'at the edge of the <adj> <noun>',
+  'across the <adj> <noun>',
+  'underneath the <adj> <noun>'
+];
+
+/* VP adjuncts: modals, frequency adverbs, negation. */
+const AUX = [
+  'can', 'could', 'may', 'might', 'must', 'shall', 'should',
+  'will', 'would', 'ought to', 'used to'
+];
+const FREQ = [
+  'always', 'never', 'usually', 'often', 'sometimes', 'rarely', 'seldom',
+  'occasionally', 'frequently', 'constantly', 'generally', 'normally'
+];
+const NEG = ['not', 'ever'];
+const TAG_POS = {
+  can: 'can', could: 'could', may: 'may', might: 'might', must: 'must',
+  shall: 'shall', should: 'should', will: 'will', would: 'would',
+  'ought to': 'ought', 'used to': 'did',
+  have: 'have', has: 'has', had: 'had'
+};
+const TAG_NEG = {
+  can: "can't", could: "couldn't", may: 'mayn\'t', might: 'mightn\'t', must: 'mustn\'t',
+  shall: 'shan\'t', should: 'shouldn\'t', will: 'won\'t', would: 'wouldn\'t',
+  'ought to': 'oughtn\'t', 'used to': 'didn\'t',
+  have: "haven't", has: "hasn't", had: "hadn't"
+};
+
+/* Discourse markers. */
+const DISC_PROB = 0.3;
+const MID_PROB = 0.25;
+const EXCLAIM_PROB = 0.1;
+const DISCOURSE = [
+  'well', 'you know', 'I mean', 'actually', 'frankly', 'honestly', 'say',
+  'mind you', 'after all', 'believe it or not', 'to be honest',
+  'truth be told', 'surprisingly', 'oddly enough', 'ironically',
+  'come to think of it', 'as a matter of fact', 'if you ask me',
+  'just saying', 'no offense', 'for once', 'basically', 'I suppose',
+  'I guess', 'right', 'okay', 'sure', 'then again', 'anyway',
+  'speaking of which', 'now'
+];
+const MID_DISCOURSE = ['you know', 'I mean', 'I suppose', 'mind you', 'like', 'if you will', 'after all', 'just saying'];
+const EXCLAIM = ['oh', 'hey', 'wait', 'hold on', 'listen', 'look', 'come on', 'seriously', 'alright', 'no way'];
+
+/* Clause combiners. */
+const COND_PROB = 0.3;
+const SUB_PROB = 0.25;
+const COORD_PROB = 0.2;
+const REL_PROB = 0.2;
+const TAG_PROB = 0.15;
+const FRONT_PROB = 0.8;
+const TIME_PROB = 0.15;
+const LOC_PROB = 0.15;
+const NAME_PROB = 0.08;
+const OBJ_PP_PROB = 0.3;
+const CONJ = [
+  'if', 'unless', 'provided that', 'so long as', 'as long as',
+  'in case', 'supposing', 'even if', 'assuming that', 'provided'
+];
+const INV_CONJ = ['if', 'even if'];
+const SUB_CONJ = [
+  'because', 'since', 'while', 'although', 'though', 'whenever',
+  'whereas', 'wherever', 'until', 'once', 'when', 'where'
+];
+const COORD_CONJ = ['and', 'or', 'but'];
+
+/* Attribution. */
+const REGION_PROB = 0.35;
+
+/* Low-level language primitives shared by the generator and the attribution
+ * layer: random selection, number-to-words, verb/noun inflection, date/time
+ * helpers, and the general temporalPhrase()/locationPhrase()/person()
+ * generators. Depends on words.js (ADJ/NOUN/COLORS/ADJ_SUFFIX/TITLES/GIVEN/
+ * SURNAMES/AUTHORS/REGIONS/REGION_PRE) and configs.js (COMPOUND_PROB, GOOGOL,
+ * ADJ_PROB). */
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const maybe = (p) => Math.random() < p;
-
-const THINK_VERBS = [
-  ['Thinking', 10], ['Pondering', 5], ['Ruminating', 3], ['Musing', 3],
-  ['Contemplating', 3], ['Considering', 3], ['Wondering', 3], ['Processing', 3],
-  ['Hmm', 3], ['Composing', 3], ['Deliberating', 2], ['Meditating', 2],
-  ['Reflecting', 2], ['Daydreaming', 2], ['Conjuring', 2], ['Drafting', 2],
-  ['Brainstorming', 2], ['Calculating', 2], ['Dreaming', 2], ['Deep in thought', 2],
-  ['Let me think', 2], ['Brooding', 1], ['Cogitating', 1], ['Philosophizing', 1],
-  ['Scheming', 1], ['Churning', 1], ['Synthesizing', 1], ['Transcribing', 1]
-];
-
-const ATTR_VERBS = [
-  ['Attributing', 8], ['Crediting', 4], ['Citing', 3], ['Sourcing', 2],
-  ['Signing', 2], ['Dedicating', 2], ['Appending', 1]
-];
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
 function pickWeighted(list) {
   const total = list.reduce((acc, [, w]) => acc + w, 0);
@@ -1324,11 +1205,146 @@ function pickWeighted(list) {
   }
   return list[list.length - 1][0];
 }
-const NUM_PROB = 0.3;
-const GOOGOL = 100;
-const NUM_DET = ['the', 'my', 'our', 'no', 'whose'];
-const NUM_DET_PLURAL = NUM_DET.concat(['these', 'those']);
 
+/* Compound adjectives: ADJ_TOTAL counts every distinct slot value (a plain
+ * adjective, or a "noun-color"/"noun-suffix" compound). */
+const ADJ_TOTAL = ADJ.length + NOUN.length * (COLORS.length + ADJ_SUFFIX.length);
+
+const SINGULAR_IRREGULAR = {
+  indices: 'index', salesmen: 'salesman', dodecahedra: 'dodecahedron',
+  memoranda: 'memorandum', nebulae: 'nebula', prismata: 'prism',
+  sarcophagi: 'sarcophagus', pleiades: 'pleiad', narratives: 'narrative',
+  locomotives: 'locomotive', horseshoes: 'horseshoe', avalanches: 'avalanche',
+  zombies: 'zombie', prairies: 'prairie', quiches: 'quiche',
+  purposes: 'purpose', eclipses: 'eclipse', lighthouses: 'lighthouse',
+  remorses: 'remorse', seahorses: 'seahorse', summerhouses: 'summerhouse',
+  tortoises: 'tortoise', universes: 'universe', verses: 'verse',
+  warehouses: 'warehouse', trapezes: 'trapeze',
+  mathematics: 'mathematics', rendezvous: 'rendezvous', silliness: 'silliness',
+  pliers: 'pliers', trousers: 'trousers', rapids: 'rapids'
+};
+function singularize(n) {
+  if (SINGULAR_IRREGULAR[n]) return SINGULAR_IRREGULAR[n];
+  if (n.endsWith('ies')) return n.slice(0, -3) + 'y';
+  if (n.endsWith('sses')) return n.slice(0, -2);
+  if (n.endsWith('ves')) return n.slice(0, -3) + 'f';
+  if (n.endsWith('ses')) return n.slice(0, -2);
+  if (n.endsWith('oes')) return n.slice(0, -2);
+  if (n.endsWith('es')) {
+    const stemEs = n.slice(0, -2);
+    if (stemEs.endsWith('ch') || stemEs.endsWith('sh') || /[sxz]$/.test(stemEs)) return stemEs;
+    return n.slice(0, -1);
+  }
+  if (n.endsWith('s')) return n.slice(0, -1);
+  return n;
+}
+
+const SINGULAR_VERBS = { have: 'has' };
+function thirdSingular(v) {
+  if (SINGULAR_VERBS[v]) return SINGULAR_VERBS[v];
+  if (/(s|sh|ch|x|z)$/.test(v)) return v + 'es';
+  if (/[^aeiou]o$/.test(v)) return v + 'es';
+  if (/[^aeiou]y$/.test(v)) return v.slice(0, -1) + 'ies';
+  return v + 's';
+}
+
+function pickAdj() {
+  if (!maybe(COMPOUND_PROB)) return pick(ADJ);
+  return singularize(pick(NOUN)) + '-' + (Math.random() < 0.5 ? pick(COLORS) : pick(ADJ_SUFFIX));
+}
+
+const IRREG_PAST = {
+  break: 'broke', bring: 'brought', build: 'built', buy: 'bought', catch: 'caught',
+  choose: 'chose', creep: 'crept', dive: 'dived', draw: 'drew', dream: 'dreamt',
+  drink: 'drank', eat: 'ate', fall: 'fell', feed: 'fed', fight: 'fought',
+  find: 'found', flee: 'fled', fly: 'flew', forgive: 'forgave', freeze: 'froze',
+  give: 'gave', grow: 'grew', hang: 'hung', have: 'had', hear: 'heard', hide: 'hid',
+  hold: 'held', keep: 'kept', kneel: 'knelt', know: 'knew', lay: 'laid',
+  leave: 'left', lend: 'lent', lie: 'lay', light: 'lit', lose: 'lost',
+  mean: 'meant', meet: 'met', overcome: 'overcame', pay: 'paid', put: 'put',
+  quit: 'quit', read: 'read', ride: 'rode', ring: 'rang', rise: 'rose',
+  run: 'ran', say: 'said', see: 'saw', seek: 'sought', sell: 'sold',
+  send: 'sent', set: 'set', shake: 'shook', shine: 'shone', shoot: 'shot',
+  show: 'showed', shrink: 'shrank', shut: 'shut', sing: 'sang', sink: 'sank',
+  sit: 'sat', sleep: 'slept', slide: 'slid', speak: 'spoke', spend: 'spent',
+  spin: 'spun', stand: 'stood', steal: 'stole', stick: 'stuck', sting: 'stung',
+  stink: 'stank', stride: 'strode', strike: 'struck', swear: 'swore',
+  sweep: 'swept', swim: 'swam', swing: 'swung', take: 'took', teach: 'taught',
+  tear: 'tore', tell: 'told', think: 'thought', throw: 'threw',
+  understand: 'understood', wake: 'woke', wear: 'wore', weep: 'wept',
+  win: 'won', wind: 'wound', withdraw: 'withdrew', write: 'wrote'
+};
+const IRREG_PART = {
+  break: 'broken', bring: 'brought', build: 'built', buy: 'bought', catch: 'caught',
+  choose: 'chosen', creep: 'crept', dive: 'dived', draw: 'drawn', dream: 'dreamt',
+  drink: 'drunk', eat: 'eaten', fall: 'fallen', feed: 'fed', fight: 'fought',
+  find: 'found', flee: 'fled', fly: 'flown', forgive: 'forgiven', freeze: 'frozen',
+  give: 'given', grow: 'grown', hang: 'hung', have: 'had', hear: 'heard', hide: 'hidden',
+  hold: 'held', keep: 'kept', kneel: 'knelt', know: 'known', lay: 'laid',
+  leave: 'left', lend: 'lent', lie: 'lain', light: 'lit', lose: 'lost',
+  mean: 'meant', meet: 'met', overcome: 'overcome', pay: 'paid', put: 'put',
+  quit: 'quit', read: 'read', ride: 'ridden', ring: 'rung', rise: 'risen',
+  run: 'run', say: 'said', see: 'seen', seek: 'sought', sell: 'sold',
+  send: 'sent', set: 'set', shake: 'shaken', shine: 'shone', shoot: 'shot',
+  show: 'shown', shrink: 'shrunk', shut: 'shut', sing: 'sung', sink: 'sunk',
+  sit: 'sat', sleep: 'slept', slide: 'slid', speak: 'spoken', spend: 'spent',
+  spin: 'spun', stand: 'stood', steal: 'stolen', stick: 'stuck', sting: 'stung',
+  stink: 'stunk', stride: 'stridden', strike: 'struck', swear: 'sworn',
+  sweep: 'swept', swim: 'swum', swing: 'swung', take: 'taken', teach: 'taught',
+  tear: 'torn', tell: 'told', think: 'thought', throw: 'thrown',
+  understand: 'understood', wake: 'woken', wear: 'worn', weep: 'wept',
+  win: 'won', wind: 'wound', withdraw: 'withdrawn', write: 'written'
+};
+
+function regularEd(v) {
+  if (v.endsWith('e')) return v + 'd';
+  if (/[^aeiou]y$/.test(v)) return v.slice(0, -1) + 'ied';
+  if (/^[^aeiou]*[aeiou][^aeiouwy]$/.test(v)) return v + v.slice(-1) + 'ed';
+  return v + 'ed';
+}
+
+function pastForm(v) {
+  if (IRREG_PAST[v]) return IRREG_PAST[v];
+  return regularEd(v);
+}
+
+function participle(v) {
+  if (IRREG_PART[v]) return IRREG_PART[v];
+  return regularEd(v);
+}
+
+function verbForm(c) {
+  if (c.perfect) return participle(c.verb);
+  if (c.did) return c.verb;
+  if (c.aux) return c.verb;
+  if (c.past) return pastForm(c.verb);
+  if (c.sg && !c.sub2) return thirdSingular(c.verb);
+  return c.verb;
+}
+
+function copulaForm(c) {
+  if (c.sg && !c.sub2) return c.past ? 'was' : 'is';
+  return c.past ? 'were' : 'are';
+}
+
+/* Existential-verb form: the copula ("there is/was") or, when an alternate
+ * existential verb is set, its inflected form ("there lies/lay water"). */
+function existVerbForm(c) {
+  if (!c.exVerb) return copulaForm(c);
+  return c.past ? pastForm(c.exVerb) : thirdSingular(c.exVerb);
+}
+
+/* a/an choice for a bare noun ("a cloud of dust", "an ingot of steel"). */
+function indefiniteArticle(word) {
+  return /^[aeiou]/i.test(word) ? 'an' : 'a';
+}
+
+function qVerbForm(c) {
+  if (c.perfect) return participle(c.verb);
+  return c.verb;
+}
+
+/* Numbers up to a googol, as English words. */
 const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
   'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
 const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
@@ -1365,27 +1381,6 @@ function numberToWords(n) {
   return parts.reverse().join(' ');
 }
 
-const CDOT = '·';
-
-function sciM(m, e, sep) {
-  return m + ' ' + sep + ' 10<sup>' + e + '</sup>';
-}
-
-function sciPow(m, e, sep) {
-  return '10<sup>' + m + ' ' + sep + ' 10<sup>' + e + '</sup></sup>';
-}
-
-function sciNote(v, sep) {
-  if (v === 0n) return '0';
-  const d = v.toString();
-  const e = d.length - 1;
-  if (e === 0) return d;
-  let m = d.slice(0, 3);
-  m = m.length > 1 ? m[0] + '.' + m.slice(1) : m;
-  m = m.replace(/\.?0+$/, '');
-  return sciM(m, e, sep);
-}
-
 function bigRand(span) {
   const bytes = Math.ceil(span.toString(2).length / 8);
   const buf = new Uint8Array(bytes);
@@ -1405,12 +1400,17 @@ function randomGoogol() {
   return lo + bigRand(hi - lo);
 }
 
-const ADJ_PROB = 1 / 3;
-
-/* Max distinct sentences (finite, because adjectives cannot repeat):
+/* The sentence space is countably infinite: adjectives may repeat without
+ * bound (each slot is an independent draw from the compound-adjective pool),
+ * so there are ADJ_TOTAL^k length-k adjective sequences for every k, with no
+ * upper limit on k. Same for quotes: a quote holds 1 + a geometric number of
+ * sentences (each further sentence added with p = 1/15), so quote-length is
+ * unbounded too. familyExponent() below therefore estimates magnitudes only,
+ * per generated clause, rather than a closed-form total.
  *
- * Vocab counts: DET=21  ADJ=275  NOUN=653  VERB=3070  ADV=647  TRANS=88
- *              AUX=11  FREQ=12  NEG=2  COLORS=133  SUFFIX=147
+ * Vocab counts: DET=21  ADJ=277  NOUN=657  MASS=105  PARTITIVE=94  VERB=3070  ADV=647  TRANS=103
+ *              AUX=11 (modals)  PERFECT_AUX=3 (have/has/had)  FREQ=12  NEG=2
+ *              COLORS=133  SUFFIX=147  PRONOUNS=7  PRONOUN_OBJ=6
  *
  * Each adjective slot holds either a plain adjective (ADJ=275), a compound
  * "anynoun-color" (653 * 133 = 86849), or a compound "anynoun-suffix"
@@ -1418,10 +1418,6 @@ const ADJ_PROB = 1 / 3;
  * adjectives. Every compound is hyphenated with a unique noun-color or
  * noun-suffix pair (suffix list is disjoint from the color list), so no two
  * slots can collide on the same string.
- *
- * Ordered no-repeat adjective sequences (k adjectives, k = 1..M):
- *   A = sum_{k=1..M} P(M,k) = floor(e * M!) - 1     (~884.2k digits, so it is
- *   not stored as a literal; only sciNote mantissa + exponent are kept below)
  *
  * Optional adverb factor is (1 + ADV) since both variants are valid sentences.
  * Number factor: no number, or one of 10^100+1 values (0 .. a googol). It
@@ -1438,11 +1434,15 @@ const ADJ_PROB = 1 / 3;
  * VP adjunct factor X: before the verb sits (aux?)(neg?) where
  *   - no aux, no adjunct: 1
  *   - no aux, frequency adverb (FREQ): 12
- *   - aux only (AUX): 11
- *   - aux + frequency adverb (AUX * FREQ): 11 * 12
- *   - aux + negation (AUX * NEG): 11 * 2
- *   (negation/ever only ride an auxiliary; no do-support)
- *   X = 1 + 12 + 11 + 132 + 22 = 178
+ *   - aux only: 14 (11 modals + 3 perfect have/has/had)
+ *   - aux + frequency adverb: 14 * 12
+ *   - aux + negation: 14 * 2
+ *   (negation/ever ride an auxiliary; a bare past verb instead may take
+ *   did-support negation: did not / did ever, a (1 + NEG) = 3 factor)
+ *   X = 1 + 12 + 14 + 168 + 28 = 223
+ * Tense: every clause is present or past (a modal clause keeps its base verb,
+ * so this is ~x2 per clause; the perfect 'had' vs 'have/has' split is already
+ * inside the PERFECT_AUX count).
  * Optional punctuation factor (1+1): every sentence ends in "." or "!".
  * sentence() patterns:
  *   0: A * N * V * (1+W)          (no det)
@@ -1466,39 +1466,917 @@ const ADJ_PROB = 1 / 3;
  *   relative clause    R = V*(1+W) + (1+D)*A*N*T   (subject-rel, or object-rel
  *                       with a det-optional NP and a transitive verb; the
  *                       (1+D)*A*N*T term dominates, ~1.26e6 * A)
- *   Both apply independently to every clause, so a clause counts C*S*R.
+ *   copular clause     C0 = (subject) * 2 (is/are vs was/were) *
+ *                       (1 + INTENSIFIERS) * ADJ * (1 + NOUN)   (predicate
+ *                       "very cold tea", "cold", "green tea", ...)
+ *   existential clause E0 = "there is/was [quant] MASS [loc]":
+ *                       (1 + EXIST_QUANT) * MASS * (1 + LOC_SPACE) * 2
+ *   Both the noun-machinery features apply independently to every clause, so
+ *   a clause counts C*S*R. Pronoun subjects (7) and object pronouns (6)
+ *   replace the noun machinery rather than extend it (no adjective
+ *   sequences), and did-support past negation rides the X factor above.
  *
  * Two-clause sentences (conditionals K_cond=10 + subordinating K_sub=12,
  * front or end order) dominate the union:
  *   T_two = 2*(K_cond + K_sub) * (C*S*R)^2 * (1 + Q + T) * (1 + 0.3)
  * "Were X to V" inversion merely re-renders front-order eligible pairs, so it
  * cancels out of the union. Mid-marker fillers apply to single clauses only.
- * log10(C) ~ log10(A) + 112.91, log10(S) ~ log10(A) + 4.16,
- * log10(R) ~ log10(A) + 6.10, so
- *   log10(TOTAL) ~ 2*(3*log10(A) + 123.17) + log10(44) + log10(3.3) + log10(1.3)
- *               ~ 5,305,216.55      (log10 A = 884,161.3215)
- *   TOTAL ~ 3.53 * 10^5305216      (SENT_M * 10^SENT_E)
- *
- * Multi-sentence quotes: a quote holds 1 + (each further sentence added with
- * p = 1/15, no repeats) distinct sentences. Distinct ordered k-tuples of
- * distinct sentences = SENT!/(SENT-k)!, so the number of distinct quote-texts
- * is SUM_{k>=1} SENT!/(SENT-k)! ~ e·SENT!. With attributions:
- *   QUOTE ~ e · TOTAL_ATTRIBUTIONS · SENT!      log10(QUOTE) ~ 1.8748 * 10^5305223
+ * Copular clauses C0 sit inside the same clause-union (a single-term variant
+ * of C), so the growth pattern is unchanged: every clause carries an
+ * astronomical adj-sequence count, and with repetition allowed each family is
+ * unbounded above.
  */
 function powerAdjs() {
-  const used = new Set();
   const adjs = [];
   let a = pickAdj();
-  used.add(a);
   adjs.push(a);
-  while (Math.random() < ADJ_PROB && used.size < ADJ_TOTAL) {
-    let b = pickAdj();
-    while (used.has(b)) b = pickAdj();
-    used.add(b);
-    adjs.push(b);
-  }
+  while (Math.random() < ADJ_PROB) adjs.push(pickAdj());
   return adjs;
 }
+
+/* ---- Date and time helpers (shared with the attribution layer) ---- */
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+
+function ordinal(n) {
+  if (n % 100 >= 11 && n % 100 <= 13) return n + 'th';
+  return n + ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'][n % 10];
+}
+
+function randomADYear() { return randInt(1, 2100); }
+function randomBCYear() { return randInt(1, 1000); }
+function randomCentury() { return randInt(12, 19) + '00s'; }
+
+function randomTime() {
+  const h = randInt(1, 12);
+  const m = randInt(0, 11) * 5;
+  const ap = Math.random() < 0.5 ? 'AM' : 'PM';
+  return m ? `${h}:${String(m).padStart(2, '0')} ${ap}` : `${h} ${ap}`;
+}
+
+function randomDate() {
+  const d = randInt(1, 28);
+  const mo = pick(MONTHS);
+  const y = randomADYear();
+  return pick([
+    `the ${ordinal(d)} of ${mo} ${y}`,
+    `${ordinal(d)} ${mo} ${y}`,
+    `${mo} ${d}, ${y}`,
+    `the ${ordinal(d)} of ${mo} ${y}, ${randomTime()}`
+  ]);
+}
+
+function datePhrase() {
+  const r = Math.random();
+  const bc = maybe(0.15) ? ' BC' : '';
+  const y = bc ? randomBCYear() : randomADYear();
+  if (r < 0.30) return 'circa ' + y + bc;
+  if (r < 0.45) return 'c. ' + y + bc;
+  if (r < 0.60) return 'in the ' + randomCentury();
+  if (r < 0.80) return randomDate();
+  return randomTime();
+}
+
+function regionPhrase() {
+  return pick(REGION_PRE) + pick(REGIONS);
+}
+
+/* ---- General fronted temporal adjuncts ---- */
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_PARTS = ['morning', 'afternoon', 'evening', 'night'];
+const RELATIVE_TIMES = [
+  'the day before yesterday', 'three weeks later', 'a decade earlier',
+  'last Tuesday', 'next Thursday', 'in the dead of night', 'before sunrise',
+  'after sunset', 'at the stroke of midnight', 'sometime in the middle of the night',
+  'in the wee hours', 'around midday', 'at first light', 'just before dawn'
+];
+
+function temporalPhrase() {
+  const r = Math.random();
+  if (r < 0.18) return 'on ' + randomDate();
+  if (r < 0.36) return 'on ' + randomDate() + ' at ' + randomTime();
+  if (r < 0.44) return 'at ' + randomTime() + ' on ' + randomDate();
+  if (r < 0.50) return 'at ' + randomTime();
+  if (r < 0.56) return 'in the ' + randomCentury();
+  if (r < 0.62) return 'circa ' + randomADYear();
+  if (r < 0.68) return 'c. ' + randomBCYear() + ' BC';
+  if (r < 0.74) return 'in ' + randomADYear();
+  if (r < 0.80) return 'in ' + pick(MONTHS) + ' of ' + randomADYear();
+  if (r < 0.85) return 'just after ' + randomTime();
+  if (r < 0.88) return 'just before ' + randomTime();
+  if (r < 0.91) return 'around ' + randomTime();
+  if (r < 0.94) return 'during the night of ' + randomDate();
+  if (r < 0.97) return 'on a ' + pick(WEEKDAYS) + ' ' + pick(DAY_PARTS);
+  return pick(RELATIVE_TIMES);
+}
+
+/* ---- General locational phrases ---- */
+
+const LOC_PRE = [
+  'under', 'beneath', 'behind', 'inside', 'beyond', 'atop', 'beside',
+  'across', 'around', 'within', 'above', 'below'
+];
+const IDIOMATIC_PLACES = [
+  'in the middle of nowhere', 'at the edge of the world', 'next door', 'out back',
+  'over the river', 'across the sea', 'in the attic', 'in a forgotten corner',
+  'under the floorboards', 'just around the corner', 'on the roof', 'in the basement',
+  'down by the river', 'on the other side of town'
+];
+
+function locationPhrase() {
+  const r = Math.random();
+  if (r < 0.35) return regionPhrase();
+  if (r < 0.55) return 'in the ' + pickAdj() + ' ' + pick(NOUN) + ' of ' + pick(REGIONS);
+  if (r < 0.68) return pick(LOC_PRE) + ' the ' + pickAdj() + ' ' + pick(NOUN);
+  if (r < 0.78) return pick(['in', 'at', 'by', 'near', 'from', 'through', 'across', 'around', 'within']) + ' the ' + pick(NOUN);
+  if (r < 0.90) return pick(['somewhere', 'deep', 'roughly', 'far']) + ' ' + regionPhrase();
+  return pick(IDIOMATIC_PLACES);
+}
+
+/* ---- Generic person generator ----
+ * Shared by sentence subjects (makeClause) and attribution authors. The
+ * branch union below is also the count used for the TOTAL_AUTHORS estimate in
+ * attrib.js. */
+
+function person() {
+  const r = Math.random();
+  if (r < 0.14) return `${pick(TITLES)} ${pick(GIVEN)} ${pick(SURNAMES)}`;
+  if (r < 0.30) return `${pick(GIVEN)} ${pick(SURNAMES)}`;
+  if (r < 0.40) return `${pick(GIVEN)} ${pick(SURNAMES).charAt(0)}.`;
+  if (r < 0.52) {
+    const s = pick(SURNAMES);
+    return maybe(0.5)
+      ? `${pick(GIVEN).charAt(0)}. ${s}`
+      : `${pick(GIVEN).charAt(0)}. ${pick(GIVEN).charAt(0)}. ${s}`;
+  }
+  if (r < 0.62) {
+    const title = pick(TITLES);
+    const surname = pick(SURNAMES);
+    return maybe(0.4) ? `${title} ${surname} of ${pick(NOUN)}` : `${title} ${surname}`;
+  }
+  if (r < 0.72) return `${pick(NOUN)} of the ${pick(NOUN)}`;
+  if (r < 0.82) return `${pickAdj()} ${pick(NOUN)}`;
+  if (r < 0.92) return `${pickAdj()} ${pickAdj()} ${pick(NOUN)}`;
+  return pick(AUTHORS);
+}
+
+/* Sentence construction: clause/sentence objects, their composition, and
+ * rendering to text and to a parse tree. Pure logic — depends on words.js,
+ * configs.js and language_primitives.js. */
+
+function makeObjPP() {
+  const o = {
+    det: pick(['a', 'the']),
+    noun: singularize(pick(NOUN)),
+    toNoun: singularize(pick(NOUN)),
+    ofNoun: singularize(pick(NOUN))
+  };
+  if (maybe(0.5)) o.adj = pickAdj();
+  if (maybe(0.6)) o.toAdj = pickAdj();
+  return o;
+}
+
+function makeClause() {
+  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null, sg: false, one: false };
+
+  if (maybe(PRON_PROB)) {
+    s.pron = pick(PRONOUNS);
+    s.sg = PRONOUN_SG.includes(s.pron);
+    const tr = Math.random() < 0.5;
+    s.verb = pick(tr ? TRANS : VERB);
+    s.object = tr;
+    if (tr) {
+      if (maybe(OBJ_PP_PROB)) {
+        s.objPP = makeObjPP();
+      } else {
+        s.objPron = maybe(0.6) ? pick(PRONOUN_OBJ) : null;
+        if (!s.objPron) s.obj = pick(NOUN);
+      }
+    }
+    s.adv = maybe(0.7) ? pick(ADV) : null;
+  } else if (maybe(NAME_PROB)) {
+    s.name = person();
+    s.sg = true;
+    s.verb = pick(TRANS);
+    s.object = true;
+    if (maybe(OBJ_PP_PROB)) s.objPP = makeObjPP();
+    else s.obj = pick(NOUN);
+    s.adv = maybe(0.6) ? pick(ADV) : null;
+  } else if (maybe(COPULA_PROB)) {
+    s.cop = true;
+    if (maybe(0.5)) {
+      s.pron = pick(PRONOUNS);
+      s.sg = PRONOUN_SG.includes(s.pron);
+    } else if (maybe(0.4)) {
+      s.name = person();
+      s.sg = true;
+    } else {
+      s.det = pick(DET);
+      s.sg = s.det === 'each' || s.det === 'every';
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+    }
+    s.intens = maybe(0.5) ? pick(INTENSIFIERS) : null;
+    s.predAdj = pick(ADJ);
+    s.predNoun = maybe(0.6) ? singularize(pick(NOUN)) : null;
+  } else if (maybe(EXIST_PROB)) {
+    s.exist = true;
+    s.sg = true;
+    s.mass = pick(MASS);
+    s.exVerb = maybe(EXIST_VERB_PROB) ? pick(EXIST_VERBS) : null;
+    s.massAdj = maybe(MASS_ADJ_PROB) ? pickAdj() : null;
+    s.quant = maybe(PARTITIVE_PROB) ? { part: pick(PARTITIVE) }
+      : (maybe(0.6) ? pick(EXIST_QUANT) : null);
+    if (maybe(ORIGIN_PROB)) {
+      s.origin = Math.random() < 0.25
+        ? 'from the ' + pick(REGIONS)
+        : 'from the ' + (maybe(0.5) ? pickAdj() + ' ' : '') + pick(NOUN);
+    } else {
+      s.origin = null;
+    }
+    const rLoc = Math.random();
+    s.egLoc = rLoc < EXIST_LOC_PROB
+      ? (rLoc < 0.15
+          ? pick(EXIST_WORDS)
+          : rLoc < 0.35
+            ? locationPhrase()
+            : pick(EXIST_LOC_TEMPLATES)
+                .replaceAll('<adj>', pickAdj())
+                .replaceAll('<noun>', pick(NOUN)))
+      : null;
+  } else {
+    if (maybe(NUM_PROB)) {
+      const n = randomGoogol();
+      s.num = numberToWords(n);
+      s.one = n % 10n === 1n && n % 100n !== 11n;
+    }
+
+    const pattern = Math.floor(Math.random() * 6);
+    if (pattern === 0) {
+      // Chomsky canonical-ish: Adj* N V Adv
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(VERB);
+      s.adv = maybe(0.7) ? pick(ADV) : null;
+    } else if (pattern === 1) {
+      s.det = pick(DET);
+      s.sg = s.det === 'each' || s.det === 'every';
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(VERB);
+      s.adv = maybe(0.7) ? pick(ADV) : null;
+    } else if (pattern === 2) {
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(VERB);
+      s.adv = maybe(0.8) ? pick(ADV) : null;
+    } else if (pattern === 3) {
+      s.det = pick(DET);
+      s.sg = s.det === 'each' || s.det === 'every';
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(VERB);
+      s.adv = pick(ADV);
+    } else if (pattern === 4) {
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(VERB);
+      s.adv = pick(ADV);
+    } else {
+      s.adjs = powerAdjs();
+      s.noun = pick(NOUN);
+      s.verb = pick(TRANS);
+      s.adv = maybe(0.6) ? pick(ADV) : null;
+      s.object = true;
+      if (maybe(OBJ_PP_PROB)) s.objPP = makeObjPP();
+      else s.obj = pick(NOUN);
+    }
+    if (s.num) {
+      if (s.det) s.numPos = 'after-det';
+      else s.numPos = 'front';
+    }
+    if (s.num && s.det && !(s.one ? NUM_DET : NUM_DET_PLURAL).includes(s.det)) {
+      s.det = pick(s.one ? NUM_DET : NUM_DET_PLURAL);
+      s.sg = false;
+    }
+    s.sub2 = maybe(0.18) ? (function () {
+      const det2 = maybe(DET);
+      const o = { det: det2, adjs: powerAdjs(), noun: pick(NOUN) };
+      if (det2 === 'each' || det2 === 'every' || s.sg) o.noun = singularize(o.noun);
+      return o;
+    })() : null;
+    s.rel = maybe(REL_PROB) ? (Math.random() < 0.5
+      ? { kind: 'subj', verb: pick(VERB), adv: maybe(0.5) ? pick(ADV) : null }
+      : { kind: 'obj', verb: pick(TRANS), np: { det: maybe(DET), adjs: powerAdjs(), noun: pick(NOUN) } })
+      : null;
+  }
+
+  s.past = maybe(PAST_PROB);
+  if (s.cop) {
+    s.neg = maybe(0.3) ? 'not' : null;
+    s.perfect = false;
+    s.aux = null;
+    s.did = null;
+  } else if (s.exist) {
+    s.neg = maybe(0.25) ? (s.quant ? 'not' : 'no') : null;
+    s.perfect = false;
+    s.aux = null;
+    s.did = null;
+  } else if (maybe(PERFECT_PROB)) {
+    s.perfect = true;
+    s.aux = s.past ? 'had' : (s.sg || s.one) && !s.sub2 ? 'has' : 'have';
+  } else {
+    s.aux = maybe(0.6) ? pick(AUX) : null;
+  }
+  if (!s.cop && !s.exist) {
+    if (s.aux) {
+      const r = Math.random();
+      if (r < 0.5) s.neg = null;
+      else if (r < 0.7) s.neg = pick(NEG);
+      else s.neg = pick(FREQ);
+    } else {
+      s.neg = maybe(0.4) ? pick(FREQ) : null;
+      s.did = s.past && maybe(DID_PROB) ? pick(NEG) : null;
+    }
+  }
+  if (s.noun && (s.sg || s.one)) s.noun = singularize(s.noun);
+  return s;
+}
+
+function forceNeg(c) {
+  if (c.exist) {
+    c.neg = 'not';
+    if (!c.quant) c.quant = 'any';
+    c.did = null;
+  } else if (c.cop) {
+    c.neg = 'not';
+    c.did = null;
+  } else if (c.aux) {
+    c.neg = 'not';
+    c.did = null;
+  } else if (c.past) {
+    c.did = 'not';
+    c.neg = null;
+  } else {
+    c.aux = (c.sg || c.one) && !c.sub2 ? 'does' : 'do';
+    c.neg = 'not';
+  }
+  return c;
+}
+
+function sentence() {
+  const s = {};
+  if (maybe(COND_PROB)) {
+    s.cond = true;
+    s.c1 = makeClause();
+    s.c2 = makeClause();
+    s.conj = pick(CONJ);
+    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
+    s.invert = s.order === 'front' && INV_CONJ.includes(s.conj) && !s.c1.aux && !s.c1.neg && !s.c1.cop && !s.c1.exist;
+  } else if (maybe(SUB_PROB)) {
+    s.sub = true;
+    s.c1 = makeClause();
+    s.c2 = makeClause();
+    s.conj = pick(SUB_CONJ);
+    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
+    s.invert = false;
+  } else if (maybe(COORD_PROB)) {
+    s.coord = true;
+    s.c1 = makeClause();
+    s.c2 = makeClause();
+    s.conj = pick(COORD_CONJ);
+    if (s.conj === 'but' && maybe(0.5)) {
+      if (s.c1.adv) {
+        s.ellipsis = s.c1.adv;
+        s.c2 = null;
+      } else {
+        forceNeg(s.c2);
+      }
+    }
+  } else {
+    s.cond = false;
+    s.sub = false;
+    s.coord = false;
+    s.c1 = makeClause();
+  }
+  s.disc = null;
+  s.mid = null;
+  if (maybe(DISC_PROB)) {
+    s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
+  }
+  if (!s.cond && !s.sub && !s.coord && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
+  s.q = false;
+  s.wh = null;
+  if (!s.coord && maybe(0.3)) {
+    s.q = true;
+    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
+    if (tgt.aux === 'used to' || tgt.aux === 'ought to') tgt.aux = null;
+    if (Math.random() < 0.4) {
+      if (tgt.object && Math.random() < 0.5) {
+        s.wh = 'what';
+      } else {
+        s.wh = pick(['why', 'when', 'where', 'how']);
+      }
+    }
+  }
+  s.tag = null;
+  if (!s.q && !s.coord && maybe(TAG_PROB)) {
+    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
+    s.tag = { aux: tgt.aux, negated: tgt.neg === 'not' || tgt.neg === 'never' || tgt.neg === 'no',
+              sg: !!(tgt.sg || tgt.one) && !tgt.sub2, past: !!tgt.past, pron: tgt.pron || null,
+              cop: !!tgt.cop, exist: !!tgt.exist };
+  }
+  s.time = null;
+  s.loc = null;
+  if (!s.cond && !s.sub && !s.coord) {
+    if (maybe(TIME_PROB)) s.time = temporalPhrase();
+    if (maybe(LOC_PROB)) s.loc = locationPhrase();
+  }
+  return s;
+}
+
+function quoteSentences() {
+  const list = [sentence()];
+  while (Math.random() < EXTRA_SENTENCE_PROB) {
+    list.push(sentence());
+  }
+  return list;
+}
+
+function quantWords(c) {
+  if (!c.quant) return null;
+  if (c.quant.part) return indefiniteArticle(c.quant.part) + ' ' + c.quant.part + ' of';
+  return c.quant;
+}
+
+function tagPhrase(t) {
+  if (t.exist) {
+    const base = t.past ? 'was' : 'is';
+    const aux = t.negated ? base : (t.past ? "wasn't" : "isn't");
+    return aux + ' there';
+  }
+  if (t.cop) {
+    const base = t.past ? (t.sg ? 'was' : 'were') : (t.sg ? 'is' : 'are');
+    const aux = t.negated ? base : (t.sg ? (t.past ? "wasn't" : "isn't") : (t.past ? "weren't" : "aren't"));
+    return aux + ' ' + (t.pron || (t.sg ? 'it' : 'they'));
+  }
+  const map = t.negated ? TAG_POS : TAG_NEG;
+  let aux = map[t.aux] || (t.past ? (t.negated ? 'did' : "didn't") : (t.negated ? 'do' : "don't"));
+  if (t.sg && aux === 'do') aux = 'does';
+  if (t.sg && aux === "don't") aux = "doesn't";
+  return aux + ' ' + (t.pron || (t.sg ? 'it' : 'they'));
+}
+
+function objPParts(c) {
+  const parts = [];
+  parts.push({ w: c.objPP.det, pos: 'det' });
+  if (c.objPP.adj) parts.push({ w: c.objPP.adj, pos: 'adj' });
+  parts.push({ w: c.objPP.noun, pos: 'noun' });
+  parts.push({ w: 'to', pos: 'prep' });
+  parts.push({ w: 'the', pos: 'det' });
+  if (c.objPP.toAdj) parts.push({ w: c.objPP.toAdj, pos: 'adj' });
+  parts.push({ w: c.objPP.toNoun, pos: 'noun' });
+  parts.push({ w: 'of', pos: 'prep' });
+  parts.push({ w: 'the', pos: 'det' });
+  parts.push({ w: c.objPP.ofNoun, pos: 'noun' });
+  return parts;
+}
+
+function clauseParts(s, opts) {
+  const q = opts.question, wh = opts.wh, mid = opts.mid;
+  const np = [];
+  if (s.exist) np.push({ w: 'there', pos: 'pron' });
+  if (s.pron) np.push({ w: s.pron, pos: 'pron' });
+  if (s.name) np.push({ w: s.name, pos: 'name' });
+  if (s.det) np.push({ w: s.det, pos: 'det' });
+  if (s.num) np.push({ w: s.num, pos: 'num' });
+  for (const a of s.adjs) np.push({ w: a, pos: 'adj' });
+  if (s.noun) np.push({ w: s.noun, pos: 'noun' });
+  if (s.sub2) {
+    np.push({ w: 'and', pos: 'conj' });
+    if (s.sub2.det) np.push({ w: s.sub2.det, pos: 'det' });
+    for (const a of s.sub2.adjs) np.push({ w: a, pos: 'adj' });
+    np.push({ w: s.sub2.noun, pos: 'noun' });
+  }
+  if (s.rel) {
+    np.push({ w: 'that', pos: 'rel' });
+    if (s.rel.kind === 'subj') {
+      np.push({ w: (s.sg || s.one) && !s.sub2 ? thirdSingular(s.rel.verb) : s.rel.verb, pos: 'verb' });
+      if (s.rel.adv) np.push({ w: s.rel.adv, pos: 'adv' });
+    } else {
+      if (s.rel.np.det) np.push({ w: s.rel.np.det, pos: 'det' });
+      for (const a of s.rel.np.adjs) np.push({ w: a, pos: 'adj' });
+      np.push({ w: s.rel.np.noun, pos: 'noun' });
+      np.push({ w: s.rel.verb, pos: 'verb' });
+    }
+  }
+  let parts;
+  let npStart = 0;
+  if (q) {
+    const fst = [];
+    if (wh) fst.push({ w: wh, pos: 'wh' });
+    if (s.cop) fst.push({ w: copulaForm(s), pos: 'cop' });
+    else if (s.exist) fst.push({ w: existVerbForm(s), pos: 'cop' });
+    else if (s.aux) fst.push({ w: s.aux, pos: 'aux' });
+    else fst.push({ w: s.past ? 'did' : (s.sg || s.one) && !s.sub2 ? 'does' : 'do', pos: 'aux' });
+    parts = [...fst, ...np];
+    npStart = fst.length;
+    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+    if (s.cop) {
+      if (s.intens) parts.push({ w: s.intens, pos: 'adv' });
+      parts.push({ w: s.predAdj, pos: 'adj' });
+      if (s.predNoun) parts.push({ w: s.predNoun, pos: 'noun' });
+    } else if (s.exist) {
+      const qw = quantWords(s);
+      if (qw) parts.push({ w: qw, pos: 'det' });
+      if (s.massAdj) parts.push({ w: s.massAdj, pos: 'adj' });
+      parts.push({ w: s.mass, pos: 'noun' });
+      if (s.origin) parts.push({ w: s.origin, pos: 'loc' });
+      if (s.egLoc) parts.push({ w: s.egLoc, pos: 'loc' });
+    } else {
+      parts.push({ w: qVerbForm(s), pos: 'verb' });
+      if (s.object) {
+        if (s.objPP) parts.push(...objPParts(s));
+        else if (wh !== 'what') parts.push({ w: s.objPron || s.obj, pos: 'obj' });
+      }
+      if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
+    }
+  } else {
+    parts = [...np];
+    if (s.cop) {
+      parts.push({ w: copulaForm(s), pos: 'cop' });
+      if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+      if (s.intens) parts.push({ w: s.intens, pos: 'adv' });
+      parts.push({ w: s.predAdj, pos: 'adj' });
+      if (s.predNoun) parts.push({ w: s.predNoun, pos: 'noun' });
+    } else if (s.exist) {
+      parts.push({ w: existVerbForm(s), pos: 'cop' });
+      if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+      const qw = quantWords(s);
+      if (qw) parts.push({ w: qw, pos: 'det' });
+      if (s.massAdj) parts.push({ w: s.massAdj, pos: 'adj' });
+      parts.push({ w: s.mass, pos: 'noun' });
+      if (s.origin) parts.push({ w: s.origin, pos: 'loc' });
+      if (s.egLoc) parts.push({ w: s.egLoc, pos: 'loc' });
+    } else {
+      if (s.did) parts.push({ w: 'did', pos: 'aux' }, { w: s.did, pos: 'neg' });
+      if (s.aux) parts.push({ w: s.aux, pos: 'aux' });
+      if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
+      parts.push({ w: verbForm(s), pos: 'verb' });
+      if (s.object) {
+        if (s.objPP) parts.push(...objPParts(s));
+        else parts.push({ w: s.objPron || s.obj, pos: 'obj' });
+      }
+      if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
+    }
+  }
+  if (mid) {
+    parts.splice(npStart + np.length, 0, { w: ', ' + mid + ',', pos: 'mid' });
+  }
+  return parts;
+}
+
+function sentenceParts(s) {
+  let parts;
+  if (s.coord) {
+    const savedAdv = s.ellipsis ? s.c1.adv : null;
+    if (s.ellipsis) s.c1.adv = null;
+    const first = clauseParts(s.c1, { question: false, wh: null, mid: null });
+    if (s.ellipsis) s.c1.adv = savedAdv;
+    if (s.ellipsis) {
+      parts = [...first, { w: ', but not ' + s.ellipsis, pos: 'conj' }];
+    } else {
+      const second = clauseParts(s.c2, { question: false, wh: null, mid: null });
+      parts = [...first, { w: s.conj === 'but' ? ', but' : s.conj, pos: 'conj' }, ...second];
+    }
+  } else if (s.cond || s.sub) {
+    const main = clauseParts(s.c2, { question: s.q, wh: s.wh, mid: null });
+    const ifc = clauseParts(s.c1, { question: false, wh: null, mid: null });
+    if (s.invert) {
+      const np = [];
+      if (s.c1.pron) np.push({ w: s.c1.pron, pos: 'pron' });
+      if (s.c1.det) np.push({ w: s.c1.det, pos: 'det' });
+      if (s.c1.num) np.push({ w: s.c1.num, pos: 'num' });
+      for (const a of s.c1.adjs) np.push({ w: a, pos: 'adj' });
+      if (s.c1.noun) np.push({ w: s.c1.noun, pos: 'noun' });
+      const vp = [];
+      vp.push({ w: s.c1.verb, pos: 'verb' });
+      if (s.c1.object) {
+        if (s.c1.objPP) vp.push(...objPParts(s.c1));
+        else vp.push({ w: s.c1.objPron || s.c1.obj, pos: 'obj' });
+      }
+      if (s.c1.adv) vp.push({ w: s.c1.adv, pos: 'adv' });
+      parts = [{ w: 'were', pos: 'aux' }, ...np, { w: 'to', pos: 'func' }, ...vp, { w: ',', pos: 'punct' }, ...main];
+    } else if (s.order === 'front') {
+      parts = [{ w: s.conj, pos: 'conj' }, ...ifc, { w: ',', pos: 'punct' }, ...main];
+    } else {
+      parts = [...main, { w: s.conj, pos: 'conj' }, ...ifc];
+    }
+  } else {
+    parts = clauseParts(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
+  }
+  if (s.time) parts = [{ w: s.time, pos: 'time' }, ...parts];
+  if (s.loc) parts = [{ w: s.loc, pos: 'loc' }, ...parts];
+  if (s.disc) parts = [{ w: s.disc, pos: 'disc' }, { w: ',', pos: 'punct' }, ...parts];
+  if (s.tag) {
+    parts.push({ w: ',', pos: 'punct' }, { w: tagPhrase(s.tag), pos: 'tag' });
+  }
+  return parts;
+}
+
+function joinParts(parts) {
+  let str = '';
+  for (const p of parts) {
+    if (p.w.startsWith(',')) str += p.w;
+    else str += (str ? ' ' : '') + p.w;
+  }
+  return str;
+}
+
+function capFirst(parts) {
+  if (parts.length && parts[0].w) {
+    parts[0].w = parts[0].w.charAt(0).toUpperCase() + parts[0].w.slice(1);
+  }
+}
+
+function words(s) {
+  const parts = sentenceParts(s);
+  capFirst(parts);
+  return joinParts(parts) + (s.q || s.tag ? '?' : (maybe(0.1) ? '!' : '.'));
+}
+
+function npNode(c) {
+  const np = { label: 'NP', children: [] };
+  if (c.exist) {
+    np.children.push({ label: 'Pron', text: 'there' });
+    return np;
+  }
+  if (c.pron) {
+    np.children.push({ label: 'Pron', text: c.pron });
+    return np;
+  }
+  if (c.name) {
+    np.children.push({ label: 'Name', text: c.name });
+    return np;
+  }
+  if (c.det) np.children.push({ label: 'Det', text: c.det });
+  if (c.num) np.children.push({ label: 'Num', text: c.num });
+  for (const a of c.adjs) np.children.push({ label: 'Adj', text: a });
+  np.children.push({ label: 'N', text: c.noun });
+  if (c.rel) {
+    np.children.push({ label: 'Rel', text: 'that' });
+    if (c.rel.kind === 'subj') {
+      np.children.push({ label: 'V', text: (c.sg || c.one) && !c.sub2 ? thirdSingular(c.rel.verb) : c.rel.verb });
+      if (c.rel.adv) np.children.push({ label: 'Adv', text: c.rel.adv });
+    } else {
+      const rn = npNode(c.rel.np);
+      for (const ch of rn.children) np.children.push(ch);
+      np.children.push({ label: 'V', text: c.rel.verb });
+    }
+  }
+  return np;
+}
+
+function clauseSubtree(c) {
+  const np = c.sub2
+    ? { label: 'NP', children: [npNode(c), { label: 'Conj', text: 'and' }, npNode(c.sub2)] }
+    : npNode(c);
+  const vp = { label: 'VP', children: [] };
+  if (c.cop) {
+    vp.children.push({ label: 'Cop', text: copulaForm(c) });
+    if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
+    if (c.intens) vp.children.push({ label: 'Adv', text: c.intens });
+    vp.children.push({ label: 'Adj', text: c.predAdj });
+    if (c.predNoun) vp.children.push({ label: 'N', text: c.predNoun });
+    return { np, vp };
+  }
+  if (c.exist) {
+    vp.children.push({ label: c.exVerb ? 'V' : 'Cop', text: existVerbForm(c) });
+    if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
+    const qw = quantWords(c);
+    if (qw) vp.children.push({ label: 'Quant', text: qw });
+    if (c.massAdj) vp.children.push({ label: 'Adj', text: c.massAdj });
+    vp.children.push({ label: 'N', text: c.mass });
+    if (c.origin) vp.children.push({ label: 'Loc', text: c.origin });
+    if (c.egLoc) vp.children.push({ label: 'Loc', text: c.egLoc });
+    return { np, vp };
+  }
+  if (c.did) vp.children.push({ label: 'Aux', text: 'did' }, { label: 'Neg', text: c.did });
+  if (c.aux) vp.children.push({ label: 'Aux', text: c.aux });
+  if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
+  vp.children.push({ label: 'V', text: verbForm(c) });
+  if (c.object) {
+    if (c.objPP) {
+      vp.children.push({
+        label: 'Obj', children: [
+          { label: 'Det', text: c.objPP.det },
+          ...(c.objPP.adj ? [{ label: 'Adj', text: c.objPP.adj }] : []),
+          { label: 'N', text: c.objPP.noun }
+        ]
+      });
+      vp.children.push({
+        label: 'PP', children: [
+          { label: 'Prep', text: 'to' },
+          { label: 'Det', text: 'the' },
+          ...(c.objPP.toAdj ? [{ label: 'Adj', text: c.objPP.toAdj }] : []),
+          { label: 'N', text: c.objPP.toNoun },
+          { label: 'Prep', text: 'of' },
+          { label: 'Det', text: 'the' },
+          { label: 'N', text: c.objPP.ofNoun }
+        ]
+      });
+    } else {
+      vp.children.push({ label: 'N', text: c.objPron || c.obj });
+    }
+  }
+  if (c.adv) vp.children.push({ label: 'Adv', text: c.adv });
+  return { np, vp };
+}
+
+function parseTree(s) {
+  const root = { label: s.q ? 'S (Q)' : 'S', children: [] };
+  if (s.wh) root.children.push({ label: 'Wh', text: s.wh });
+  if (s.disc) root.children.push({ label: 'Disc', text: s.disc });
+  if (s.loc) root.children.push({ label: 'Loc', text: s.loc });
+  if (s.time) root.children.push({ label: 'Time', text: s.time });
+  if (s.coord) {
+    const c1 = clauseSubtree(s.c1);
+    root.children.push(c1.np, c1.vp);
+    root.children.push({ label: 'Conj', text: s.ellipsis ? 'but not' : s.conj });
+    if (!s.ellipsis) {
+      const c2 = clauseSubtree(s.c2);
+      root.children.push(c2.np, c2.vp);
+    }
+  } else if (s.cond || s.sub) {
+    const conjNode = { label: 'Conj', text: s.invert ? 'were to' : s.conj, children: [] };
+    const c1 = clauseSubtree(s.c1);
+    conjNode.children.push(c1.np, c1.vp);
+    root.children.push(conjNode);
+    const c2 = clauseSubtree(s.c2);
+    root.children.push(c2.np, c2.vp);
+  } else {
+    const c1 = clauseSubtree(s.c1);
+    root.children.push(c1.np, c1.vp);
+  }
+  if (s.tag) root.children.push({ label: 'Tag', text: tagPhrase(s.tag) + '?' });
+  const lines = [];
+  const draw = (n, prefix, isLast) => {
+    lines.push(prefix + (isLast ? '└─ ' : '├─ ') + (n.text ? n.label + '  "' + n.text + '"' : n.label));
+    const cont = isLast ? '    ' : '│   ';
+    (n.children || []).forEach((ch, i) => draw(ch, prefix + cont, i === n.children.length - 1));
+  };
+  lines.push(root.label);
+  root.children.forEach((ch, i) => draw(ch, '', i === root.children.length - 1));
+  return lines.join('\n');
+}
+
+/* Rough sizes of the generic-phrase spaces, used only by familyExponent's
+ * per-family magnitude estimate. PERSON_SPACE matches the person() branch
+ * union in attrib.js; TIME_SPACE and LOC_SPACE are order-of-magnitude bounds
+ * on the temporalPhrase()/locationPhrase() outputs (dominated by
+ * date x time and adj-noun x region combinations). */
+const PERSON_SPACE = 22199037513420;
+const TIME_SPACE = 1.2e9;
+const LOC_SPACE = 1.1e10;
+
+function familyExponent(s) {
+  const lg = Math.log10;
+  const adjLog = (k) => k * lg(ADJ_TOTAL);
+  const clauseX = (c) => {
+    let x;
+    if (c.cop) {
+      if (c.pron) x = lg(PRONOUNS.length);
+      else if (c.name) x = lg(PERSON_SPACE);
+      else {
+        x = adjLog(c.adjs.length);
+        if (c.det) x += lg(DET.length);
+        x += lg(NOUN.length);
+      }
+      x += lg(2);
+      x += lg(c.intens ? 1 + INTENSIFIERS.length : 1);
+      x += lg(ADJ.length);
+      if (c.predNoun) x += lg(NOUN.length);
+    } else if (c.exist) {
+      x = lg(c.quant ? (c.quant.part ? PARTITIVE.length : 1 + EXIST_QUANT.length) : 1);
+      x += lg(MASS.length);
+      if (c.exVerb) x += lg(EXIST_VERBS.length);
+      if (c.massAdj) x += lg(ADJ_TOTAL);
+      if (c.origin) x += lg(REGIONS.length + ADJ_TOTAL * NOUN.length);
+      if (c.egLoc) x += lg(LOC_SPACE + EXIST_LOC_TEMPLATES.length * ADJ_TOTAL * NOUN.length);
+    } else if (c.pron) {
+      x = lg(PRONOUNS.length) + lg((c.object ? TRANS : VERB).length);
+      if (c.objPron) x += lg(PRONOUN_OBJ.length);
+    } else if (c.name) {
+      x = lg(PERSON_SPACE) + lg((c.object ? TRANS : VERB).length);
+    } else {
+      x = adjLog(c.adjs.length);
+      x += lg((c.object ? TRANS : VERB).length);
+      if (c.det) x += lg(c.num ? (c.one ? NUM_DET.length : NUM_DET_PLURAL.length) : DET.length);
+      if (c.num) x += 100;
+      if (c.sub2) x += lg(DET.length + 1) + adjLog(c.sub2.adjs.length) + lg(NOUN.length);
+      if (c.rel) {
+        if (c.rel.kind === 'subj') x += lg(VERB.length) + lg(1 + ADV.length);
+        else x += lg(DET.length + 1) + adjLog(c.rel.np.adjs.length) + lg(NOUN.length) + lg(TRANS.length);
+      }
+    }
+    if (c.objPP) {
+      x += lg(2) + lg(NOUN.length);
+      if (c.objPP.adj) x += lg(ADJ_TOTAL);
+      x += lg(NOUN.length) + lg(NOUN.length);
+      if (c.objPP.toAdj) x += lg(ADJ_TOTAL);
+    }
+    if (c.adv) x += lg(ADV.length);
+    if (c.aux) x += lg(c.perfect ? PERFECT_AUX.length : AUX.length);
+    if (c.neg) x += lg(c.neg === 'not' || c.neg === 'ever' ? NEG.length : FREQ.length);
+    if (c.did) x += lg(1 + NEG.length);
+    if (c.past && !c.aux) x += lg(2);
+    return x;
+  };
+  let x;
+  if (s.coord) {
+    x = clauseX(s.c1) + lg(COORD_CONJ.length);
+    if (!s.ellipsis) x += clauseX(s.c2);
+  } else if (s.cond || s.sub) {
+    x = clauseX(s.c1) + clauseX(s.c2) + lg((s.cond ? CONJ : SUB_CONJ).length);
+  } else {
+    x = clauseX(s.c1);
+  }
+  if (s.disc) x += lg(DISCOURSE.length + EXCLAIM.length);
+  if (s.mid) x += lg(MID_DISCOURSE.length);
+  if (s.time) x += lg(TIME_SPACE);
+  if (s.loc) x += lg(LOC_SPACE);
+  if (s.wh) x += lg(5);
+  return x;
+}
+
+/* Attribution layer: fake authors, fake sources, and the random attribution
+ * picker. Depends on words.js (NOUN) and configs.js (REGION_PROB); the generic
+ * person()/date helpers/regionPhrase() come from language_primitives.js. */
+
+/* Max distinct authors:
+ *
+ * Counts: GIVEN=31  SURNAMES=31  TITLES=50  ADJ=276  NOUN=656  COLORS=133  SUFFIX=147  AUTHORS=34  ATTR=20
+ * GIVEN initials: 26 distinct first letters.
+ * SURNAMES initials: 25 distinct first letters.
+ * M = 276 + 656 * (133 + 147) = 183956 possible adjectives (plain, or
+ * "anynoun-color", or "anynoun-suffix").
+ *
+ * person() branches (pick is independent, so with replacement):
+ *   title + given + surname        50 * 31 * 31            = 48050
+ *   Given + Surname                31 * 31                 = 961
+ *   Given + initial (Margot A.)    31 * 25                 = 775
+ *   initials, 1 letter             26 * 31                 = 806
+ *   initials, 2 letters            26 * 26 * 31            = 20956
+ *   titled (50 titles)             50 * 31                 = 1550
+ *     + "of <noun>"                50 * 31 * 656           = 1016800
+ *   <noun> of the <noun>           656 * 656               = 430336
+ *   <adj> <noun>                   M * 656                 = 120675136
+ *   <adj> <adj> <noun>             M * M * 656             = 22198915318016
+ *   descriptive AUTHORS pool                              = 34
+ * Fixed pools:
+ *   ATTR authors (pair [0])                              = 20
+ *
+ * TOTAL = 48050 + 961 + 775 + 806 + 20956 + (1550 + 1016800) + 430336 + 120675136 + 22198915318016 + 34 + 20
+ *       = 22199037513440
+ */
+const TOTAL_AUTHORS = 22199037513440;
+
+/* Max distinct attributions (author + source pairs):
+ *
+ * fakeSource() sources (base):
+ *   SOURCES static                                         = 32
+ *   SOURCES dynamic (circa BC:1000, century:8, time:288,
+ *     postmarked:2100, email-time:288)                     = 3684
+ *   On the <adj> <noun> of <noun>    M * 656 * 656         = 79162889216
+ *   The <adj> <noun> Revisited       M * 656               = 120675136
+ *   Journal of <adj> <noun>          M * 656               = 120675136
+ *   datePhrase():
+ *     circa / c., AD or BC           2100 + 1000 + 2100 + 1000 = 6200
+ *     in the <century>               1200s..1900s           = 8
+ *     dates                          28 * 12 * 2100 * 291   = 205329600
+ *       (291 = 3 formats + 1 format with a time; time:288)
+ *     time                                                = 288
+ *     subtotal                                            = 205336096
+ *   union(SOURCES, datePhrase)  = 3716 + 205336096 - 1296 (shared circa BC,
+ *     century, time)                                      = 205338516
+ *   TOTAL base fakeSource     = 205338516 + 79162889216 + 120675136 + 120675136
+ *                             = 79609578004
+ *   Optional region suffix: 25 prepositions * 80 REGIONS = 2000 variants,
+ *     applied with REGION_PROB=0.35 -> each base source x (1 + 2000) = x2001
+ *   TOTAL fakeSource          = 79609578004 * 2001            = 159298765586004
+ *
+ * Attribution branches:
+ *   generated person * source   22199037513420 * 159298765586004 = 3536279273085201705314173680
+ *   ATTR random combos         20 names * 1313 sources           = 26260
+ *     (sources: 17 static + 1000 circa-BC + 8 centuries + 288 times;
+ *      the 5% verbatim-pairs branch re-renders 20 of these combos,
+ *      so it adds nothing new to the union)
+ *   TOTAL_ATTRIBUTIONS                                            = 3536279273085201705314199940
+ */
+const TOTAL_ATTRIBUTIONS = 3536279273085201705314199940n;
+
 const ATTR = [
   ['an ancient proverb', 'of unknown origin'],
   ['an unnamed oracle', 'on a hill somewhere'],
@@ -1520,43 +2398,6 @@ const ATTR = [
   ['an unpaid oracle intern', 'filling in'],
   ['the night-shift historian', 'open all night'],
   ['a recovered grammarian', 'sober since the split infinitive']
-];
-
-const AUTHORS = [
-  'a retired semiotician',
-  'a hobbyist cosmologist',
-  'the village eccentric',
-  'a freelance cartographer',
-  'a part-time sphinx',
-  'an itinerant folklorist',
-  'a nocturnal lexicographer',
-  'the last living flâneur',
-  'a professional daydreamer',
-  'a basement etymologist',
-  'a skeptical astrologer',
-  'a misanthropic poet laureate',
-  'a cross-eyed augur',
-  'a temporarily omniscient housecat',
-  'a dissenting committee member',
-  'the curator of a museum of nothing',
-  'an over-caffeinated monk',
-  'a lay philosopher of margins',
-  'the ghost of a thesaurus',
-  'a wandering dowsing-rod maker',
-  'a recovering grammarian',
-  'a nocturnal notary',
-  'a former lighthouse keeper',
-  'a reluctant prophet',
-  'an itinerant piano tuner',
-  'a semi-retired alchemist',
-  'a professional eavesdropper',
-  'a chronicler of small disasters',
-  'an apprentice ornithomancer',
-  'the village ombudsman',
-  'a person of letters',
-  'an authority on nothing in particular',
-  'a bird that reads too much',
-  'a guest lecturer, once'
 ];
 
 const SOURCES = [
@@ -1599,101 +2440,6 @@ const SOURCES = [
   'a cargo cult manual'
 ];
 
-const GIVEN = [
-  'Margot', 'Alistair', 'Beatrice', 'Conrad', 'Dorothea', 'Edwin', 'Felicity',
-  'Gerald', 'Hilda', 'Ivor', 'Jasper', 'Kathleen', 'Lionel', 'Mabel', 'Neville',
-  'Ophelia', 'Percival', 'Quentin', 'Rosalind', 'Sylvester', 'Theodora', 'Ursula',
-  'Vernon', 'Winifred', 'Xerxes', 'Yolanda', 'Zachary', 'Aurelia', 'Basil', 'Clovis'
-];
-
-const SURNAMES = [
-  'Albright', 'Bracken', 'Calder', 'Driscoll', 'Ellsworth', 'Frobisher',
-  'Grimaldi', 'Halvorsen', 'Ibbotson', 'Jellicoe', 'Kessler', 'Langford',
-  'Merriweather', 'Nettleship', 'Ormandy', 'Pettigrew', 'Quillan', 'Redmayne',
-  'Satterthwaite', 'Tremaine', 'Underwood', 'Voss', 'Whitcomb', 'Yarrow',
-  'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield'
-];
-
-const TITLES = [
-  'Prof.', 'Dr.', 'Regius Prof.', 'Prof. Emeritus', 'Asst. Prof.', 'Assoc. Prof.', 'Chancellor',
-  'Sir', 'Dame', 'Lord', 'Lady', 'Baron', 'Baroness', 'Viscount', 'Marquess', 'Count',
-  'Countess', 'Duke', 'Duchess', 'The Hon.', 'Earl',
-  'Capt.', 'Maj.', 'Col.', 'Gen.', 'Adm.', 'Cmdr.', 'Brig.',
-  'Rev.', 'Fr.', 'Mother', 'Sister', 'Brother', 'Abbot', 'Abbess', 'Cardinal', 'Archbishop',
-  'Bishop', 'The Venerable', 'Right Rev.', 'Rabbi', 'Sheikh', 'Imam', 'Saint',
-  'Wizard', 'Loremaster', 'Chronicler', 'Grand Vizier', 'Archivist', 'Scribe'
-];
-
-function fakeAuthor() {
-  const r = Math.random();
-  if (r < 0.25) {
-    return `${pick(GIVEN)} ${pick(SURNAMES)}`;
-  }
-  if (r < 0.40) {
-    return `${pick(GIVEN)} ${pick(SURNAMES).charAt(0)}.`;
-  }
-  if (r < 0.55) {
-    const s = pick(SURNAMES);
-    return maybe(0.5)
-      ? `${pick(GIVEN).charAt(0)}. ${s}`
-      : `${pick(GIVEN).charAt(0)}. ${pick(GIVEN).charAt(0)}. ${s}`;
-  }
-  if (r < 0.70) {
-    const title = pick(TITLES);
-    const surname = pick(SURNAMES);
-    return maybe(0.4)
-      ? `${title} ${surname} of ${pick(NOUN)}`
-      : `${title} ${surname}`;
-  }
-  if (r < 0.85) return `${pick(NOUN)} of the ${pick(NOUN)}`;
-  if (r < 0.92) return `${pickAdj()} ${pick(NOUN)}`;
-  return `${pickAdj()} ${pickAdj()} ${pick(NOUN)}`;
-}
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-  'August', 'September', 'October', 'November', 'December'];
-
-function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
-
-function ordinal(n) {
-  if (n % 100 >= 11 && n % 100 <= 13) return n + 'th';
-  return n + ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'][n % 10];
-}
-
-function randomADYear() { return randInt(1, 2100); }
-function randomBCYear() { return randInt(1, 1000); }
-function randomCentury() { return randInt(12, 19) + '00s'; }
-
-function randomTime() {
-  const h = randInt(1, 12);
-  const m = randInt(0, 11) * 5;
-  const ap = Math.random() < 0.5 ? 'AM' : 'PM';
-  return m ? `${h}:${String(m).padStart(2, '0')} ${ap}` : `${h} ${ap}`;
-}
-
-function randomDate() {
-  const d = randInt(1, 28);
-  const mo = pick(MONTHS);
-  const y = randomADYear();
-  return pick([
-    `the ${ordinal(d)} of ${mo} ${y}`,
-    `${ordinal(d)} ${mo} ${y}`,
-    `${mo} ${d}, ${y}`,
-    `the ${ordinal(d)} of ${mo} ${y}, ${randomTime()}`
-  ]);
-}
-
-function datePhrase() {
-  const r = Math.random();
-  const bc = maybe(0.15) ? ' BC' : '';
-  const y = bc ? randomBCYear() : randomADYear();
-  if (r < 0.30) return 'circa ' + y + bc;
-  if (r < 0.45) return 'c. ' + y + bc;
-  if (r < 0.60) return 'in the ' + randomCentury();
-  if (r < 0.80) return randomDate();
-  return randomTime();
-}
-
 function fakeSource() {
   const r = Math.random();
   let base;
@@ -1712,350 +2458,238 @@ function fakeSource() {
   return maybe(REGION_PROB) ? base + ', ' + regionPhrase() : base;
 }
 
-function makeClause() {
-  const s = { det: null, adjs: [], noun: null, verb: null, adv: null, object: false, num: null, numPos: null, aux: null, neg: null, sg: false, one: false };
-
-  if (maybe(NUM_PROB)) {
-    const n = randomGoogol();
-    s.num = numberToWords(n);
-    s.one = n % 10n === 1n && n % 100n !== 11n;
-  }
-
-  const pattern = Math.floor(Math.random() * 6);
-  if (pattern === 0) {
-    // Chomsky canonical-ish: Adj* N V Adv
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.7) ? pick(ADV) : null;
-  } else if (pattern === 1) {
-    s.det = pick(DET);
-    s.sg = s.det === 'each' || s.det === 'every';
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.7) ? pick(ADV) : null;
-  } else if (pattern === 2) {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = maybe(0.8) ? pick(ADV) : null;
-  } else if (pattern === 3) {
-    s.det = pick(DET);
-    s.sg = s.det === 'each' || s.det === 'every';
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = pick(ADV);
-  } else if (pattern === 4) {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(VERB);
-    s.adv = pick(ADV);
+function randomAttribution() {
+  const r = Math.random();
+  let name, source;
+  if (r < 0.85) {
+    name = person();
+    source = fakeSource();
+  } else if (r < 0.95) {
+    name = pick(ATTR)[0];
+    source = pick(ATTR)[1];
+    if (typeof source === 'function') source = source();
   } else {
-    s.adjs = powerAdjs();
-    s.noun = pick(NOUN);
-    s.verb = pick(TRANS);
-    s.adv = maybe(0.6) ? pick(ADV) : null;
-    s.object = true;
-    s.obj = pick(NOUN);
+    [name, source] = pick(ATTR);
+    if (typeof source === 'function') source = source();
   }
-  s.aux = maybe(0.6) ? pick(AUX) : null;
-  if (s.aux) {
-    const r = Math.random();
-    if (r < 0.5) s.neg = null;
-    else if (r < 0.7) s.neg = pick(NEG);
-    else s.neg = pick(FREQ);
-  } else {
-    s.neg = maybe(0.4) ? pick(FREQ) : null;
-  }
-  if (s.num) {
-    if (s.det) s.numPos = 'after-det';
-    else s.numPos = 'front';
-  }
-  if (s.num && s.det && !(s.one ? NUM_DET : NUM_DET_PLURAL).includes(s.det)) {
-    s.det = pick(s.one ? NUM_DET : NUM_DET_PLURAL);
-    s.sg = false;
-  }
-  if (s.sg || s.one) s.noun = singularize(s.noun);
-  s.sub2 = maybe(0.18) ? (function () {
-    const det2 = maybe(DET);
-    const o = { det: det2, adjs: powerAdjs(), noun: pick(NOUN) };
-    if (det2 === 'each' || det2 === 'every' || s.sg) o.noun = singularize(o.noun);
-    return o;
-  })() : null;
-  s.rel = maybe(REL_PROB) ? (Math.random() < 0.5
-    ? { kind: 'subj', verb: pick(VERB), adv: maybe(0.5) ? pick(ADV) : null }
-    : { kind: 'obj', verb: pick(TRANS), np: { det: maybe(DET), adjs: powerAdjs(), noun: pick(NOUN) } })
-    : null;
-  return s;
+  return { name, source };
 }
 
-function sentence() {
-  const s = {};
-  if (maybe(COND_PROB)) {
-    s.cond = true;
-    s.c1 = makeClause();
-    s.c2 = makeClause();
-    s.conj = pick(CONJ);
-    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
-    s.invert = s.order === 'front' && INV_CONJ.includes(s.conj) && !s.c1.aux && !s.c1.neg;
-  } else if (maybe(SUB_PROB)) {
-    s.sub = true;
-    s.c1 = makeClause();
-    s.c2 = makeClause();
-    s.conj = pick(SUB_CONJ);
-    s.order = maybe(FRONT_PROB) ? 'front' : 'end';
-    s.invert = false;
-  } else {
-    s.cond = false;
-    s.sub = false;
-    s.c1 = makeClause();
-  }
-  s.disc = null;
-  s.mid = null;
-  if (maybe(DISC_PROB)) {
-    s.disc = Math.random() < EXCLAIM_PROB ? pick(EXCLAIM) : pick(DISCOURSE);
-  }
-  if (!s.cond && !s.sub && maybe(MID_PROB)) s.mid = pick(MID_DISCOURSE);
-  s.q = false;
-  s.wh = null;
-  if (maybe(0.3)) {
-    s.q = true;
-    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
-    if (tgt.aux === 'used to' || tgt.aux === 'ought to') tgt.aux = null;
-    if (Math.random() < 0.4) {
-      if (tgt.object && Math.random() < 0.5) {
-        s.wh = 'what';
-      } else {
-        s.wh = pick(['why', 'when', 'where', 'how']);
-      }
+/* UI layer: DOM wiring, session stats, favorites, theming and the generate
+ * flow. Depends on configs.js, language_primitives.js, sentence.js and
+ * attrib.js (loaded first by build.py). */
+
+const sentenceEl = document.getElementById('sentence');
+const attrEl = document.getElementById('attribution');
+const parseEl = document.getElementById('parse');
+const favBox = document.getElementById('favorites');
+const favList = document.getElementById('favList');
+const rarityEl = document.getElementById('rarity');
+
+const stats = {
+  total: 0, multi: 0, cond: 0, sub: 0, coord: 0, q: 0, wh: 0, disc: 0, mid: 0, exclaim: 0,
+  compounds: 0, numbers: 0, conjoined: 0, relative: 0, tag: 0, favs: 0,
+  past: 0, perfect: 0, pron: 0, named: 0, objPron: 0, objPP: 0, did: 0,
+  time: 0, loc: 0, cop: 0, exist: 0
+};
+function renderStats() {
+  const el = document.getElementById('stats');
+  if (!el) return;
+  const rows = [
+    ['Total generated', stats.total],
+    ['Multi-sentence quotes', stats.multi],
+    ['Conditionals', stats.cond],
+    ['Subordinate clauses', stats.sub],
+    ['Coordinated clauses', stats.coord],
+    ['Two-clause compounds', stats.compounds],
+    ['Questions', stats.q],
+    ['Wh-questions', stats.wh],
+    ['Discourse markers', stats.disc],
+    ['Exclamations', stats.exclaim],
+    ['Mid markers', stats.mid],
+    ['Number words', stats.numbers],
+    ['Conjoined subjects', stats.conjoined],
+    ['Relative clauses', stats.relative],
+    ['Tag questions', stats.tag],
+    ['Past tense', stats.past],
+    ['Perfect aspect', stats.perfect],
+    ['Pronoun subjects', stats.pron],
+    ['Named subjects', stats.named],
+    ['Pronoun objects', stats.objPron],
+    ['PP complements', stats.objPP],
+    ['did-support', stats.did],
+    ['Time-fronted', stats.time],
+    ['Location-fronted', stats.loc],
+    ['Copular clauses', stats.cop],
+    ['Existential clauses', stats.exist],
+    ['Favorites saved', stats.favs]
+  ];
+  el.innerHTML = '<table>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
+}
+function noteStats(list) {
+  if (list.length > 1) stats.multi++;
+  stats.total++;
+  for (const s of list) {
+    if (s.cond) stats.cond++;
+    if (s.sub) stats.sub++;
+    if (s.coord) stats.coord++;
+    if (s.cond || s.sub || s.coord) stats.compounds++;
+    if (s.q) stats.q++;
+    if (s.wh) stats.wh++;
+    if (s.disc) {
+      stats.disc++;
+      if (EXCLAIM.includes(s.disc)) stats.exclaim++;
     }
-  }
-  s.tag = null;
-  if (!s.q && maybe(TAG_PROB)) {
-    const tgt = (s.cond || s.sub) ? s.c2 : s.c1;
-    s.tag = { aux: tgt.aux, negated: tgt.neg === 'not' || tgt.neg === 'never', sg: !!(tgt.sg || tgt.one) && !tgt.sub2 };
-  }
-  return s;
-}
-
-const EXTRA_SENTENCE_PROB = 1 / 15;
-const MAX_QUOTE_SENTENCES = 30;
-
-function quoteSentences() {
-  const list = [sentence()];
-  const seen = new Set([words(list[0])]);
-  while (Math.random() < EXTRA_SENTENCE_PROB && list.length < MAX_QUOTE_SENTENCES) {
-    const s = sentence();
-    const w = words(s);
-    if (seen.has(w)) continue;
-    seen.add(w);
-    list.push(s);
-  }
-  return list;
-}
-
-function tagPhrase(t) {
-  const map = t.negated ? TAG_POS : TAG_NEG;
-  let aux = map[t.aux] || (t.negated ? 'do' : "don't");
-  if (t.sg) {
-    if (aux === 'do') aux = 'does';
-    if (aux === "don't") aux = "doesn't";
-    return aux + ' it';
-  }
-  return aux + ' they';
-}
-
-function clauseParts(s, opts) {
-  const q = opts.question, wh = opts.wh, mid = opts.mid;
-  const np = [];
-  if (s.det) np.push({ w: s.det, pos: 'det' });
-  if (s.num) np.push({ w: s.num, pos: 'num' });
-  for (const a of s.adjs) np.push({ w: a, pos: 'adj' });
-  np.push({ w: s.noun, pos: 'noun' });
-  if (s.sub2) {
-    np.push({ w: 'and', pos: 'conj' });
-    if (s.sub2.det) np.push({ w: s.sub2.det, pos: 'det' });
-    for (const a of s.sub2.adjs) np.push({ w: a, pos: 'adj' });
-    np.push({ w: s.sub2.noun, pos: 'noun' });
-  }
-  if (s.rel) {
-    np.push({ w: 'that', pos: 'rel' });
-    if (s.rel.kind === 'subj') {
-      np.push({ w: (s.sg || s.one) && !s.sub2 ? thirdSingular(s.rel.verb) : s.rel.verb, pos: 'verb' });
-      if (s.rel.adv) np.push({ w: s.rel.adv, pos: 'adv' });
-    } else {
-      if (s.rel.np.det) np.push({ w: s.rel.np.det, pos: 'det' });
-      for (const a of s.rel.np.adjs) np.push({ w: a, pos: 'adj' });
-      np.push({ w: s.rel.np.noun, pos: 'noun' });
-      np.push({ w: s.rel.verb, pos: 'verb' });
+    if (s.mid) stats.mid++;
+    for (const c of [s.c1, s.c2]) {
+      if (!c) continue;
+      if (c.num) stats.numbers++;
+      if (c.sub2) stats.conjoined++;
+      if (c.rel) stats.relative++;
+      if (c.pron) stats.pron++;
+      if (c.name) stats.named++;
+      if (c.objPP) stats.objPP++;
+      if (c.objPron) stats.objPron++;
+      if (c.did) stats.did++;
+      if (c.past) stats.past++;
+      if (c.perfect) stats.perfect++;
+      if (c.cop) stats.cop++;
+      if (c.exist) stats.exist++;
     }
+    if (s.time) stats.time++;
+    if (s.loc) stats.loc++;
+    if (s.tag) stats.tag++;
   }
-  let parts;
-  let npStart = 0;
-  if (q) {
-    const fst = [];
-    if (wh) fst.push({ w: wh, pos: 'wh' });
-    if (s.aux) fst.push({ w: s.aux, pos: 'aux' }); else fst.push({ w: (s.sg || s.one) && !s.sub2 ? 'does' : 'do', pos: 'aux' });
-    parts = [...fst, ...np];
-    npStart = fst.length;
-    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
-    parts.push({ w: s.verb, pos: 'verb' });
-    if (s.object && wh !== 'what') parts.push({ w: s.obj, pos: 'obj' });
-    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
-  } else {
-    parts = [...np];
-    if (s.aux) parts.push({ w: s.aux, pos: 'aux' });
-    if (s.neg) parts.push({ w: s.neg, pos: 'neg' });
-    parts.push({ w: (s.sg || s.one) && !s.aux && !s.sub2 ? thirdSingular(s.verb) : s.verb, pos: 'verb' });
-    if (s.object) parts.push({ w: s.obj, pos: 'obj' });
-    if (s.adv) parts.push({ w: s.adv, pos: 'adv' });
-  }
-  if (mid) {
-    parts.splice(npStart + np.length, 0, { w: ', ' + mid + ',', pos: 'mid' });
-  }
-  return parts;
+  renderStats();
 }
 
-function sentenceParts(s) {
-  let parts;
-  if (s.cond || s.sub) {
-    const main = clauseParts(s.c2, { question: s.q, wh: s.wh, mid: null });
-    const ifc = clauseParts(s.c1, { question: false, wh: null, mid: null });
-    if (s.invert) {
-      const np = [];
-      if (s.c1.det) np.push({ w: s.c1.det, pos: 'det' });
-      if (s.c1.num) np.push({ w: s.c1.num, pos: 'num' });
-      for (const a of s.c1.adjs) np.push({ w: a, pos: 'adj' });
-      np.push({ w: s.c1.noun, pos: 'noun' });
-      const vp = [];
-      vp.push({ w: s.c1.verb, pos: 'verb' });
-      if (s.c1.object) vp.push({ w: s.c1.obj, pos: 'obj' });
-      if (s.c1.adv) vp.push({ w: s.c1.adv, pos: 'adv' });
-      parts = [{ w: 'were', pos: 'aux' }, ...np, { w: 'to', pos: 'func' }, ...vp, { w: ',', pos: 'punct' }, ...main];
-    } else if (s.order === 'front') {
-      parts = [{ w: s.conj, pos: 'conj' }, ...ifc, { w: ',', pos: 'punct' }, ...main];
-    } else {
-      parts = [...main, { w: s.conj, pos: 'conj' }, ...ifc];
-    }
-  } else {
-    parts = clauseParts(s.c1, { question: s.q, wh: s.wh, mid: s.mid });
-  }
-  if (s.disc) parts = [{ w: s.disc, pos: 'disc' }, { w: ',', pos: 'punct' }, ...parts];
-  if (s.tag) {
-    parts.push({ w: ',', pos: 'punct' }, { w: tagPhrase(s.tag), pos: 'tag' });
-  }
-  return parts;
+/* Sentence and quote spaces are unbounded: adjectives may repeat without
+ * limit and a quote may hold any number of sentences (each added with
+ * p = 1/15), so both are countably infinite. */
+const CDOT = '·';
+
+function sciM(m, e, sep) {
+  return m + ' ' + sep + ' 10<sup>' + e + '</sup>';
 }
 
-function joinParts(parts) {
-  let str = '';
-  for (const p of parts) {
-    if (p.w.startsWith(',')) str += p.w;
-    else str += (str ? ' ' : '') + p.w;
-  }
-  return str;
+function sciNote(v, sep) {
+  if (v === 0n) return '0';
+  const d = v.toString();
+  const e = d.length - 1;
+  if (e === 0) return d;
+  let m = d.slice(0, 3);
+  m = m.length > 1 ? m[0] + '.' + m.slice(1) : m;
+  m = m.replace(/\.?0+$/, '');
+  return sciM(m, e, sep);
 }
 
-function capFirst(parts) {
-  if (parts.length && parts[0].w) {
-    parts[0].w = parts[0].w.charAt(0).toUpperCase() + parts[0].w.slice(1);
-  }
-}
+const THINK_VERBS = [
+  ['Thinking', 10], ['Pondering', 5], ['Ruminating', 3], ['Musing', 3],
+  ['Contemplating', 3], ['Considering', 3], ['Wondering', 3], ['Processing', 3],
+  ['Hmm', 3], ['Composing', 3], ['Deliberating', 2], ['Meditating', 2],
+  ['Reflecting', 2], ['Daydreaming', 2], ['Conjuring', 2], ['Drafting', 2],
+  ['Brainstorming', 2], ['Calculating', 2], ['Dreaming', 2], ['Deep in thought', 2],
+  ['Let me think', 2], ['Brooding', 1], ['Cogitating', 1], ['Philosophizing', 1],
+  ['Scheming', 1], ['Churning', 1], ['Synthesizing', 1], ['Transcribing', 1]
+];
 
-function words(s) {
-  const parts = sentenceParts(s);
-  capFirst(parts);
-  return joinParts(parts) + (s.q || s.tag ? '?' : (maybe(0.1) ? '!' : '.'));
-}
+const ATTR_VERBS = [
+  ['Attributing', 8], ['Crediting', 4], ['Citing', 3], ['Sourcing', 2],
+  ['Signing', 2], ['Dedicating', 2], ['Appending', 1]
+];
 
-function npNode(c) {
-  const np = { label: 'NP', children: [] };
-  if (c.det) np.children.push({ label: 'Det', text: c.det });
-  if (c.num) np.children.push({ label: 'Num', text: c.num });
-  for (const a of c.adjs) np.children.push({ label: 'Adj', text: a });
-  np.children.push({ label: 'N', text: c.noun });
-  if (c.rel) {
-    np.children.push({ label: 'Rel', text: 'that' });
-    if (c.rel.kind === 'subj') {
-      np.children.push({ label: 'V', text: (c.sg || c.one) && !c.sub2 ? thirdSingular(c.rel.verb) : c.rel.verb });
-      if (c.rel.adv) np.children.push({ label: 'Adv', text: c.rel.adv });
-    } else {
-      const rn = npNode(c.rel.np);
-      for (const ch of rn.children) np.children.push(ch);
-      np.children.push({ label: 'V', text: c.rel.verb });
-    }
-  }
-  return np;
-}
+let favorites = [];
+try { favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch (e) { favorites = []; }
 
-function clauseSubtree(c) {
-  const np = c.sub2
-    ? { label: 'NP', children: [npNode(c), { label: 'Conj', text: 'and' }, npNode(c.sub2)] }
-    : npNode(c);
-  const vp = { label: 'VP', children: [] };
-  if (c.aux) vp.children.push({ label: 'Aux', text: c.aux });
-  if (c.neg) vp.children.push({ label: 'Neg', text: c.neg });
-  vp.children.push({ label: 'V', text: (c.sg || c.one) && !c.aux && !c.sub2 ? thirdSingular(c.verb) : c.verb });
-  if (c.object) vp.children.push({ label: 'N', text: c.obj });
-  if (c.adv) vp.children.push({ label: 'Adv', text: c.adv });
-  return { np, vp };
-}
-
-function parseTree(s) {
-  const root = { label: s.q ? 'S (Q)' : 'S', children: [] };
-  if (s.wh) root.children.push({ label: 'Wh', text: s.wh });
-  if (s.disc) root.children.push({ label: 'Disc', text: s.disc });
-  if (s.cond || s.sub) {
-    const conjNode = { label: 'Conj', text: s.invert ? 'were to' : s.conj, children: [] };
-    const c1 = clauseSubtree(s.c1);
-    conjNode.children.push(c1.np, c1.vp);
-    root.children.push(conjNode);
-  }
-  const c2 = clauseSubtree(s.cond || s.sub ? s.c2 : s.c1);
-  root.children.push(c2.np, c2.vp);
-  if (s.tag) root.children.push({ label: 'Tag', text: tagPhrase(s.tag) + '?' });
-  const lines = [];
-  const draw = (n, prefix, isLast) => {
-    lines.push(prefix + (isLast ? '└─ ' : '├─ ') + (n.text ? n.label + '  "' + n.text + '"' : n.label));
-    const cont = isLast ? '    ' : '│   ';
-    (n.children || []).forEach((ch, i) => draw(ch, prefix + cont, i === n.children.length - 1));
+function currentQuote() {
+  return {
+    text: sentenceEl.textContent,
+    attr: attrEl.textContent
   };
-  lines.push(root.label);
-  root.children.forEach((ch, i) => draw(ch, '', i === root.children.length - 1));
-  return lines.join('\n');
 }
 
-function familyExponent(s) {
-  const lg = Math.log10;
-  const falling = (n, k) => { let x = 0; for (let i = 0; i < k; i++) x += lg(n - i); return x; };
-  const clauseX = (c) => {
-    let x = falling(ADJ_TOTAL, c.adjs.length);
-    x += lg((c.object ? TRANS : VERB).length);
-    if (c.adv) x += lg(ADV.length);
-    if (c.det) x += lg(c.num ? (c.one ? NUM_DET.length : NUM_DET_PLURAL.length) : DET.length);
-    if (c.num) x += 100;
-    if (c.aux) x += lg(AUX.length);
-    if (c.neg) x += lg(c.neg === 'not' || c.neg === 'ever' ? NEG.length : FREQ.length);
-    if (c.sub2) x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.sub2.adjs.length) + lg(NOUN.length);
-    if (c.rel) {
-      if (c.rel.kind === 'subj') x += lg(VERB.length) + lg(1 + ADV.length);
-      else x += lg(DET.length + 1) + falling(ADJ_TOTAL, c.rel.np.adjs.length) + lg(NOUN.length) + lg(TRANS.length);
-    }
-    return x;
-  };
-  let x;
-  if (s.cond || s.sub) {
-    x = clauseX(s.c1) + clauseX(s.c2) + lg((s.cond ? CONJ : SUB_CONJ).length);
-  } else {
-    x = clauseX(s.c1);
-  }
-  if (s.disc) x += lg(DISCOURSE.length + EXCLAIM.length);
-  if (s.mid) x += lg(MID_DISCOURSE.length);
-  if (s.wh) x += lg(5);
-  return x;
+function quoteString(q) {
+  return `“${q.text}” — ${q.attr}`;
 }
+
+let copyNoteTimer = null;
+function flashNote(msg) {
+  const note = document.getElementById('favNote');
+  note.textContent = msg;
+  clearTimeout(copyNoteTimer);
+  copyNoteTimer = setTimeout(() => { note.textContent = ''; }, 1500);
+}
+
+function copyText(str) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(str);
+  }
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  return Promise.resolve();
+}
+
+document.getElementById('copyCur').addEventListener('click', () => {
+  copyText(quoteString(currentQuote())).then(() => flashNote('✓ Copied current quote'));
+});
+
+function renderFavorites() {
+  favList.innerHTML = '';
+  favorites.forEach((q, i) => {
+    const li = document.createElement('li');
+    const del = document.createElement('button');
+    del.className = 'fdel';
+    del.textContent = '✕';
+    del.title = 'Remove';
+    del.addEventListener('click', () => {
+      favorites.splice(i, 1);
+      localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+      renderFavorites();
+    });
+    const cpy = document.createElement('button');
+    cpy.className = 'fcopy';
+    cpy.textContent = '⧉';
+    cpy.title = 'Copy quote';
+    cpy.addEventListener('click', () => {
+      copyText(quoteString(q)).then(() => flashNote('✓ Copied favorite'));
+    });
+    const qtext = document.createElement('span');
+    qtext.textContent = '“' + q.text + '”';
+    const qattr = document.createElement('span');
+    qattr.className = 'fauth';
+    qattr.textContent = q.attr;
+    li.appendChild(del);
+    li.appendChild(cpy);
+    li.appendChild(qtext);
+    li.appendChild(qattr);
+    favList.appendChild(li);
+  });
+  favBox.style.display = favorites.length ? 'block' : 'none';
+}
+
+document.getElementById('fav').addEventListener('click', () => {
+  const q = currentQuote();
+  if (!q.text || q.text === '—') return;
+  favorites.push(q);
+  stats.favs++;
+  renderStats();
+  localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+  renderFavorites();
+});
+document.getElementById('clearFavs').addEventListener('click', () => {
+  if (!favorites.length) return;
+  if (confirm('Remove all saved favorites?')) {
+    favorites = [];
+    localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+    renderFavorites();
+  }
+});
+
+renderFavorites();
 
 function generate() {
   const list = quoteSentences();
@@ -2073,7 +2707,8 @@ function generate() {
     sentenceEl.classList.remove('thinking');
     attrEl.classList.remove('thinking');
     genBtn.disabled = false;
-    randomAttribution();
+    const a = randomAttribution();
+    attrEl.innerHTML = `<b>${a.name}</b>, <i>${a.source}</i>`;
     const exp = list.reduce((acc, s) => acc + familyExponent(s), 0);
     rarityEl.textContent = '~1 in 10^' + exp.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' of its family';
     parseEl.dataset.tree = list.map(parseTree).join('\n\n');
@@ -2092,7 +2727,6 @@ document.getElementById('theme').addEventListener('click', () => {
   applyTheme(next);
 });
 let hiddenArmed = false, hiddenTimer = null;
-const HIDDEN_DOUBLE_MS = 700;
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Enter' && e.ctrlKey && e.shiftKey && !e.repeat) {
     e.preventDefault();
@@ -2135,13 +2769,10 @@ document.getElementById('tree').addEventListener('click', () => {
 generate();
 
 document.getElementById('tagline').innerHTML =
-  'offering ' + sciPow(QUOTE_M, QUOTE_E, CDOT) +
-  ' quotes from ' + sciM(SENT_M, SENT_E, CDOT) +
-  ' sentences and ' + sciNote(TOTAL_ATTRIBUTIONS, CDOT) +
+  'offering infinitely many quotes from infinitely many sentences, and ' +
+  sciNote(TOTAL_ATTRIBUTIONS, CDOT) +
   ' attributions by ' + sciNote(TOTAL_AUTHORS, CDOT) +
-  ' possible authors.\n' +
-  'Outnumbering the Library of Babel\'s ~' + sciM(BABEL_M, BABEL_E, CDOT) +
-  ' books by ' + sciM(QUOTE_M, QUOTE_E, CDOT) + ' orders of magnitude.';
+  ' possible authors.';
 
 const menuBtn = document.getElementById('menuBtn');
 const menu = document.getElementById('menu');
@@ -2160,6 +2791,7 @@ document.addEventListener('click', (e) => {
   closeMenu();
 });
 menu.addEventListener('click', closeMenu);
+
 </script>
 </body>
 </html>
