@@ -213,8 +213,8 @@
 const DET = ['the', 'some', 'my', 'our', 'no', 'these', 'those', 'all', 'many', 'several', 'few', 'two', 'three', 'most', 'countless', 'several', 'innumerable', 'every', 'each', 'whose', 'certain'];
 const ADJ = [
   'colorless', 'green', 'blue', 'red', 'purple', 'luminous', 'translucent', 'fragile',
-  'furious', 'sleepy', 'quiet', 'loud', 'absurd', 'stubborn', 'hollow', 'imaginary',
-  'circular', 'invisible', 'unripe', 'synthetic', 'jagged', 'gaseous', 'enormous',
+  'cold', 'furious', 'sleepy', 'quiet', 'loud', 'absurd', 'stubborn', 'hollow', 'imaginary',
+  'circular', 'current', 'invisible', 'unripe', 'synthetic', 'jagged', 'gaseous', 'enormous',
   'miniature', 'hungry', 'jealous', 'melancholy', 'rusty', 'crystalline', 'velvet',
   'amber', 'ashen', 'azure', 'bleached', 'burnished', 'cavernous', 'ceramic', 'chlorinated',
   'cinnabar', 'colossal', 'contrary', 'corrugated', 'crimson', 'damp', 'diaphanous',
@@ -321,7 +321,7 @@ const NOUN = [
   'subterfuges', 'suburbs', 'sugarloaves', 'suits', 'summerhouses', 'summits', 'sunbeams',
   'sunflowers', 'superstitions', 'surgeons', 'swallows', 'swans', 'swarmings', 'sweatshops',
   'swords', 'syllables', 'symmetries', 'synagogues', 'tadpoles', 'tambourines', 'tandems',
-  'tapestries', 'tarantulas', 'tariffs', 'taxicabs', 'teacups', 'teapots', 'teddy-bears',
+  'tapestries', 'tarantulas', 'tariffs', 'taxicabs', 'teacups', 'teapots', 'teas', 'teddy-bears',
   'telegrams', 'telescopes', 'tempests', 'temples', 'tents', 'terminals', 'terrariums',
   'territories', 'testimonies', 'theaters', 'theorems', 'thermostats', 'thickets', 'thistles',
   'thoroughfares', 'thrones', 'thunderstorms', 'tickertapes', 'tides', 'tigresses', 'toboggans',
@@ -342,7 +342,42 @@ const NOUN = [
   'weeds', 'whales', 'wharves', 'whims', 'whirlpools', 'whirlwinds', 'whistles', 'wildernesses',
   'willow-trees', 'windsocks', 'windstorms', 'wintergardens', 'wisdom', 'witchcraft', 'witnesses',
   'wolves', 'woodlands', 'workshops', 'worlds', 'wrestlers', 'xenophobes', 'xeroxes', 'yachts',
-  'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists'
+  'yodelers', 'yokels', 'zeppelins', 'ziggurats', 'zinnias', 'zodiacs', 'zombies', 'zoologists',
+  'letters', 'directors', 'boards'
+];
+/* Uncountable/mass nouns, always used bare with singular copula agreement:
+ * "there is a lot of sand." */
+const MASS = [
+  'sand', 'water', 'steel', 'metal', 'PVC', 'iron', 'copper', 'brass', 'bronze',
+  'tin', 'lead', 'zinc', 'gold', 'silver', 'platinum', 'aluminum', 'titanium',
+  'chromium', 'nickel', 'mercury', 'glass', 'plastic', 'rubber', 'wood', 'timber',
+  'bamboo', 'cork', 'clay', 'concrete', 'cement', 'stone', 'gravel', 'rock',
+  'soil', 'dirt', 'mud', 'dust', 'ash', 'snow', 'ice', 'hail', 'oil', 'petrol',
+  'gasoline', 'diesel', 'kerosene', 'petroleum', 'tar', 'asphalt', 'resin',
+  'glue', 'wax', 'paint', 'ink', 'chalk', 'soap', 'sugar', 'salt', 'pepper',
+  'flour', 'rice', 'wheat', 'grain', 'bread', 'butter', 'cheese', 'cream',
+  'milk', 'yogurt', 'honey', 'chocolate', 'jam', 'syrup', 'soup', 'broth',
+  'wine', 'beer', 'tea', 'coffee', 'juice', 'air', 'oxygen', 'hydrogen',
+  'nitrogen', 'helium', 'methane', 'smoke', 'fog', 'mist', 'steam', 'foam',
+  'leather', 'silk', 'cotton', 'wool', 'linen', 'nylon', 'polyester', 'paper',
+  'porcelain', 'ceramic', 'enamel', 'fiberglass', 'carbon', 'silicon'
+];
+/* Partitive measure nouns for existential clauses: "a cloud of dust", "a pane
+ * of glass", "a slab of steel". Paired with MASS without regard for whether the
+ * combination is physically sensible — the surrealism is the point. */
+const PARTITIVE = [
+  'cloud', 'pane', 'drop', 'slab', 'mound', 'pool', 'wisp', 'block', 'dollop',
+  'speck', 'puddle', 'stream', 'column', 'pile', 'layer', 'sheet', 'gust',
+  'strand', 'lump', 'chunk', 'vein', 'reservoir', 'torrent', 'cascade',
+  'fragment', 'shard', 'splash', 'ribbon', 'swath', 'scrap', 'heap', 'bed',
+  'bank', 'film', 'carpet', 'drift', 'dune', 'wave', 'sea', 'runnel', 'rivulet',
+  'streamlet', 'ingot', 'bar', 'rod', 'coil', 'spool', 'cone', 'pyramid',
+  'globule', 'bead', 'grain', 'flake', 'chip', 'crumb', 'mote', 'particle',
+  'atom', 'molecule', 'fleck', 'patch', 'stain', 'smudge', 'trail', 'swirl',
+  'vortex', 'pillar', 'tower', 'spire', 'sculpture', 'monument', 'edifice',
+  'ruin', 'statue', 'obelisk', 'goblet', 'vessel', 'bottle', 'jar', 'vial',
+  'cup', 'mug', 'bowl', 'bucket', 'barrel', 'cask', 'vault', 'armful',
+  'handful', 'mouthful', 'spoonful', 'cupful', 'bucketful', 'shovelful'
 ];
 const COLORS = [
   'colorless', 'green', 'blue', 'red', 'purple', 'amber', 'ashen', 'azure', 'cinnabar', 'crimson',
@@ -840,16 +875,116 @@ const TRANS = [
   'shatter', 'devour', 'pursue', 'surround', 'embrace', 'consume', 'dissolve',
   'measure', 'swallow', 'bewilder', 'uproot', 'outline', 'ferment', 'overhear',
   'ignite', 'interpret', 'decorate', 'unravel', 'assemble', 'attract', 'bother',
-  'collect', 'conquer', 'construct', 'contain', 'criticize', 'describe', 'disguise',
-  'disrupt', 'document', 'educate', 'examine', 'excite', 'explain', 'expose',
-  'frighten', 'harvest', 'humiliate', 'illuminate', 'imitate', 'impress', 'inflate',
+  'break', 'bring', 'build', 'buy', 'catch', 'choose', 'collect', 'conquer',
+  'construct', 'contain', 'criticize', 'describe', 'disguise',
+  'disrupt', 'document', 'draw', 'drink', 'eat', 'educate', 'examine', 'excite',
+  'explain', 'expose', 'feed', 'frighten', 'give', 'harvest', 'humiliate',
+  'illuminate', 'imitate', 'impress', 'inflate',
   'inspire', 'interrogate', 'intimidate', 'investigate', 'invite', 'irritate',
   'jettison', 'kidnap', 'liberate', 'manipulate', 'memorize', 'mention', 'obliterate',
   'observe', 'obstruct', 'occupy', 'organize', 'overthrow', 'photograph', 'placate',
   'pollinate', 'preserve', 'proclaim', 'propagate', 'protect', 'purify', 'reanimate',
   'rebuild', 'reconstruct', 'recount', 'regenerate', 'rehearse', 'remodel', 'reproduce',
-  'rescue', 'saturate', 'synthesize', 'terrify', 'torture', 'translate', 'transmit',
-  'validate', 'venerate', 'vindicate', 'welcome', 'wreck'
+  'rescue', 'saturate', 'see', 'synthesize', 'take', 'terrify', 'torture',
+  'translate', 'transmit', 'validate', 'venerate', 'vindicate', 'welcome', 'win',
+  'write', 'wreck'
+];
+
+/* Proper names: title/given/surname banks shared by sentence subjects
+ * (person()) and attribution authors. */
+const TITLES = [
+  'Prof.', 'Dr.', 'Regius Prof.', 'Prof. Emeritus', 'Asst. Prof.', 'Assoc. Prof.', 'Chancellor',
+  'Sir', 'Dame', 'Lord', 'Lady', 'Baron', 'Baroness', 'Viscount', 'Marquess', 'Count',
+  'Countess', 'Duke', 'Duchess', 'The Hon.', 'Earl',
+  'Capt.', 'Maj.', 'Col.', 'Gen.', 'Adm.', 'Cmdr.', 'Brig.',
+  'Rev.', 'Fr.', 'Mother', 'Sister', 'Brother', 'Abbot', 'Abbess', 'Cardinal', 'Archbishop',
+  'Bishop', 'The Venerable', 'Right Rev.', 'Rabbi', 'Sheikh', 'Imam', 'Saint',
+  'Wizard', 'Loremaster', 'Chronicler', 'Grand Vizier', 'Archivist', 'Scribe'
+];
+
+const GIVEN = [
+  'Margot', 'Alistair', 'Beatrice', 'Conrad', 'Dorothea', 'Edwin', 'Felicity',
+  'Gerald', 'Hilda', 'Ivor', 'Jasper', 'Kathleen', 'Lionel', 'Mabel', 'Neville',
+  'Ophelia', 'Percival', 'Quentin', 'Rosalind', 'Sylvester', 'Theodora', 'Ursula',
+  'Vernon', 'Winifred', 'Xerxes', 'Yolanda', 'Zachary', 'Aurelia', 'Basil', 'Clovis',
+  'Phil'
+];
+
+const SURNAMES = [
+  'Albright', 'Bracken', 'Calder', 'Driscoll', 'Ellsworth', 'Frobisher',
+  'Grimaldi', 'Halvorsen', 'Ibbotson', 'Jellicoe', 'Kessler', 'Langford',
+  'Merriweather', 'Nettleship', 'Ormandy', 'Pettigrew', 'Quillan', 'Redmayne',
+  'Satterthwaite', 'Tremaine', 'Underwood', 'Voss', 'Whitcomb', 'Yarrow',
+  'Ziemann', 'Ashworth', 'Boden', 'Chatsworth', 'Darnley', 'Enfield',
+  'Doe'
+];
+
+/* Descriptive person phrases (part of the generic person() space). */
+const AUTHORS = [
+  'a retired semiotician',
+  'a hobbyist cosmologist',
+  'the village eccentric',
+  'a freelance cartographer',
+  'a part-time sphinx',
+  'an itinerant folklorist',
+  'a nocturnal lexicographer',
+  'the last living flâneur',
+  'a professional daydreamer',
+  'a basement etymologist',
+  'a skeptical astrologer',
+  'a misanthropic poet laureate',
+  'a cross-eyed augur',
+  'a temporarily omniscient housecat',
+  'a dissenting committee member',
+  'the curator of a museum of nothing',
+  'an over-caffeinated monk',
+  'a lay philosopher of margins',
+  'the ghost of a thesaurus',
+  'a wandering dowsing-rod maker',
+  'a recovering grammarian',
+  'a nocturnal notary',
+  'a former lighthouse keeper',
+  'a reluctant prophet',
+  'an itinerant piano tuner',
+  'a semi-retired alchemist',
+  'a professional eavesdropper',
+  'a chronicler of small disasters',
+  'an apprentice ornithomancer',
+  'the village ombudsman',
+  'a person of letters',
+  'an authority on nothing in particular',
+  'a bird that reads too much',
+  'a guest lecturer, once'
+];
+
+/* Regions and region prepositions: locationPhrase() composes these, and
+ * attribution sources append a region suffix (regionPhrase()). */
+const REGIONS = [
+  'Bavaria', 'Silesia', 'Cumbria', 'Bohemia', 'Transylvania', 'Pomerania',
+  'Sardinia', 'Corsica', 'Flanders', 'Brittany', 'Thuringia', 'Saxony',
+  'Umbria', 'Lombardy', 'Galicia', 'Macedonia', 'Andalusia', 'Sicily',
+  'Normandy', 'Kashmir', 'Patagonia', 'Cappadocia', 'Gascony', 'Dalmatia',
+  'Moravia', 'Livonia', 'Friesland', 'East Prussia', 'the Hebrides', 'the Sahel',
+  'Ohio', 'New Jersey', 'Devon', 'Yorkshire', 'Wessex', 'Cornwall',
+  'the Ruhr', 'the Black Forest', 'the Carpathians', 'the Balkans', 'the Levant',
+  'the Maghreb', 'Mongolia', 'Tibet', 'the Steppe', 'the Gobi', 'the Amazon',
+  'the Pampas', 'Easter Island', 'Svalbard', 'Greenland', 'Antarctica',
+  'the Nullarbor', 'a small principality', 'the middle of nowhere',
+  'the outskirts of everywhere',
+  'the Vatican', 'Byzantium', 'Cathay', 'the Catacombs', 'the Underworld',
+  'Sub-Basement 7', 'the Upper Reaches', 'a flooded atrium', 'the reading room',
+  'the stacks', 'a mezzanine', 'the roof gardens', 'an abandoned subway station',
+  'the salt flats', 'the high desert', 'the deep sea', 'the polar ice cap',
+  'a cave system', 'the rainforest canopy', 'the other side of the moon',
+  'the Dreamlands', 'an alternate dimension', 'the mouth of a volcano',
+  'the ruins of a fallen empire'
+];
+const REGION_PRE = [
+  'in ', 'somewhere in ', 'near ', 'at the edge of ', 'off the coast of ',
+  'under ', 'beneath ', 'below ', 'underneath ', 'inside ', 'behind ', 'beyond ',
+  'above ', 'deep in ', 'deep inside ', 'somewhere under ', 'somewhere beyond ',
+  'underground in ', 'in the sewers of ', 'in the basement of ', 'in the attic of ',
+  'at the heart of ', 'on the far side of ', 'hidden beneath ', 'buried under '
 ];
 </script>
 <script>
