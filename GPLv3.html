@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GNU General Public License v3.0</title>
+<script>
+(function(){var t=document.documentElement,s=localStorage.getItem('tools-theme');if(s)t.setAttribute('data-theme',s);else if(window.matchMedia('(prefers-color-scheme: dark)').matches)t.setAttribute('data-theme','dark')})();
+</script>
 <style>
   :root {
     --bg: #ffffff; --fg: #1a1a2e; --muted: #666;
@@ -763,10 +766,6 @@ Public License instead of this License.  But first, please read
 (function () {
   var btn = document.getElementById('theme-toggle');
   var root = document.documentElement;
-  var stored = localStorage.getItem('gpl-theme');
-  if (stored) root.setAttribute('data-theme', stored);
-  else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
-    root.setAttribute('data-theme', 'dark');
   function update() {
     var dark = root.getAttribute('data-theme') === 'dark';
     btn.textContent = dark ? '\u2600\uFE0F' : '\uD83C\uDF19';
@@ -776,10 +775,10 @@ Public License instead of this License.  But first, please read
   btn.addEventListener('click', function () {
     var dark = root.getAttribute('data-theme') === 'dark';
     root.setAttribute('data-theme', dark ? 'light' : 'dark');
-    localStorage.setItem('gpl-theme', dark ? 'light' : 'dark');
+    localStorage.setItem('tools-theme', dark ? 'light' : 'dark');
     update();
   });
 })();
 </script>
 </body>
-</html><!-- build ✊🐥🍠😋😁🌚🍖🤲😨🥥👋🍄🌏🐛🥒😀🤟😥🍗🌸🐴😛🍉🥀💠🥦🐔😊⚜🍠♎😯 -->
+</html><!-- build 🍄✌🦕🌻🐠🍖😑✌☹😅🤟💜😚😀🐴🍑👊☘😜😃🤩🙄⚜🐌🐱🐧🦖😞😢👏♐🥩 -->
